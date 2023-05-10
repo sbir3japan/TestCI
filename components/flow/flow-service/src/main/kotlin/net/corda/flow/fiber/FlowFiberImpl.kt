@@ -13,6 +13,8 @@ import net.corda.utilities.trace
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.nio.ByteBuffer
+import java.security.AccessController
+import java.security.PrivilegedAction
 import java.util.UUID
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Future
@@ -134,7 +136,9 @@ class FlowFiberImpl(
                 .withTag(CordaMetrics.Tag.FlowClass, getExecutionContext().flowCheckpoint.flowStartContext.flowClassName)
                 .build()
                 .recordCallable {
-                    getExecutionContext().sandboxGroupContext.checkpointSerializer.serialize(this)
+                    AccessController.doPrivileged(PrivilegedAction {
+                        getExecutionContext().sandboxGroupContext.checkpointSerializer.serialize(this)
+                    })
                 }
             flowCompletion.complete(FlowIORequest.FlowSuspended(ByteBuffer.wrap(fiberState), request))
         }
