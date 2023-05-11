@@ -224,6 +224,10 @@ class CryptoProcessorImpl @Activate constructor(
             is ConfigChangedEvent -> {
                 startBusProcessors(event)
             }
+
+            is DoRotate -> {
+
+            }
         }
     }
 
@@ -316,5 +320,6 @@ class CryptoProcessorImpl @Activate constructor(
     }
 
     class AssociateHSM : LifecycleEvent
+    class DoRotate : LifecycleEvent
 }
 
