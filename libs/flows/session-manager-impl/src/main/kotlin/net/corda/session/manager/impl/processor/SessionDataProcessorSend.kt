@@ -51,16 +51,17 @@ class SessionDataProcessorSend(
                 sessionState
             }
             SessionStateType.CREATED, SessionStateType.CONFIRMED  -> {
-                val bytes = (payload.payload as ByteBuffer).array()
-                val chunks = chunkSerializer.generateChunks(bytes)
+                // Temporarily disable chunking code here as this incurs a significant performance penalty.
+//                val bytes = (payload.payload as ByteBuffer).array()
+//                val chunks = chunkSerializer.generateChunks(bytes)
                 val sendEventsState = sessionState.sendEventsState
-                if (chunks.isNotEmpty()) {
-                    chunks.forEach {
-                        addDataEventToSendEvents(sendEventsState, generateChunkedDataEvent(it))
-                    }
-                } else {
-                    addDataEventToSendEvents(sendEventsState, sessionEvent)
-                }
+//                if (chunks.isNotEmpty()) {
+//                    chunks.forEach {
+//                        addDataEventToSendEvents(sendEventsState, generateChunkedDataEvent(it))
+//                    }
+//                } else {
+                addDataEventToSendEvents(sendEventsState, sessionEvent)
+//                }
                 sessionState
             }
             else -> {

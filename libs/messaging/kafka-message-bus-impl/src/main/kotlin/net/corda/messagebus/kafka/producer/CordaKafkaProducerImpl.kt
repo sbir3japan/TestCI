@@ -100,22 +100,23 @@ class CordaKafkaProducerImpl(
      * @param partition partition to send to. defaults to null.
      */
     private fun sendRecord(record: CordaProducerRecord<*, *>, callback: CordaProducer.Callback? = null, partition: Int? = null) {
-        val chunkedRecords = chunkSerializerService.generateChunkedRecords(record)
-        if (chunkedRecords.isNotEmpty()) {
-            sendChunks(chunkedRecords, callback, partition)
-        } else {
-            try {
-                producer.send(record.toKafkaRecord(topicPrefix , partition), callback?.toKafkaCallback())
-            } catch (ex: CordaRuntimeException) {
-                val msg = "Failed to send record to topic ${record.topic} with key ${record.key}"
-                if (config.throwOnSerializationError) {
-                    log.error(msg, ex)
-                    throw ex
-                } else {
-                    log.warn(msg, ex)
-                }
+        // Temporarily disable chunking support here as this incurs a significant performance penalty.
+//        val chunkedRecords = chunkSerializerService.generateChunkedRecords(record)
+//        if (chunkedRecords.isNotEmpty()) {
+//            sendChunks(chunkedRecords, callback, partition)
+//        } else {
+        try {
+            producer.send(record.toKafkaRecord(topicPrefix , partition), callback?.toKafkaCallback())
+        } catch (ex: CordaRuntimeException) {
+            val msg = "Failed to send record to topic ${record.topic} with key ${record.key}"
+            if (config.throwOnSerializationError) {
+                log.error(msg, ex)
+                throw ex
+            } else {
+                log.warn(msg, ex)
             }
         }
+//        }
     }
 
     /**
