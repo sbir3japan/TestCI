@@ -9,6 +9,7 @@ import net.corda.data.messaging.ResponseStatus
 import net.corda.lifecycle.LifecycleCoordinatorFactory
 import net.corda.lifecycle.LifecycleCoordinatorName
 import net.corda.lifecycle.LifecycleStatus
+import net.corda.messagebus.api.CordaTopicPartition
 import net.corda.messagebus.api.configuration.ConsumerConfig
 import net.corda.messagebus.api.configuration.ProducerConfig
 import net.corda.messagebus.api.constants.ConsumerRoles
@@ -39,6 +40,7 @@ import java.nio.ByteBuffer
 import java.time.Instant
 import java.util.UUID
 import java.util.concurrent.CompletableFuture
+import kotlin.random.Random
 
 @Suppress("LongParameterList")
 internal class CordaRPCSenderImpl<REQUEST : Any, RESPONSE : Any>(
@@ -103,10 +105,7 @@ internal class CordaRPCSenderImpl<REQUEST : Any, RESPONSE : Any>(
                     String::class.java,
                     RPCResponse::class.java
                 ).use {
-                    it.subscribe(
-                        listOf(getRPCResponseTopic(config.topic)),
-                        partitionListener
-                    )
+                    assignPartitions(it)
                     // Note that Lifecycle UP and DOWN are handled by the RPCConsumerRebalanceListener based on whether
                     // partitions are available to this sender or not.
                     pollAndProcessRecords(it)
@@ -127,6 +126,16 @@ internal class CordaRPCSenderImpl<REQUEST : Any, RESPONSE : Any>(
         }
         producer?.close()
         producer = null
+    }
+
+    private fun assignPartitions(consumer: CordaConsumer<String, RPCResponse>) {
+        val topic = getRPCResponseTopic(config.topic)
+        val partitions = consumer.getPartitions(topic)
+        // Pick a partition at random
+        val partition = partitions[Random.nextInt(0, partitions.size)]
+        consumer.assign(listOf(partition))
+        futureTracker.addPartitions(listOf(partition))
+        threadLooper.updateLifecycleStatus(LifecycleStatus.UP)
     }
 
     private fun pollAndProcessRecords(consumer: CordaConsumer<String, RPCResponse>) {
@@ -205,7 +214,7 @@ internal class CordaRPCSenderImpl<REQUEST : Any, RESPONSE : Any>(
     override fun sendRequest(req: REQUEST): CompletableFuture<RESPONSE> {
         val correlationId = UUID.randomUUID().toString()
         val future = CompletableFuture<RESPONSE>()
-        val partitions = partitionListener.getPartitions()
+        val partitions = futureTracker.getPartitions().map { CordaTopicPartition(getRPCResponseTopic(config.topic), it) }
 
         val reqBytes = try {
             serializer.serialize(req)

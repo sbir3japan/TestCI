@@ -55,4 +55,8 @@ class FutureTracker<RESPONSE> {
             futuresInPartitionMap.remove(partition.partition)
         }
     }
+
+    fun getPartitions(): List<Int> {
+        return futuresInPartitionMap.keys().toList()
+    }
 }
