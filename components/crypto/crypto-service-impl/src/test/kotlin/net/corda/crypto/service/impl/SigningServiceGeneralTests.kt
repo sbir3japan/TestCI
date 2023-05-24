@@ -17,8 +17,8 @@ import net.corda.crypto.core.CryptoConsts.SigningKeyFilters.CREATED_BEFORE_FILTE
 import net.corda.crypto.core.CryptoConsts.SigningKeyFilters.MASTER_KEY_ALIAS_FILTER
 import net.corda.crypto.core.CryptoConsts.SigningKeyFilters.SCHEME_CODE_NAME_FILTER
 import net.corda.crypto.core.KeyAlreadyExistsException
-import net.corda.crypto.core.ShortHash
 import net.corda.crypto.core.SecureHashImpl
+import net.corda.crypto.core.ShortHash
 import net.corda.crypto.core.parseSecureHash
 import net.corda.crypto.persistence.SigningKeyInfo
 import net.corda.crypto.persistence.SigningKeyOrderBy
@@ -32,7 +32,6 @@ import net.corda.v5.crypto.DigestAlgorithmName
 import net.corda.v5.crypto.KeySchemeCodes.ECDSA_SECP256R1_CODE_NAME
 import net.corda.v5.crypto.SecureHash
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.BeforeAll
@@ -74,7 +73,7 @@ class SigningServiceGeneralTests {
     fun `Should throw original exception failing signing`() {
         val exception = RuntimeException("")
         val repo = mock<SigningRepository> {
-            on { findKey(any<PublicKey>()) } doThrow exception
+            on { findKeyByFullId(any()) } doThrow exception
         }
         val signingService = makeSigningServiceImpl(repo, makeCache())
         val thrown = assertThrows(exception::class.java) {
@@ -89,7 +88,7 @@ class SigningServiceGeneralTests {
             )
         }
         assertSame(exception, thrown)
-        Mockito.verify(repo, times(1)).findKey(any<PublicKey>())
+        Mockito.verify(repo, times(1)).findKeyByFullId(any())
     }
 
     @Test
@@ -126,7 +125,7 @@ class SigningServiceGeneralTests {
     fun `Should throw original exception failing derivation`() {
         val exception = RuntimeException("")
         val repo = mock<SigningRepository> {
-            on { findKey(any<PublicKey>()) } doThrow exception
+            on { findKeyByFullId(any()) } doThrow exception
         }
         val signingService = makeSigningServiceImpl(repo, makeCache())
         val thrown = assertThrows(exception::class.java) {
@@ -142,7 +141,7 @@ class SigningServiceGeneralTests {
             )
         }
         assertSame(exception, thrown)
-        verify(repo, times(1)).findKey(any<PublicKey>())
+        verify(repo, times(1)).findKeyByFullId(any())
     }
 
     @Test
@@ -395,7 +394,7 @@ class SigningServiceGeneralTests {
     fun `repository can correctly looks up a signing key by short ids`() {
         val hashA = ShortHash.of("0123456789AB")
         val hashB = ShortHash.of("123456789ABC")
-        val keys = listOf(hashA, hashB)
+        val keys = setOf(hashA, hashB)
         val mockCachedKey = mock<SigningKeyInfo> { on { id } doReturn hashA }
         val queryCap = argumentCaptor<Iterable<CacheKey>>()
         val cache = mock<Cache<CacheKey, SigningKeyInfo>> {
@@ -442,53 +441,13 @@ class SigningServiceGeneralTests {
         }
 
         val signingService = makeSigningServiceImpl(repo, cache, cryptoServiceFactory)
-        signingService.lookupSigningKeysByPublicKeyHashes("tenant", keys)
+        signingService.lookupSigningKeysByPublicKeyHashes("tenant", keys.toSet())
 
         val cacheKeys = setOf(CacheKey("tenant", shortA), CacheKey("tenant", shortB))
         queryCap.allValues.single().forEach {
             assertThat(it in cacheKeys)
         }
         assertThat(fullIdsCap.allValues.single()).isEqualTo(setOf(hashB))
-    }
-
-    @Test
-    fun `lookupSigningKeysByPublicKeyShortHash returns requested keys from cache if all requested keys are in cache`() {
-        // Remember key ids cannot clash for same tenant so short keys of testing keys need to be different
-        val fullKeyId0 = parseSecureHash("SHA-256:ABC12345678911111111111111")
-        val shortKeyId0 = ShortHash.of(fullKeyId0)
-        val fullKeyId1 = parseSecureHash("SHA-256:BBC12345678911111111111111")
-        val shortKeyId1 = ShortHash.of(fullKeyId1)
-        val repo = mock<SigningRepository> {
-            on { findKey(any<PublicKey>()) } doReturn null
-        }
-        val cache = makeCache()
-        var repoCount = 0
-        val signingService = SigningServiceImpl(
-            signingRepositoryFactory = {
-                repoCount++
-                repo
-            },
-            cryptoServiceFactory = mock(),
-            schemeMetadata = schemeMetadata,
-            digestService = mockDigestService(),
-            cache = cache,
-        )
-        listOf(Pair(shortKeyId0, fullKeyId0), Pair(shortKeyId1, fullKeyId1)).forEach { key ->
-            cache.put(
-                CacheKey(tenantId, key.first),
-                mock<SigningKeyInfo> {
-                    on { fullId }.thenReturn(key.second)
-                }
-            )
-        }
-
-        val r = signingService.lookupSigningKeysByPublicKeyShortHash(tenantId, listOf(shortKeyId0, shortKeyId1))
-        assertEquals(
-            setOf(fullKeyId0, fullKeyId1).map { it.toString() }.toSet(),
-            r.map { it.fullId.toString() }.toSet()
-        )
-        // verify it didn't go to the database
-        assertThat(repoCount).isEqualTo(0)
     }
 
 }
