@@ -38,14 +38,12 @@ import net.corda.libs.configuration.SmartConfigFactory
 import net.corda.messaging.api.records.Record
 import net.corda.schema.Schemas
 import net.corda.schema.configuration.ConfigKeys
-import net.corda.schema.configuration.ConfigKeys.CRYPTO_CONFIG
 import net.corda.v5.application.crypto.DigestService
 import net.corda.v5.crypto.DigestAlgorithmName
 import net.corda.v5.crypto.SecureHash
 import org.junit.jupiter.api.Assertions.assertInstanceOf
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.argumentCaptor
@@ -208,7 +206,7 @@ import kotlin.test.assertTrue
       */
 
      data class Results<R, S>(
-         val lookedUpSigningKeys: List<List<String>>,
+         val lookedUpSigningKeys: List<Set<String>>,
          val successfulFlowOpsResponses: List<R>,
          val transformedResponses: List<S>,
          val capturedTenantIds: List<String>,
@@ -235,7 +233,7 @@ import kotlin.test.assertTrue
          ): Results<R, S> {
          val indices = 0..(flowOpCallbacks.size - 1)
          val capturedTenantIds: MutableList<String> = mutableListOf()
-         val lookedUpSigningKeys = mutableListOf<List<String>>() // the secure hashes passed into the signing service
+         val lookedUpSigningKeys = mutableListOf<Set<String>>() // the secure hashes passed into the signing service
          val recordKeys = flowOpCallbacks.map {
              UUID.randomUUID().toString()
          } // UUIDs for the flow op records that are passed into the crypto flow ops processor
@@ -285,7 +283,7 @@ import kotlin.test.assertTrue
          // capture what is passed in  to the signing service operations
          doAnswer {
              capturedTenantIds.add(it.getArgument(0))
-             lookedUpSigningKeys.add(it.getArgument<List<SecureHash>>(1).map { it.toString() })
+             lookedUpSigningKeys.add((it.getArgument<Set<SecureHash>>(1).map { it.toString() }).toSet())
              myPublicKeys.map { mockSigningKeyInfo(it) }
          }.whenever(signingService).lookupSigningKeysByPublicKeyHashes(any(), any())
          doAnswer {
@@ -355,9 +353,7 @@ import kotlin.test.assertTrue
          assertEquals(1, results.lookedUpSigningKeys.size)
          val passedSecureHashes = results.lookedUpSigningKeys.first()
          assertEquals(3, passedSecureHashes.size)
-         assertEquals(myPublicKeys[0].fullId(), passedSecureHashes[0])
-         assertEquals(myPublicKeys[1].fullId(), passedSecureHashes[1])
-         assertEquals(notMyKey.fullId(), passedSecureHashes[2])
+         assertEquals(setOf(myPublicKeys[0].fullId(), myPublicKeys[1].fullId(), notMyKey.fullId()), passedSecureHashes)
          assertNotNull(results.successfulFlowOpsResponses.first().keys)
          assertEquals(2, results.successfulFlowOpsResponses.first().keys.size)
          assertTrue(results.successfulFlowOpsResponses.first().keys.any {
@@ -396,7 +392,6 @@ import kotlin.test.assertTrue
     }
 
 
-     @Disabled
      //    @Suppress("UNCHECKED_CAST")
      @Test
      fun `Should process list with valid event and skip event without value`() {
@@ -425,7 +420,6 @@ import kotlin.test.assertTrue
          assertTrue(transformed.any { it.encoded.contentEquals(myPublicKeys[1].encoded) })
      }
 
-     @Disabled
      @Suppress("UNCHECKED_CAST")
      @Test
      fun `Should process list with valid event and return error for stale event`() {
@@ -476,17 +470,14 @@ import kotlin.test.assertTrue
          assertEquals(1, r.capturedTenantIds.size)
          assertEquals(tenantId, r.capturedTenantIds[0])
          assertEquals(1, r.lookedUpSigningKeys.size)
-         val passedList = r.lookedUpSigningKeys[0]
-         assertEquals(3, passedList.size)
-         assertEquals(myPublicKeys[0].fullId(), passedList[0])
-         assertEquals(myPublicKeys[1].fullId(), passedList[1])
-         assertEquals(notMyKey.fullId(), passedList[2])
+         val passedSet = r.lookedUpSigningKeys[0]
+         assertEquals(3, passedSet.size)
+         assertEquals(setOf(myPublicKeys[0].fullId(), myPublicKeys[1].fullId(), notMyKey.fullId()), passedSet)
          assertInstanceOf(List::class.java, r.transformedResponses.first())
          assertTrue(r.transformedResponses.first().any { it.encoded.contentEquals(myPublicKeys[0].encoded) })
          assertTrue(r.transformedResponses.first().any { it.encoded.contentEquals(myPublicKeys[1].encoded) })
      }
 
-     @Disabled
      @Test
      fun `Should process list with valid event and return error for failed event`() {
          val failingTenantId = UUID.randomUUID().toString()
@@ -531,16 +522,10 @@ import kotlin.test.assertTrue
          assertEquals(failingTenantId, r.capturedTenantIds[0])
          assertEquals(tenantId, r.capturedTenantIds[1])
          assertEquals(2, r.lookedUpSigningKeys.size)
-         val passedList0 = r.lookedUpSigningKeys[0]
-         assertEquals(3, passedList0.size)
-         assertEquals(myPublicKeys[0].fullId(), passedList0[0])
-         assertEquals(myPublicKeys[1].fullId(), passedList0[1])
-         assertEquals(notMyKey.fullId(), passedList0[2])
-         val passedList1 = r.lookedUpSigningKeys[0]
-         assertEquals(3, passedList1.size)
-         assertEquals(myPublicKeys[0].fullId(), passedList1[0])
-         assertEquals(myPublicKeys[1].fullId(), passedList1[1])
-         assertEquals(notMyKey.fullId(), passedList1[2])
+         assertEquals(
+             setOf(myPublicKeys[0].fullId(), myPublicKeys[1].fullId(), notMyKey.fullId()),
+             r.lookedUpSigningKeys[0]
+         )
          assertInstanceOf(List::class.java, r.transformedResponses)
          val keys = r.transformedResponses.first()
          assertEquals(2, r.transformedResponses.first().size)
