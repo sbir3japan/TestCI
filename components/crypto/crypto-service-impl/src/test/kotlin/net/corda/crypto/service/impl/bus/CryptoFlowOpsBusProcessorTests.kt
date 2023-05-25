@@ -98,6 +98,7 @@ import kotlin.test.assertTrue
         )
 
     private fun mockPublicKey(): PublicKey {
+        val serialisedPublicKey = Random.Default.nextBytes(256)
         val serialisedPublicKey = Random(Instant.now().toEpochMilli()).nextBytes(256)
         return mock {
             on { encoded } doReturn serialisedPublicKey
