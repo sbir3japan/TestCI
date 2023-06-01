@@ -14,5 +14,6 @@ object MetricsConstants {
     const val RPC_SENDER_OPERATION = "rpcSender"
     const val RPC_RESPONDER_OPERATION = "rpcResponder"
     const val EVENT_POLL_OPERATION = "eventPoll"
+    const val PROCESSOR_BATCH_TRANSACTION_OPERATION = "pollToTransaction"
     const val STATE_POLL_OPERATION = "statePoll"
 }

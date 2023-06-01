@@ -86,6 +86,7 @@ class CordaKafkaConsumerBuilderImpl @Activate constructor(
             if (currentBundle != null) {
                 Thread.currentThread().contextClassLoader = currentBundle.adapt(BundleWiring::class.java).classLoader
             }
+            log.info("Creating Consumer with properties: \n $kafkaProperties.")
             KafkaConsumer(
                 kafkaProperties,
                 keyDeserializer,

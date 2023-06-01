@@ -1,35 +1,30 @@
-package net.corda.applications.workers.flow
+package net.corda.applications.workers.member
 
 import net.corda.applications.workers.workercommon.ApplicationBanner
 import net.corda.applications.workers.workercommon.DefaultWorkerParams
 import net.corda.applications.workers.workercommon.JavaSerialisationFilter
-import net.corda.applications.workers.workercommon.WorkerHelpers.Companion.getBootstrapConfig
-import net.corda.applications.workers.workercommon.WorkerHelpers.Companion.getParams
+import net.corda.applications.workers.workercommon.PathAndConfig
+import net.corda.applications.workers.workercommon.WorkerHelpers
 import net.corda.applications.workers.workercommon.WorkerHelpers.Companion.loggerStartupInfo
-import net.corda.applications.workers.workercommon.WorkerHelpers.Companion.printHelpOrVersion
-import net.corda.applications.workers.workercommon.WorkerHelpers.Companion.setupMonitor
 import net.corda.applications.workers.workercommon.WorkerMonitor
 import net.corda.libs.configuration.secret.SecretsServiceFactoryResolver
 import net.corda.libs.configuration.validation.ConfigurationValidatorFactory
 import net.corda.libs.platform.PlatformInfoProvider
 import net.corda.osgi.api.Application
 import net.corda.osgi.api.Shutdown
-import net.corda.processors.flow.FlowProcessor
-import net.corda.processors.verification.VerificationProcessor
+import net.corda.processors.messagepattern.LoadDriverProcessor
 import org.osgi.service.component.annotations.Activate
 import org.osgi.service.component.annotations.Component
 import org.osgi.service.component.annotations.Reference
 import org.slf4j.LoggerFactory
-import picocli.CommandLine.Mixin
+import picocli.CommandLine
 
-/** The worker for handling flows. */
+/** The worker for handling Load Driver tests. */
 @Suppress("Unused", "LongParameterList")
 @Component(service = [Application::class])
-class FlowWorker @Activate constructor(
-    @Reference(service = FlowProcessor::class)
-    private val flowProcessor: FlowProcessor,
-    @Reference(service = VerificationProcessor::class)
-    private val verificationProcessor: VerificationProcessor,
+class LoadDriverWorker @Activate constructor(
+    @Reference(service = LoadDriverProcessor::class)
+    private val loadDriverProcessor: LoadDriverProcessor,
     @Reference(service = Shutdown::class)
     private val shutDownService: Shutdown,
     @Reference(service = WorkerMonitor::class)
@@ -48,42 +43,46 @@ class FlowWorker @Activate constructor(
         private val logger = LoggerFactory.getLogger(this::class.java.enclosingClass)
     }
 
-    /** Parses the arguments, then initialises and starts the [flowProcessor] and [verificationProcessor]. */
+    /** Parses the arguments, then initialises and starts the [messagePatternProcessor]. */
     override fun startup(args: Array<String>) {
-        logger.info("Flow worker starting.")
+        logger.info("Load Driver worker starting.")
         logger.loggerStartupInfo(platformInfoProvider)
 
-        applicationBanner.show("Flow Worker", platformInfoProvider)
-
-        if (System.getProperty("co.paralleluniverse.fibers.verifyInstrumentation") == true.toString()) {
-            logger.info("Quasar's instrumentation verification is enabled")
-        }
+        applicationBanner.show("Load DriverWorker", platformInfoProvider)
 
         JavaSerialisationFilter.install()
 
-        val params = getParams(args, FlowWorkerParams())
-        if (printHelpOrVersion(params.defaultParams, FlowWorker::class.java, shutDownService)) return
-        setupMonitor(workerMonitor, params.defaultParams, this.javaClass.simpleName)
+        val params = WorkerHelpers.getParams(args, LoadDriverWorkerParams())
+        if (WorkerHelpers.printHelpOrVersion(params.defaultParams, LoadDriverWorker::class.java, shutDownService)) return
+        WorkerHelpers.setupMonitor(workerMonitor, params.defaultParams, this.javaClass.simpleName)
 
-        val config = getBootstrapConfig(
+        val patternConfig = PathAndConfig("pattern", params.patternParams)
+
+        val config = WorkerHelpers.getBootstrapConfig(
             secretsServiceFactoryResolver,
             params.defaultParams,
-            configurationValidatorFactory.createConfigValidator())
+            configurationValidatorFactory.createConfigValidator(),
+            listOf(patternConfig)
+        )
 
-        flowProcessor.start(config)
-        verificationProcessor.start(config)
+        logger.info("Load Driver Worker params: ${args.map { "$it, " }}")
+
+        loadDriverProcessor.start(config)
     }
 
     override fun shutdown() {
-        logger.info("Flow worker stopping.")
-        flowProcessor.stop()
-        verificationProcessor.stop()
+        logger.info("Load Driver worker stopping.")
+        loadDriverProcessor.stop()
         workerMonitor.stop()
     }
 }
 
 /** Additional parameters for the flow worker are added here. */
-private class FlowWorkerParams {
-    @Mixin
+private class LoadDriverWorkerParams {
+    @CommandLine.Mixin
     var defaultParams = DefaultWorkerParams()
+
+    @CommandLine.Option(names = ["-P", "--pattern"], description = ["Load Driver parameters for the worker."])
+    var patternParams = emptyMap<String, String>()
 }
+

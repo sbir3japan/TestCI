@@ -192,6 +192,51 @@
         }
       }
     },
+    "pattern": {
+      "description": "Configuration options related to Message Pattern worker.",
+      "properties": {
+        "type" : {
+          "description": "",
+          "type": "string"
+        },
+        "count" : {
+          "description": "Number of consumers to start, null if only starting 1",
+          "type": "string"
+        },
+        "topic" : {
+          "description": "Topic to subscribe to",
+          "type": "string"
+        },
+        "group" : {
+          "description": "Consumer group to join",
+          "type": "string"
+        },
+        "processorDelay" : {
+          "description": "Length of time a processor should wait before returning. Null will return instantly",
+          "type": "string"
+        },
+        "outputRecordCount" : {
+          "description": "Number of output records",
+          "type": "string"
+        },
+        "outputTopic" : {
+          "description": "Output topic",
+          "type": "string"
+        },
+        "outputRecordSize" : {
+          "description": "Size of the output avro records",
+          "type": "string"
+        },
+        "stateAndEventIterations" : {
+          "description": "The number of times a state should be iterated on",
+          "type": "string"
+        },
+        "startupDelay" : {
+          "description": "The delay before starting subscriptions",
+          "type": "string"
+        }
+      }
+    },
     "additionalProperties": false
   },
   "additionalProperties": false

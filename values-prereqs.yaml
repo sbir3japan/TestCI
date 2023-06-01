@@ -9,7 +9,8 @@ imagePullPolicy: "IfNotPresent"
 image:
   registry: "corda-os-docker-dev.software.r3.com"
   tag: "latest-local"
-
+imagePullSecrets:
+  - docker-registry-cred
 logging:
   format: "text"
   level: "info"
@@ -59,3 +60,26 @@ kafka:
         secretKeyRef:
           name: "prereqs-kafka"
           key: "ca.crt"
+
+workers:
+  # flow worker configuration
+  flow:
+    replicaCount: 1
+  crypto:
+    replicaCount: 0
+  db:
+    replicaCount: 0
+  membership:
+    replicaCount: 0
+  rest:
+    replicaCount: 0
+  p2pLinkManager:
+    replicaCount: 0
+  p2pGateway:
+    replicaCount: 0
+
+tolerations:
+  - key: "corda"
+    effect: "NoSchedule"
+    value: "true"
+nodeSelector: { corda: "true" }

@@ -17,7 +17,8 @@ imagePullPolicy: "IfNotPresent"
 image:
   registry: "corda-os-docker-dev.software.r3.com"
   tag: "latest-local"
-
+imagePullSecrets:
+  - docker-registry-cred
 logging:
   format: "text"
   level: "info"
@@ -67,3 +68,41 @@ db:
           key: "password"
     username:
       value: "user"
+
+
+workers:
+  flow:
+    replicaCount: 1
+    extraArgs:
+      - "-Ptype=DURABLE"
+      - "-Pcount=1"
+      - "-PoutputRecordSize=MEDIUM"
+      - "-PoutputRecordCount=2"
+  crypto:
+    replicaCount: 0
+  db:
+    replicaCount: 0
+  membership:
+    replicaCount: 2
+    extraArgs:
+      - "-Pcount=10000"
+      - "-PoutputRecordCount=1000"
+      - "-PoutputRecordSize=MEDIUM"
+  rest:
+    replicaCount: 0
+  p2pLinkManager:
+    replicaCount: 0
+  p2pGateway:
+    replicaCount: 0
+
+tolerations:
+  - key: "node"
+    effect: "NoSchedule"
+    value: "corda"
+nodeSelector: { node: "corda" }
+
+metrics:
+  podMonitor:
+    enabled: true
+    labels:
+      release: observability
