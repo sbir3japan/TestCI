@@ -10,6 +10,7 @@ import net.corda.messaging.api.publisher.Publisher
 import net.corda.messaging.api.publisher.RPCSender
 import net.corda.messaging.api.publisher.config.PublisherConfig
 import net.corda.messaging.api.publisher.factory.PublisherFactory
+import net.corda.messaging.api.records.Record
 import net.corda.messaging.api.subscription.config.RPCConfig
 import net.corda.processors.messagepattern.LoadDriverProcessor
 import net.corda.processors.messagepattern.internal.ResolvedLoadDriverConfig
@@ -58,7 +59,7 @@ class LoadDriverProcessorImpl @Activate constructor(
             sender.start()
             runRPCSender(sender, resolvedPatternConfig)
         } else {
-            val publisher = publisherFactory.createPublisher(PublisherConfig("loadDriverClientId", false), messagingConfig)
+            val publisher = publisherFactory.createPublisher(PublisherConfig("loadDriverClientId", true), messagingConfig)
             runPublisher(publisher, resolvedPatternConfig)
         }
     }
@@ -84,17 +85,18 @@ class LoadDriverProcessorImpl @Activate constructor(
         log.info("Starting to send records in [${nextRun - Instant.now().toEpochMilli()}] millis")
         while (counter < resolvedPatternConfig.count.toInt()) {
             if (Instant.now().toEpochMilli() > nextRun) {
+                val records = mutableListOf<Record<*, *>>()
                 repeat(resolvedPatternConfig.outputRecordCount) {
-                    publisher.publish(
-                        listOf(
+                    records.add(
                             generateOutputRecord(
                                 UUID.randomUUID().toString(),
                                 resolvedPatternConfig.outputTopic,
                                 resolvedPatternConfig.outputRecordSize
                             )
                         )
-                    )
+
                 }
+                publisher.batchPublish(records)
                 counter += resolvedPatternConfig.outputRecordCount
                 nextRun = Instant.now().toEpochMilli() + resolvedPatternConfig.processorDelay
                 log.info("Sent [$counter] records so far")
