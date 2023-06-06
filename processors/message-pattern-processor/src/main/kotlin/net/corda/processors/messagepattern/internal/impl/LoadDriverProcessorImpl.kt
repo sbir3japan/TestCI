@@ -18,6 +18,7 @@ import net.corda.processors.messagepattern.internal.RecordSizeType
 import net.corda.processors.messagepattern.internal.SenderType
 import net.corda.processors.messagepattern.internal.processors.generateOutputRecord
 import net.corda.processors.messagepattern.internal.processors.generateValue
+import net.corda.utilities.concurrent.getOrThrow
 import net.corda.utilities.debug
 import org.osgi.framework.FrameworkUtil
 import org.osgi.service.component.annotations.Activate
@@ -96,10 +97,15 @@ class LoadDriverProcessorImpl @Activate constructor(
                         )
 
                 }
-                publisher.batchPublish(records)
-                counter += resolvedPatternConfig.outputRecordCount
-                nextRun = Instant.now().toEpochMilli() + resolvedPatternConfig.processorDelay
-                log.info("Sent [$counter] records so far")
+                val result = publisher.batchPublish(records)
+                try {
+                    val resultGet = result.getOrThrow()
+                    counter += resolvedPatternConfig.outputRecordCount
+                    nextRun = Instant.now().toEpochMilli() + resolvedPatternConfig.processorDelay
+                    log.info("Sent [$counter] records so far. $[${resultGet}]")
+                } catch (ex: Exception) {
+                    log.error("Failed to publish batch! counter [$counter]", ex)
+                }
             }
         }
     }
