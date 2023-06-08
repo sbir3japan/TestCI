@@ -96,7 +96,7 @@ open class TestBase {
     protected val keystorePass = "password"
 
     protected val keystorePass_c4 = "cordacadevpass"
-    protected val aliceSNI = listOf("alice.net", "www.alice.net")
+    protected val aliceSNI = listOf("alice.com", "www.alice.net")
     protected val bobSNI = listOf("bob.net", "www.bob.net")
     protected val partyAx500Name = X500Name("O=PartyA, L=London, C=GB")
     protected val partyASNI = SniCalculator.calculateCorda4Sni("O=PartyA, L=London, C=GB")

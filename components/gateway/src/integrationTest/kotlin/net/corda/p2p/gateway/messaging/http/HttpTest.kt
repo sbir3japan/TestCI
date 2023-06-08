@@ -58,7 +58,7 @@ class HttpTest : TestBase() {
         }
     }
 
-    private val serverAddress = URI.create("http://alice.net:10000")
+    private val serverAddress = URI.create("http://alice.com:10000")
 
     @Test
     @Timeout(30)

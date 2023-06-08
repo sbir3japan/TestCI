@@ -6,6 +6,7 @@
 ##
 127.0.0.1	localhost
 127.0.0.1   alice.net
+127.0.0.1   alice.com
 127.0.0.1   www.alice.net
 127.0.0.1   bob.net
 127.0.0.1   www.bob.net
