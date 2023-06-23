@@ -1,6 +1,5 @@
 package net.corda.messaging.subscription.consumer.builder
 
-import java.util.concurrent.ConcurrentHashMap
 import net.corda.messagebus.api.configuration.ConsumerConfig
 import net.corda.messagebus.api.configuration.ProducerConfig
 import net.corda.messagebus.api.constants.ConsumerRoles
@@ -23,6 +22,7 @@ import org.osgi.service.component.annotations.Activate
 import org.osgi.service.component.annotations.Component
 import org.osgi.service.component.annotations.Reference
 import org.slf4j.LoggerFactory
+import java.util.concurrent.ConcurrentHashMap
 
 @Component(service = [StateAndEventBuilder::class])
 class StateAndEventBuilderImpl @Activate constructor(
@@ -77,7 +77,7 @@ class StateAndEventBuilderImpl @Activate constructor(
 
         val partitionState =
             StateAndEventPartitionState(
-                mutableMapOf<Int, MutableMap<K, Pair<Long, S>>>()
+                ConcurrentHashMap<Int, MutableMap<K, Pair<Long, S>>>()
             )
 
         val mapFactory = object : MapFactory<K, Pair<Long, S>> {
