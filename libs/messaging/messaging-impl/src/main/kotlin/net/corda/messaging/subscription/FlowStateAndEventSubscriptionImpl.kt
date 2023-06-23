@@ -36,9 +36,11 @@ import java.time.Clock
 import java.time.Duration
 import java.util.*
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
+import kotlin.collections.ArrayDeque
 
 @Suppress("LongParameterList")
 internal class FlowStateAndEventSubscriptionImpl<K : Any, S : Any, E : Any>(
@@ -240,7 +242,7 @@ internal class FlowStateAndEventSubscriptionImpl<K : Any, S : Any, E : Any>(
      * @return false if the batch had to be abandoned due to a rebalance
      */
     private fun tryProcessBatchOfEvents(events: List<CordaConsumerRecord<K, E>>): Boolean {
-        val outputRecords = mutableListOf<Record<*, *>>()
+        val outputRecords = ConcurrentLinkedQueue<Record<*, *>>()
 //        val updatedStates: MutableMap<Int, MutableMap<K, S?>> = ConcurrentHashMap()
         // maps shouldn't need to be concurrent since we never clash on keys
         // seems that you can;t have null in concurrent map so gone back to mutable map
@@ -257,12 +259,24 @@ internal class FlowStateAndEventSubscriptionImpl<K : Any, S : Any, E : Any>(
         log.debug { "Processing events(keys: ${events.joinToString { it.key.toString() }}, size: ${events.size})" }
         try {
             processorMeter.recordCallable {
-                stateAndEventConsumer.resetPollInterval()
-                processEvents(
-                    groupedEvents = events.groupBy { event -> event.key },
-                    outputRecords,
-                    updatedStates
-                )
+                val eventsToProcess = ArrayDeque(events)
+                while (eventsToProcess.isNotEmpty()) {
+                    stateAndEventConsumer.resetPollInterval()
+                    val loopedEvents = processEvents(
+                        groupedEvents = eventsToProcess.groupBy { event -> event.key },
+                        outputRecords,
+                        updatedStates
+                    )
+                    eventsToProcess.clear()
+                    eventsToProcess.addAll(loopedEvents.flatMap { (originalEvent, newEvents) ->
+                        newEvents.map {
+                            toCordaConsumerRecord(
+                                originalEvent,
+                                it
+                            )
+                        }
+                    })
+                }
             }
         } catch (ex: StateAndEventConsumer.RebalanceInProgressException) {
             log.warn ("Abandoning processing of events(keys: ${events.joinToString { it.key.toString() }}, " +
@@ -272,7 +286,12 @@ internal class FlowStateAndEventSubscriptionImpl<K : Any, S : Any, E : Any>(
 
         commitTimer.recordCallable {
             producer.beginTransaction()
-            producer.sendRecords(outputRecords.toCordaProducerRecords())
+            try {
+                producer.sendRecords(outputRecords.toList().toCordaProducerRecords())
+            } catch (e: Exception) {
+                log.error("OUTPUT RECORDS OM FAILURE $outputRecords", e)
+                throw e
+            }
             if (deadLetterRecords.isNotEmpty()) {
                 producer.sendRecords(deadLetterRecords.map {
                     CordaProducerRecord(
@@ -292,101 +311,112 @@ internal class FlowStateAndEventSubscriptionImpl<K : Any, S : Any, E : Any>(
         return false
     }
 
-    data class GroupedEventData<E, K, S: Any>(
-        val key: K,
-        val state: S?,
-        val topic: String,
-        val partitionId: Int,
-        val future: CompletableFuture<List<Pair<CordaConsumerRecord<K, E>, StateAndEventProcessor.Response<S>?>>>
-    )
+    private fun toCordaConsumerRecord(sourceRecord: CordaConsumerRecord<K, E>, newEvent : Record<K, E>) =
+        CordaConsumerRecord(
+            newEvent.topic,
+            sourceRecord.partition,
+            sourceRecord.offset,
+            newEvent.key,
+            newEvent.value,
+            sourceRecord.timestamp,
+            sourceRecord.headers
+        )
 
     private fun processEvents(
         groupedEvents: Map<K, List<CordaConsumerRecord<K, E>>>,
-        outputRecords: MutableList<Record<*, *>>,
+        outputRecords: Queue<Record<*, *>>,
         updatedStates: MutableMap<Int, MutableMap<K, S?>>
-    ) {
+    ): List<Pair<CordaConsumerRecord<K, E>, List<Record<K, E>>>> {
         val future = stateAndEventConsumer.waitForFunctionToFinish(
             {
                 val startTime = System.nanoTime()
-                val groupedEventDatas: List<GroupedEventData<E, K, S>> = groupedEvents.map { (key, events) ->
+                val futures = groupedEvents.map { (key, events) ->
                     log.debug { "Processing events: $events" }
+                    val topic = events.first().topic
                     val partitionId = events.first().partition
                     val state = updatedStates[partitionId]?.get(key)
-                    GroupedEventData(
-                        key,
-                        state,
-                        events.first().topic,
-                        partitionId,
                         CompletableFuture.supplyAsync(
                             {
                                 log.error("PROCESSING ON NEXT for key $key")
-                                events.map { event ->
+                                val eventUpdates: List<Pair<CordaConsumerRecord<K, E>, StateAndEventProcessor.Response<S>?>> = events.map { event ->
                                     event to processor.onNext(state, event.toRecord())
+                                }
+
+//                                val (eventsToProcess1, outputEvents) = eventUpdates
+//                                    .flatMap { it.second?.responseEvents ?: emptyList() }
+//                                    .partition { it.topic == topic && processor.eventValueClass.isInstance(it.value) && it.key == key }
+
+                                return@supplyAsync eventUpdates.map { (event, thisEventUpdates) ->
+                                    val (eventsToProcess, outputEvents) = thisEventUpdates
+                                        ?.responseEvents
+                                        ?.partition { it.topic == topic && processor.eventValueClass.isInstance(it.value) && it.key == key } ?: (emptyList<Record<K, E>>() to emptyList())
+
+                                    if (outputEvents.any { it == null }) {
+                                        log.error("IT WAS NULL. INPUT EVENT $event, THIS_UPDATES: $thisEventUpdates")
+                                        throw NullPointerException("IT WAS NULL. INPUT EVENT $event, THIS_UPDATES: $thisEventUpdates")
+                                    }
+                                    val updatedState = thisEventUpdates?.updatedState
+                                    when {
+                                        thisEventUpdates == null -> {
+                                            log.warn(
+                                                "Sending state and event on key $key for topic $topic to dead letter queue. " +
+                                                        "Processor failed to complete."
+                                            )
+                                            generateChunkKeyCleanupRecords(key, state, null, outputRecords)
+                                            outputRecords.add(generateDeadLetterRecord(event, state))
+                                            outputRecords.add(Record(stateTopic, key, null))
+                                            updatedStates.computeIfAbsent(partitionId) { mutableMapOf() }[key] = null
+                                            event to emptyList<Record<K, E>>()
+                                        }
+
+                                        thisEventUpdates.markForDLQ -> {
+                                            log.warn(
+                                                "Sending state and event on key ${event.key} for topic ${event.topic} to dead letter queue. " +
+                                                        "Processor marked event for the dead letter queue"
+                                            )
+                                            generateChunkKeyCleanupRecords(key, state, null, outputRecords)
+                                            outputRecords.add(generateDeadLetterRecord(event, state))
+                                            outputRecords.add(Record(stateTopic, key, null))
+                                            updatedStates.computeIfAbsent(partitionId) { mutableMapOf() }[key] = null
+
+                                            // In this case the processor may ask us to publish some output records regardless, so make sure these
+                                            // are outputted.
+                                            outputRecords.addAll(outputEvents)
+                                            event to eventsToProcess
+                                        }
+
+                                        else -> {
+                                            generateChunkKeyCleanupRecords(key, state, updatedState, outputRecords)
+                                            outputRecords.addAll(outputEvents)
+                                            outputRecords.add(Record(stateTopic, key, updatedState))
+                                            updatedStates.computeIfAbsent(partitionId) { mutableMapOf() }[key] = updatedState
+                                            log.debug { "Completed event: $event" }
+                                            event to eventsToProcess
+                                        }
+                                    }
                                 }
                             },
                             processingThreads
                         )
-                    )
                 }
                 // we might want to put a timeout somewhere
-                groupedEventDatas.forEach { it.future.join() }
+                futures.forEach { it.join() }
 
-                log.error("COMPLETED FUTURES: ${groupedEventDatas.size} IN TIME: ${Duration.ofNanos(System.nanoTime() - startTime)}")
+                log.error("COMPLETED FUTURES: ${futures.size} IN TIME: ${Duration.ofNanos(System.nanoTime() - startTime)}")
 
-                groupedEventDatas.map { (key, state, topic, partitionId, future) ->
-                    val eventUpdatesFromFuture: List<Pair<CordaConsumerRecord<K, E>, StateAndEventProcessor.Response<S>?>> = future.get()
-
-                    eventUpdatesFromFuture.map { (event, thisEventUpdates) ->
-                        val updatedState = thisEventUpdates?.updatedState
-                        when {
-                            thisEventUpdates == null -> {
-                                log.warn(
-                                    "Sending state and event on key $key for topic $topic to dead letter queue. " +
-                                            "Processor failed to complete."
-                                )
-                                generateChunkKeyCleanupRecords(key, state, null, outputRecords)
-                                outputRecords.add(generateDeadLetterRecord(event, state))
-                                outputRecords.add(Record(stateTopic, key, null))
-                                updatedStates.computeIfAbsent(partitionId) { mutableMapOf() }[key] = null
-                            }
-
-                            thisEventUpdates.markForDLQ -> {
-                                log.warn(
-                                    "Sending state and event on key ${event.key} for topic ${event.topic} to dead letter queue. " +
-                                            "Processor marked event for the dead letter queue"
-                                )
-                                generateChunkKeyCleanupRecords(key, state, null, outputRecords)
-                                outputRecords.add(generateDeadLetterRecord(event, state))
-                                outputRecords.add(Record(stateTopic, key, null))
-                                updatedStates.computeIfAbsent(partitionId) { mutableMapOf() }[key] = null
-
-                                // In this case the processor may ask us to publish some output records regardless, so make sure these
-                                // are outputted.
-                                outputRecords.addAll(thisEventUpdates.responseEvents)
-                            }
-
-                            else -> {
-                                generateChunkKeyCleanupRecords(key, state, updatedState, outputRecords)
-                                outputRecords.addAll(thisEventUpdates.responseEvents)
-                                outputRecords.add(Record(stateTopic, key, updatedState))
-                                updatedStates.computeIfAbsent(partitionId) { mutableMapOf() }[key] = updatedState
-                                log.debug { "Completed event: $event" }
-                            }
-                        }
-                    }
-                }
+                futures.flatMap { it.get() }
             },
             maxTimeout = config.processorTimeout.toMillis(),
             timeoutErrorMessage = "Failed to finish within the time limit for events with keys ${groupedEvents.keys}"
         )
-
-        future.tryGetResult()
+        @Suppress("UNCHECKED_CAST")
+        return future.tryGetResult() as List<Pair<CordaConsumerRecord<K, E>, List<Record<K, E>>>>
     }
 
     /**
      * If the new state requires old chunk keys to be cleared then generate cleanup records to set those ChunkKeys to null
      */
-    private fun generateChunkKeyCleanupRecords(key: K, state: S?, updatedState: S?, outputRecords: MutableList<Record<*, *>>) {
+    private fun generateChunkKeyCleanupRecords(key: K, state: S?, updatedState: S?, outputRecords: Queue<Record<*, *>>) {
         chunkSerializerService.getChunkKeysToClear(key, state, updatedState)?.let { chunkKeys ->
             chunkKeys.map { chunkKey ->
                 outputRecords.add(Record(stateTopic, chunkKey, null))
