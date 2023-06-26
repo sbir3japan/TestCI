@@ -24,6 +24,11 @@ class CordaAtomicDBProducerImpl(
     private val throwOnSerializationError: Boolean = true
 ) : CordaProducer {
 
+    override fun storeConsumerOffsetsAndMetadata(consumer: CordaConsumer<*, *>,
+                                        records: List<CordaConsumerRecord<*, *>>) {}
+
+    override fun sendStoredRecordOffsetsToTransaction() {}
+
     companion object {
         private val logger = LoggerFactory.getLogger(this::class.java.enclosingClass)
     }

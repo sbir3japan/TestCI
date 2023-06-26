@@ -24,6 +24,10 @@ interface CordaProducer : AutoCloseable {
      */
     fun send(record: CordaProducerRecord<*, *>, callback: Callback?)
 
+    fun storeConsumerOffsetsAndMetadata(consumer: CordaConsumer<*, *>,
+                                        records: List<CordaConsumerRecord<*, *>>)
+
+    fun sendStoredRecordOffsetsToTransaction()
 
     /**
      * Send a [record] to a specific [partition] on the bus with a [callback]
@@ -62,6 +66,8 @@ interface CordaProducer : AutoCloseable {
      * @throws CordaMessageAPIIntermittentException Retryable error
      */
     fun sendRecordOffsetsToTransaction(consumer: CordaConsumer<*, *>, records: List<CordaConsumerRecord<*, *>>)
+
+
 
     /**
      * Should be called before the start of each new transaction.

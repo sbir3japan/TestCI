@@ -19,6 +19,7 @@ import net.corda.tracing.addTraceContextToRecord
 import net.corda.tracing.getOrCreateBatchPublishTracing
 import net.corda.tracing.traceSend
 import net.corda.v5.base.exceptions.CordaRuntimeException
+import org.apache.kafka.clients.consumer.ConsumerGroupMetadata
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.clients.producer.Callback
@@ -267,6 +268,24 @@ class CordaKafkaProducerImpl(
         records: List<CordaConsumerRecord<*, *>>
     ) {
         trySendOffsetsToTransaction(consumer, records.toKafkaRecords())
+    }
+
+    private var storedConsumerOffsets: Map<TopicPartition, OffsetAndMetadata>? = null
+    private var storedConsumerMetadata: ConsumerGroupMetadata? = null
+
+    override fun storeConsumerOffsetsAndMetadata(consumer: CordaConsumer<*, *>,
+                                                 records: List<CordaConsumerRecord<*, *>>) {
+        storedConsumerOffsets = consumerOffsets(consumer, records.toKafkaRecords())
+        storedConsumerMetadata = (consumer as CordaKafkaConsumerImpl).groupMetadata()
+    }
+
+    override fun sendStoredRecordOffsetsToTransaction() {
+        tryWithCleanupOnFailure("sending offset for transaction") {
+            producer.sendOffsetsToTransaction(
+                storedConsumerOffsets,
+                storedConsumerMetadata
+            )
+        }
     }
 
     private fun trySendOffsetsToTransaction(

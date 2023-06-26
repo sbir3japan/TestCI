@@ -33,6 +33,9 @@ import org.slf4j.LoggerFactory
 import java.nio.ByteBuffer
 import java.time.Clock
 import java.util.UUID
+import java.util.*
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.Executors
 
 @Suppress("LongParameterList")
 internal class StateAndEventSubscriptionImpl<K : Any, S : Any, E : Any>(
@@ -48,6 +51,7 @@ internal class StateAndEventSubscriptionImpl<K : Any, S : Any, E : Any>(
 
     private val log = LoggerFactory.getLogger("${this.javaClass.name}-${config.clientId}")
 
+    private var batchPublishFuture = CompletableFuture<Unit>().apply { this.complete(Unit) }
     private var nullableProducer: CordaProducer? = null
     private var nullableStateAndEventConsumer: StateAndEventConsumer<K, S, E>? = null
     private var nullableEventConsumer: CordaConsumer<K, E>? = null
@@ -213,6 +217,8 @@ internal class StateAndEventSubscriptionImpl<K : Any, S : Any, E : Any>(
         }
     }
 
+    private val e = Executors.newSingleThreadScheduledExecutor()
+
     /**
      * Process a batch of events from the last poll and publish the outputs (including DLQd events)
      *
@@ -248,25 +254,68 @@ internal class StateAndEventSubscriptionImpl<K : Any, S : Any, E : Any>(
             return true
         }
 
+        //log.info("@@@ 1")
         commitTimer.recordCallable {
-            producer.beginTransaction()
-            producer.sendRecords(outputRecords.toCordaProducerRecords())
-            if (deadLetterRecords.isNotEmpty()) {
-                producer.sendRecords(deadLetterRecords.map {
-                    CordaProducerRecord(
-                        getDLQTopic(eventTopic),
-                        UUID.randomUUID().toString(),
-                        it
-                    )
-                })
-                deadLetterRecords.clear()
-            }
-            producer.sendRecordOffsetsToTransaction(eventConsumer, events)
-            producer.commitTransaction()
+            // Wait if previous batch has not been published
+            batchPublishFuture.get()
         }
-        log.debug { "Processing events(keys: ${events.joinToString { it.key.toString() }}, size: ${events.size}) complete." }
+
+        //log.info("@@@ 2")
+
+        val dlqList = deadLetterRecords.toList()
+
+        //log.info("@@@ 3")
+
+        deadLetterRecords.clear()
+
+       // log.info("@@@ 4")
+
+        producer.storeConsumerOffsetsAndMetadata(eventConsumer, events)
+
+        batchPublishFuture = CompletableFuture.supplyAsync({
+
+            //log.info("@@@ 1 - 1")
+
+//            commitTimer.recordCallable {
+
+                //log.info("@@@ 1 - 2")
+
+                producer.beginTransaction()
+
+                //log.info("@@@ 1 - 3")
+
+                producer.sendRecords(outputRecords.toCordaProducerRecords())
+
+                //log.info("@@@ 1 - 4")
+
+                if (dlqList.isNotEmpty()) {
+                    producer.sendRecords(dlqList.map {
+                        CordaProducerRecord(
+                            getDLQTopic(eventTopic),
+                            UUID.randomUUID().toString(),
+                            it
+                        )
+                    })
+                }
+
+                //log.info("@@@ 1 - 5")
+
+                producer.sendStoredRecordOffsetsToTransaction()
+
+                //log.info("@@@ 1 - 6")
+
+                producer.commitTransaction()
+
+                //log.info("@@@ 1 - 7")
+//            }
+
+            log.debug { "Processing events(keys: ${events.joinToString { it.key.toString() }}, size: ${events.size}) complete." }
+        }, e)
 
         stateAndEventConsumer.updateInMemoryStatePostCommit(updatedStates, clock)
+
+        //log.info("@@@ 5")
+
         return false
     }
 

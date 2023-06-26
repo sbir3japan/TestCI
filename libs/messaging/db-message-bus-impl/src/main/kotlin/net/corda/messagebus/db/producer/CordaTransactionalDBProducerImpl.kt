@@ -29,6 +29,11 @@ class CordaTransactionalDBProducerImpl(
     private val throwOnSerializationError: Boolean = true
 ) : CordaProducer {
 
+    override fun storeConsumerOffsetsAndMetadata(consumer: CordaConsumer<*, *>,
+                                        records: List<CordaConsumerRecord<*, *>>) {}
+
+    override fun sendStoredRecordOffsetsToTransaction() {}
+
     companion object {
         private val log: Logger = LoggerFactory.getLogger(this::class.java.enclosingClass)
     }

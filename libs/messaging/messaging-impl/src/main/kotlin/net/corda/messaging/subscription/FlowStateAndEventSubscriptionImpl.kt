@@ -37,6 +37,7 @@ import java.time.Duration
 import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.Executors
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
@@ -65,6 +66,7 @@ internal class FlowStateAndEventSubscriptionImpl<K : Any, S : Any, E : Any>(
         ThreadFactoryBuilder().setNameFormat("state-and-event-processing-thread-%d").setDaemon(false).build()
     )
 
+    private var batchPublishFuture = CompletableFuture<Unit>().apply { this.complete(Unit) }
     private var nullableProducer: CordaProducer? = null
     private var nullableStateAndEventConsumer: StateAndEventConsumer<K, S, E>? = null
     private var nullableEventConsumer: CordaConsumer<K, E>? = null
@@ -311,6 +313,8 @@ internal class FlowStateAndEventSubscriptionImpl<K : Any, S : Any, E : Any>(
 //        return false
 //    }
 
+    private val e = Executors.newSingleThreadScheduledExecutor()
+
     /**
      * Process a batch of events from the last poll and publish the outputs (including DLQd events)
      *
@@ -354,39 +358,86 @@ internal class FlowStateAndEventSubscriptionImpl<K : Any, S : Any, E : Any>(
                 }
             }
         } catch (ex: StateAndEventConsumer.RebalanceInProgressException) {
-            log.warn ("Abandoning processing of events(keys: ${events.joinToString { it.key.toString() }}, " +
-                              "size: ${events.size}) due to rebalance", ex)
+            log.warn(
+                "Abandoning processing of events(keys: ${events.joinToString { it.key.toString() }}, " +
+                        "size: ${events.size}) due to rebalance", ex
+            )
             return true
         }
 
+//        commitTimer.recordCallable {
+//            producer.beginTransaction()
+//            try {
+//                producer.sendRecords(outputRecords.toList().toCordaProducerRecords())
+//            } catch (e: Exception) {
+//                log.error("OUTPUT RECORDS OM FAILURE $outputRecords", e)
+//                throw e
+//            }
+//            if (deadLetterRecords.isNotEmpty()) {
+//                producer.sendRecords(deadLetterRecords.map {
+//                    CordaProducerRecord(
+//                        getDLQTopic(eventTopic),
+//                        UUID.randomUUID().toString(),
+//                        it
+//                    )
+//                })
+//                deadLetterRecords.clear()
+//            }
+//            producer.sendRecordOffsetsToTransaction(eventConsumer, events)
+//            producer.commitTransaction()
+//        }
+//        log.debug { "Processing events(keys: ${events.joinToString { it.key.toString() }}, size: ${events.size}) complete." }
+
+        //log.info("@@@ 1")
         commitTimer.recordCallable {
-            producer.beginTransaction()
-            try {
-                producer.sendRecords(outputRecords.toList().toCordaProducerRecords())
-            } catch (e: Exception) {
-                log.error("OUTPUT RECORDS OM FAILURE $outputRecords", e)
-                throw e
-            }
-            if (deadLetterRecords.isNotEmpty()) {
-                producer.sendRecords(deadLetterRecords.map {
-                    CordaProducerRecord(
-                        getDLQTopic(eventTopic),
-                        UUID.randomUUID().toString(),
-                        it
-                    )
-                })
-                deadLetterRecords.clear()
-            }
-            producer.sendRecordOffsetsToTransaction(eventConsumer, events)
-            producer.commitTransaction()
+            // Wait if previous batch has not been published
+            batchPublishFuture.get()
         }
-        log.debug { "Processing events(keys: ${events.joinToString { it.key.toString() }}, size: ${events.size}) complete." }
+
+        //log.info("@@@ 2")
+
+        val dlqList = deadLetterRecords.toList()
+
+        //log.info("@@@ 3")
+
+        deadLetterRecords.clear()
+
+        // log.info("@@@ 4")
+
+        producer.storeConsumerOffsetsAndMetadata(eventConsumer, events)
+
+        batchPublishFuture = CompletableFuture.supplyAsync(
+            {
+//            commitTimer.recordCallable {
+
+                producer.beginTransaction()
+
+                producer.sendRecords(outputRecords.toCordaProducerRecords())
+
+                if (dlqList.isNotEmpty()) {
+                    producer.sendRecords(dlqList.map {
+                        CordaProducerRecord(
+                            getDLQTopic(eventTopic), UUID.randomUUID().toString(), it
+                        )
+                    })
+                }
+
+                producer.sendStoredRecordOffsetsToTransaction()
+
+                producer.commitTransaction()
+
+//            }
+
+                log.debug { "Processing events(keys: ${events.joinToString { it.key.toString() }}, size: ${events.size}) complete." }
+            },
+            e
+        )
 
         stateAndEventConsumer.updateInMemoryStatePostCommit(updatedStates, clock)
         return false
     }
 
-    private fun toCordaConsumerRecord(sourceRecord: CordaConsumerRecord<K, E>, newEvent : Record<K, E>) =
+    private fun toCordaConsumerRecord(sourceRecord: CordaConsumerRecord<K, E>, newEvent: Record<K, E>) =
         CordaConsumerRecord(
             newEvent.topic,
             sourceRecord.partition,
@@ -499,9 +550,10 @@ internal class FlowStateAndEventSubscriptionImpl<K : Any, S : Any, E : Any>(
                     val state = updatedStates[partitionId]?.get(key)
                     CompletableFuture.supplyAsync(
                         {
-                            val eventUpdates: List<Pair<CordaConsumerRecord<K, E>, StateAndEventProcessor.Response<S>?>> = events.map { event ->
-                                event to processor.onNext(state, event.toRecord())
-                            }
+                            val eventUpdates: List<Pair<CordaConsumerRecord<K, E>, StateAndEventProcessor.Response<S>?>> =
+                                events.map { event ->
+                                    event to processor.onNext(state, event.toRecord())
+                                }
 
 //                                val (eventsToProcess1, outputEvents) = eventUpdates
 //                                    .flatMap { it.second?.responseEvents ?: emptyList() }
@@ -511,7 +563,8 @@ internal class FlowStateAndEventSubscriptionImpl<K : Any, S : Any, E : Any>(
                             return@supplyAsync eventUpdates.map { (event, thisEventUpdates) ->
                                 val (eventsToProcess, outputEvents) = thisEventUpdates
                                     ?.responseEvents
-                                    ?.partition { it.topic == topic && processor.eventValueClass.isInstance(it.value) && it.key == key } ?: (emptyList<Record<K, E>>() to emptyList())
+                                    ?.partition { it.topic == topic && processor.eventValueClass.isInstance(it.value) && it.key == key }
+                                    ?: (emptyList<Record<K, E>>() to emptyList())
 
                                 val updatedState = thisEventUpdates?.updatedState
                                 when {
