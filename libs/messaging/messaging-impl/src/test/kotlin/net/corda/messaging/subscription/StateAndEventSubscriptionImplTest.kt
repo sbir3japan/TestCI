@@ -75,7 +75,10 @@ class StateAndEventSubscriptionImplTest {
         doAnswer {
             CompletableFuture.completedFuture(
                 StateAndEventProcessor.Response(
-                    "newstate",
+                    "" +
+                            "" +
+                            "" +
+                            "newstate",
                     emptyList()
                 )
             )
