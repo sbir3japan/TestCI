@@ -12,6 +12,7 @@ import net.corda.flow.rest.v1.types.request.StartFlowParameters
 import net.corda.flow.rest.v1.types.response.FlowStatusResponse
 import net.corda.flow.rest.v1.types.response.FlowStatusResponses
 import net.corda.libs.configuration.SmartConfig
+import net.corda.libs.configuration.helper.getOutputTopic
 import net.corda.libs.packaging.core.CpiIdentifier
 import net.corda.lifecycle.Lifecycle
 import net.corda.messaging.api.exception.CordaMessageAPIFatalException
@@ -38,8 +39,10 @@ import net.corda.rest.response.ResponseEntity
 import net.corda.rest.security.CURRENT_REST_CONTEXT
 import net.corda.rest.ws.DuplexChannel
 import net.corda.rest.ws.WebSocketValidationException
+import net.corda.schema.Schemas.Flow.FLOW_EVENT_TOPIC
 import net.corda.schema.Schemas.Flow.FLOW_MAPPER_EVENT_TOPIC
 import net.corda.schema.Schemas.Flow.FLOW_STATUS_TOPIC
+import net.corda.schema.configuration.BootConfig
 import net.corda.tracing.TraceTag
 import net.corda.tracing.addTraceContextToRecord
 import net.corda.tracing.trace

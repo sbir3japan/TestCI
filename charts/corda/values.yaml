@@ -555,7 +555,7 @@ workers:
               # -- the DB worker SASL password secret key for client connection to Kafka
               key: ""
 
-  # flow worker configuration
+  # flow start worker configuration
   flow:
     # flow worker image configuration
     image:
