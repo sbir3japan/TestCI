@@ -9,13 +9,10 @@ import net.corda.ledger.utxo.verification.TransactionVerificationRequest
 import net.corda.ledger.verification.processor.VerificationRequestHandler
 import net.corda.ledger.verification.sandbox.VerificationSandboxService
 import net.corda.libs.configuration.SmartConfig
-import net.corda.libs.configuration.helper.getOutputTopic
 import net.corda.messaging.api.processor.DurableProcessor
 import net.corda.messaging.api.records.Record
 import net.corda.metrics.CordaMetrics
 import net.corda.sandboxgroupcontext.CurrentSandboxGroupContext
-import net.corda.schema.Schemas.Flow.FLOW_EVENT_TOPIC
-import net.corda.schema.configuration.BootConfig
 import net.corda.tracing.traceEventProcessingSingle
 import net.corda.utilities.MDC_CLIENT_ID
 import net.corda.utilities.MDC_EXTERNAL_EVENT_ID
@@ -90,7 +87,6 @@ class VerificationRequestProcessor(
             }.map {
                 //        val topic = config.getOutputTopic(BootConfig.VERIFICATION_OUTPUT, FLOW_EVENT_TOPIC)
                 //HARDCODED: Point the process to a custom flow processor deployment
-                val flowProcessorTopic = System.getenv("FLOW_VERIFICATION_TOPIC")
                 Record(flowProcessorTopic, it.key, it.value, it.timestamp, it.headers)
             }
     }
