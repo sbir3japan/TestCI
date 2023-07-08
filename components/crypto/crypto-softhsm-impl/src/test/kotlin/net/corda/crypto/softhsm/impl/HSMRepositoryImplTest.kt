@@ -1,6 +1,5 @@
 package net.corda.crypto.softhsm.impl
 
-import net.corda.crypto.cipher.suite.CRYPTO_TENANT_ID
 import net.corda.crypto.core.CryptoTenants
 import java.time.Instant
 import javax.persistence.EntityManager
@@ -34,8 +33,7 @@ class HSMRepositoryImplTest {
         HSMRepositoryImpl(
             org.mockito.kotlin.mock {
                 on { createEntityManager() } doReturn em
-            },
-            CRYPTO_TENANT_ID
+            }
         ).use { hsmRepository ->
             val test = hsmRepository.findTenantAssociation("tenant", "category")
             assertThat(test).isNull()
