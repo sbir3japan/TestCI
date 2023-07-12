@@ -10,6 +10,8 @@ dependencies {
     compileOnly 'org.osgi:org.osgi.service.component.annotations'
     compileOnly "org.osgi:osgi.annotation"
     compileOnly "org.osgi:org.osgi.service.component:$osgiServiceComponentVersion"
+    compileOnly "com.fasterxml.jackson.module:jackson-module-kotlin:$jacksonVersion"
+    compileOnly "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:$jacksonVersion"
 
     implementation platform("net.corda:corda-api:$cordaApiVersion")
     implementation 'net.corda:corda-base'
@@ -72,6 +74,8 @@ dependencies {
     testImplementation "net.corda:corda-membership"
 
     integrationTestImplementation 'net.corda:corda-db-schema'
+    integrationTestImplementation 'com.fasterxml.jackson.module:jackson-module-kotlin:$jacksonVersion'
+    integrationTestImplementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:$jacksonVersion'
 
     integrationTestImplementation project(":components:crypto:crypto-persistence-model")
     integrationTestImplementation project(":components:db:db-connection-manager")

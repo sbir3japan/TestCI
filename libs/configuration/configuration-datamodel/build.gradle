@@ -6,6 +6,7 @@ plugins {
 description 'Configuration Data Model'
 
 dependencies {
+    implementation project(path: ':libs:messaging:db-message-bus-datamodel')
     compileOnly 'org.osgi:osgi.annotation'
 
     implementation platform("net.corda:corda-api:$cordaApiVersion")

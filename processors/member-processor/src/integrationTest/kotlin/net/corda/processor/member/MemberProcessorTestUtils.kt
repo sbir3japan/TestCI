@@ -1,5 +1,10 @@
 package net.corda.processor.member
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
+import com.fasterxml.jackson.module.kotlin.KotlinFeature
+import com.fasterxml.jackson.module.kotlin.KotlinModule
+import com.fasterxml.jackson.module.kotlin.readValue
 import com.typesafe.config.ConfigFactory
 import com.typesafe.config.ConfigValueFactory
 import net.corda.cpiinfo.read.CpiInfoReadService
@@ -23,6 +28,7 @@ import net.corda.membership.read.MembershipGroupReader
 import net.corda.membership.registration.RegistrationProxy
 import net.corda.messaging.api.publisher.Publisher
 import net.corda.messaging.api.records.Record
+import net.corda.orm.EntityManagerConfiguration
 import net.corda.schema.Schemas
 import net.corda.schema.configuration.BootConfig.BOOT_CRYPTO
 import net.corda.schema.configuration.ConfigKeys
@@ -45,6 +51,8 @@ import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.assertDoesNotThrow
+import org.osgi.framework.FrameworkUtil
+import java.nio.charset.Charset
 import java.time.Duration
 import java.time.Instant
 import java.util.UUID
@@ -352,5 +360,48 @@ class MemberProcessorTestUtils {
 
         private fun <K : Any, V : Any> Publisher.publishRecord(topic: String, key: K, value: V) =
             publish(listOf(Record(topic, key, value)))
+        fun createTopicsOnDbMessageBus(cfg: EntityManagerConfiguration) {
+            val bundle = FrameworkUtil.getBundle(net.corda.schema.Schemas::class.java)
+            val paths = bundle.getEntryPaths("net/corda/schema").toList()
+            val resources = paths.filter { it.endsWith(".yaml") }.map {
+                bundle.getResource(it)
+            }
+            val topicDefinitions = resources.map {
+                val data: String = it.openStream()
+                    .bufferedReader(Charset.defaultCharset()).use { it.readText() }
+                val parsedData: TopicDefinitions = mapper.readValue(data)
+                parsedData
+            }
+            val topicConfigs = topicDefinitions.flatMap { it: TopicDefinitions ->
+                it.topics.values
+            }
+            cfg.dataSource.connection.use { connection ->
+                topicConfigs.map {
+                    connection.createStatement().execute(
+                        "insert into topic (topic, num_partitions) values (${it.name}, 3)"
+                        //TopicEntry(it.name, 3).toInsertStatement()
+                    )
+                }
+            }
+        }
+        private val mapper: ObjectMapper = ObjectMapper(YAMLFactory()).registerModule(
+            KotlinModule.Builder()
+                .withReflectionCacheSize(512)
+                .configure(KotlinFeature.NullToEmptyCollection, true)
+                .configure(KotlinFeature.NullToEmptyMap, true)
+                .configure(KotlinFeature.NullIsSameAsDefault, false)
+                .configure(KotlinFeature.SingletonSupport, false)
+                .configure(KotlinFeature.StrictNullChecks, false)
+                .build())
     }
+    data class TopicConfig(
+        val name: String,
+        val consumers: List<String>,
+        val producers: List<String>,
+        val config: Map<String, String> = emptyMap()
+    )
+
+    data class TopicDefinitions(
+        val topics: Map<String, TopicConfig>
+    )
 }
