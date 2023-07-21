@@ -28,7 +28,7 @@ class TenantInfoServiceImpl(
     }
 
     override fun populate(tenantId: String, category: String): HSMAssociationInfo {
-        logger.info("assignSoftHSM(tenant={}, category={})", tenantId, category)
+        logger.info("Assigning Soft HSM, tenant={}, category={}", tenantId, category)
         val existing = openRepository().findTenantAssociation(tenantId, category)
         if(existing != null) {
             logger.warn("Already have tenant information populated for tenant={}, category={}", tenantId, category)
@@ -48,7 +48,7 @@ class TenantInfoServiceImpl(
     }
 
     override fun lookup(tenantId: String, category: String): HSMAssociationInfo? {
-        logger.debug { "findAssignedHSM(tenant=$tenantId, category=$category)"  }
+        logger.debug { "Finding assigned HSM, tenant=$tenantId, category=$category"  }
         return openRepository().use {
             it.findTenantAssociation(tenantId, category)
         }

@@ -14,6 +14,7 @@ import net.corda.metrics.CordaMetrics
 import net.corda.reconciliation.ReconcilerReader
 import net.corda.reconciliation.ReconcilerWriter
 import net.corda.utilities.debug
+import net.corda.utilities.trace
 import net.corda.v5.base.exceptions.CordaRuntimeException
 import org.slf4j.LoggerFactory
 import java.time.Duration
@@ -61,7 +62,7 @@ internal class ReconcilerEventHandler<K : Any, V : Any>(
 
     private fun onRegistrationStatusChangeEvent(event: RegistrationStatusChangeEvent, coordinator: LifecycleCoordinator) {
         if (event.status == LifecycleStatus.UP) {
-            logger.info("Starting reconciliations")
+            logger.debug { "Starting reconciliations" }
             coordinator.updateStatus(LifecycleStatus.UP)
             reconcileAndScheduleNext(coordinator)
         } else {
@@ -72,7 +73,9 @@ internal class ReconcilerEventHandler<K : Any, V : Any>(
     }
 
     private fun reconcileAndScheduleNext(coordinator: LifecycleCoordinator) {
-        logger.info("Initiating reconciliation")
+        // Should give more context around what is being reconciled.
+        // Not sure if this should be debug or trace, I want to say trace but staying safe for now.
+        logger.debug { "Initiating reconciliation" }
         var reconciliationOutcome = "FAILED"
         val startTime = System.nanoTime()
         var reconciliationEndTime = startTime
@@ -90,7 +93,7 @@ internal class ReconcilerEventHandler<K : Any, V : Any>(
             coordinator.updateStatus(LifecycleStatus.DOWN)
         } finally {
             val reconciliationTime = Duration.ofNanos(reconciliationEndTime - startTime)
-            logger.info("Reconciliation $reconciliationOutcome in ${reconciliationTime.toMillis()} ms")
+            logger.debug { "Reconciliation $reconciliationOutcome in ${reconciliationTime.toMillis()} ms" }
             CordaMetrics.Metric.Db.ReconciliationRunTime.builder()
                 .withTag(CordaMetrics.Tag.OperationName, name)
                 .withTag(CordaMetrics.Tag.OperationStatus, reconciliationOutcome)
