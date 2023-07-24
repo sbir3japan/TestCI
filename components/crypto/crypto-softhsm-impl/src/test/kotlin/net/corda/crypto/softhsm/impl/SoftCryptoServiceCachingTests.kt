@@ -30,6 +30,7 @@ import org.mockito.kotlin.mock
 import java.security.KeyPairGenerator
 import java.security.Provider
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -255,6 +256,50 @@ class SoftCryptoServiceCachingTests {
         assertNotNull(countingWrappingRepository.findKey(alias))
         assertNull(countingWrappingRepository.findKey(unknownAlias))
         assertNull(countingWrappingRepository.findKey(cacheAlias))
+    }
+    
+    @Test
+    fun `Lookup by short hashes of keys for multiple tenants which are cached does not go to database`() {
+        val schemeMetadata = CipherSchemeMetadataImpl()
+        val tenants = listOf(0,1)
+        val tenantIds = tenants.map { UUID.randomUUID().toString() }
+        val knownWrappingKeyAliases = tenants.map { UUID.randomUUID().toString() }
+        val rootWrappingKey = WrappingKeyImpl.generateWrappingKey(schemeMetadata)
+        val knownWrappingKeys= tenants.map { WrappingKeyImpl.generateWrappingKey(schemeMetadata) }
+        val knownWrappingKeyMaterials = knownWrappingKeys.map { rootWrappingKey.wrap(it) }
+
+        val tenantWrappingRepositories = tenants.map {
+            TestWrappingRepository(
+                ConcurrentHashMap(
+                    listOf(
+                        knownWrappingKeyAliases.elementAt(it) to WrappingKeyInfo(
+                            WRAPPING_KEY_ENCODING_VERSION,
+                            knownWrappingKeys.elementAt(it).algorithm,
+                            knownWrappingKeyMaterials.elementAt(it),
+                            1,
+                            "root",
+                        )
+                    ).toMap()
+                )
+            )
+        }        
+        SoftCryptoService(
+            wrappingRepositoryFactory= {  tenantId -> tenantWrappingRepositories.elementAt(tenantIds.indexOf(tenantId)) },
+            schemeMetadata = schemeMetadata,
+            privateKeyCache = makePrivateKeyCache(),
+            shortHashCache = makeShortHashCache(),
+            signingKeyInfoCache = makeSigningKeyInfoCache(),
+            keyPairGeneratorFactory = { algorithm: String, provider: Provider ->
+                KeyPairGenerator.getInstance(algorithm, provider)
+            },
+            wrappingKeyFactory = { it -> WrappingKeyImpl.generateWrappingKey(it) },
+            wrappingKeyCache = makeWrappingKeyCache(),
+            signingRepositoryFactory = { TestSigningRepository() },
+            defaultUnmanagedWrappingKeyName = "root",
+            digestService = PlatformDigestServiceImpl(schemeMetadata),
+            tenantInfoService = mock(),
+            unmanagedWrappingKeys = mapOf("root" to rootWrappingKey)
+            )
     }
     
 }
