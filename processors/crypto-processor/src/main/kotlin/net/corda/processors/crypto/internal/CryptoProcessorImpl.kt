@@ -23,6 +23,7 @@ import net.corda.crypto.config.impl.retrying
 import net.corda.crypto.core.CryptoConsts
 import net.corda.crypto.core.CryptoService
 import net.corda.crypto.core.CryptoTenants
+import net.corda.crypto.core.ShortHash
 import net.corda.crypto.core.SigningKeyInfo
 import net.corda.crypto.core.aes.WrappingKey
 import net.corda.crypto.core.aes.WrappingKeyImpl
@@ -243,6 +244,12 @@ class CryptoProcessorImpl @Activate constructor(
                 .expireAfterAccess(expireAfterAccessMins, TimeUnit.MINUTES)
                 .maximumSize(maximumSize)
         )
+        val shortHashCache: Cache<ShortHash, PublicKey> = CacheFactoryImpl().build(
+            "Signing-Key-Cache",
+            Caffeine.newBuilder()
+                .expireAfterAccess(expireAfterAccessMins, TimeUnit.MINUTES)
+                .maximumSize(maximumSize)
+        )
         val wrappingRepositoryFactory = { tenantId: String ->
             WrappingRepositoryImpl(
                 entityManagerFactory = getEntityManagerFactory(
@@ -281,6 +288,7 @@ class CryptoProcessorImpl @Activate constructor(
             unmanagedWrappingKeys = unmanagedWrappingKeys,
             wrappingKeyCache = wrappingKeyCache,
             privateKeyCache = privateKeyCache,
+            shortHashCache = shortHashCache,
             signingKeyInfoCache = signingKeyInfoCache,
             keyPairGeneratorFactory = keyPairGeneratorFactory, 
             wrappingKeyFactory = wrappingKeyFactory,

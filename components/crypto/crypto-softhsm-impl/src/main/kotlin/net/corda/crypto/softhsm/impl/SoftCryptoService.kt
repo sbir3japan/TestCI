@@ -29,6 +29,7 @@ import net.corda.crypto.core.aes.WrappingKey
 import net.corda.crypto.core.aes.WrappingKeyImpl
 import net.corda.crypto.core.fullIdHash
 import net.corda.crypto.core.isRecoverable
+import net.corda.crypto.core.publicKeyIdFromBytes
 import net.corda.crypto.hes.core.impl.deriveDHSharedSecret
 import net.corda.crypto.impl.SignatureInstances
 import net.corda.crypto.impl.getSigningData
@@ -71,6 +72,7 @@ data class OwnedKeyRecord(val publicKey: PublicKey, val data: SigningKeyInfo)
  * @param schemeMetadata which specifies encryption schemes, digests schemes and a source of randomness
  * @param defaultUnmanagedWrappingKeyName The unmanaged wrapping key that will be used by default for new wrapping keys
  * @param digestService supply a platform digest service instance; if not one will be constructed
+ * @param shortHashCache an optional [Cache] which optimises access lookup by short by short ID hash, or null for no caching
  * @param wrappingKeyCache an optional [Cache] which optimises access to wrapping keys, or null for no caching
  * @param privateKeyCache an optional [Cache] which optimises access to private keys, or null for no caching
  * @param keyPairGeneratorFactory creates a key pair generator given algorithm and provider. For instance:
@@ -88,6 +90,7 @@ open class SoftCryptoService(
     private val unmanagedWrappingKeys: Map<String, WrappingKey>,
     private val digestService: PlatformDigestService,
     private val wrappingKeyCache: Cache<String, WrappingKey>?,
+    private val shortHashCache: Cache<ShortHash, PublicKey>?,
     private val privateKeyCache: Cache<PublicKey, PrivateKey>?,
     private val signingKeyInfoCache: Cache<PublicKey, SigningKeyInfo>,
     private val keyPairGeneratorFactory: (algorithm: String, provider: Provider) -> KeyPairGenerator,
@@ -107,7 +110,7 @@ open class SoftCryptoService(
     override val supportedSchemes = deriveSupportedSchemes(schemeMetadata)
 
     override val extensions = listOf(CryptoServiceExtensions.REQUIRE_WRAPPING_KEY)
-
+    
     private fun <R> recoverable(description: String, block: () -> R) = try {
         block()
     } catch (e: RuntimeException) {
@@ -264,14 +267,43 @@ open class SoftCryptoService(
                     category = category
                 )
                 val signingKeyInfo = repo.savePrivateKey(saveContext)
-                signingKeyInfoCache.put(signingKeyInfo.publicKey, signingKeyInfo)
+                populateCaches(signingKeyInfo)
             }
         }
     }
 
-    private fun computeTenantId(context: Map<String, String>) =
-        context.get("tenantId") ?: CryptoTenants.CRYPTO
+    private fun shortHashOf(key: PublicKey): ShortHash {
+        val keyBytes = schemeMetadata.encodeAsByteArray(key)
+        val shortHash = ShortHash.of(publicKeyIdFromBytes(keyBytes))
+        return shortHash
+    }
 
+    private fun computeTenantId(context: Map<String, String>) = context.get("tenantId") ?: CryptoTenants.CRYPTO
+
+    override fun sign(
+        tenantId: String,
+        publicKey: PublicKey,
+        signatureSpec: SignatureSpec,
+        data: ByteArray,
+        context: Map<String, String>,
+    ): DigitalSignatureWithKey {
+        val record =
+            CordaMetrics.Metric.Crypto.GetOwnedKeyRecordTimer.builder()
+                .withTag(CordaMetrics.Tag.OperationName, SIGN_OPERATION_NAME)
+                .withTag(CordaMetrics.Tag.PublicKeyType, publicKey::class.java.simpleName)
+                .build()
+                .recordCallable {
+                    getOwnedKeyRecord(tenantId, publicKey)
+                }!!
+
+        logger.debug { "sign(tenant=$tenantId, publicKey=${record.data.id})" }
+        val scheme = schemeMetadata.findKeyScheme(record.data.schemeCodeName)
+        val spec =
+            SigningWrappedSpec(getKeySpec(record, publicKey, tenantId), record.publicKey, scheme, signatureSpec)
+        val signedBytes = sign(spec, data, context + mapOf(CRYPTO_TENANT_ID to tenantId))
+        return DigitalSignatureWithKey(record.publicKey, signedBytes)
+    }
+    
     override fun sign(spec: SigningWrappedSpec, data: ByteArray, context: Map<String, String>): ByteArray {
         recoverable("sign check requirements") {
             require(data.isNotEmpty()) {
@@ -388,8 +420,7 @@ open class SoftCryptoService(
             )
         }
     }
-
-
+    
     override fun lookupSigningKeysByPublicKeyShortHash(
         tenantId: String,
         keyIds: List<ShortHash>,
@@ -397,18 +428,24 @@ open class SoftCryptoService(
         // Since we are looking up by short IDs there's nothing we can do to handle clashes
         // on short IDs in this case, at this layer. We must therefore rely on the database
         // uniqueness constraints to stop clashes from being created.
-        val cachedMap = signingKeyInfoCache.asMap()
-        val foundKeys = cachedMap.filterKeys { keyIds.contains(ShortHash.of(it.fullIdHash())) }
-        val shortIdsFound = foundKeys.values.map { it.id }
-        val cachedKeys = foundKeys.filter { cachedMap[it.key]?.tenantId == tenantId }
-        val notFound: List<ShortHash> = keyIds - shortIdsFound
-        if (notFound.isEmpty()) return cachedKeys.values
-        val fetchedKeys = signingRepositoryFactory.getInstance(tenantId).use {
-            it.lookupByPublicKeyShortHashes(notFound.toMutableSet())
+        val publicKeyListCached = keyIds.map {
+            val publicKey = shortHashCache?.getIfPresent(it)
+            Triple(it, publicKey, publicKey?.let { _ ->signingKeyInfoCache.getIfPresent(publicKey) })
         }
-        fetchedKeys.forEach { signingKeyInfoCache.put(it.publicKey, it) }
-
-        return cachedKeys.values + fetchedKeys
+        val publicKeyListFinal = if (publicKeyListCached.filter { it.third != null}.size == keyIds.size) publicKeyListCached 
+        else signingRepositoryFactory.getInstance(tenantId).use {repo ->             
+            val fetchedCollection =repo.lookupByPublicKeyShortHashes(publicKeyListCached
+                .filter { it.third == null }
+                .map {it.first }.toSet())
+            val fetchedMap = fetchedCollection.map { shortHashOf(it.publicKey) to it }.toMap()
+            publicKeyListCached.map { keyData: Triple<ShortHash, PublicKey?, SigningKeyInfo?> ->
+                if (keyData.third != null) keyData else {
+                    val info = fetchedMap.get(keyData.first)?.also { populateCaches(it) }
+                    Triple(keyData.first, info?.publicKey, info)
+                }
+            }
+        }
+        return publicKeyListFinal.map { it.third }.filterNotNull()
     }
 
     override fun lookupSigningKeysByPublicKeyHashes(
@@ -440,13 +477,10 @@ open class SoftCryptoService(
             it.lookupByPublicKeyHashes(notFound.toMutableSet())
         }
         val fetchedMatchingKeys = filterOutMismatches(fetchedKeys)
-        fetchedMatchingKeys.forEach {
-            signingKeyInfoCache.put(it.publicKey, it)
-        }
+        fetchedMatchingKeys.forEach { populateCaches(it) }
         return cachedMatchingKeys + fetchedMatchingKeys
     }
 
-    // TODO- ditch this method?
     override fun createWrappingKey(
         hsmId: String,
         failIfExists: Boolean,
@@ -460,30 +494,7 @@ open class SoftCryptoService(
         createWrappingKey(masterKeyAlias, failIfExists, context)
     }
 
-    // TODO - group the sign methods
-    override fun sign(
-        tenantId: String,
-        publicKey: PublicKey,
-        signatureSpec: SignatureSpec,
-        data: ByteArray,
-        context: Map<String, String>,
-    ): DigitalSignatureWithKey {
-        val record =
-            CordaMetrics.Metric.Crypto.GetOwnedKeyRecordTimer.builder()
-                .withTag(CordaMetrics.Tag.OperationName, SIGN_OPERATION_NAME)
-                .withTag(CordaMetrics.Tag.PublicKeyType, publicKey::class.java.simpleName)
-                .build()
-                .recordCallable {
-                    getOwnedKeyRecord(tenantId, publicKey)
-                }!!
 
-        logger.debug { "sign(tenant=$tenantId, publicKey=${record.data.id})" }
-        val scheme = schemeMetadata.findKeyScheme(record.data.schemeCodeName)
-        val spec =
-            SigningWrappedSpec(getKeySpec(record, publicKey, tenantId), record.publicKey, scheme, signatureSpec)
-        val signedBytes = sign(spec, data, context + mapOf(CRYPTO_TENANT_ID to tenantId))
-        return DigitalSignatureWithKey(record.publicKey, signedBytes)
-    }
 
     override fun deriveSharedSecret(
         tenantId: String,
@@ -536,11 +547,16 @@ open class SoftCryptoService(
             val repo = signingRepositoryFactory.getInstance(tenantId)
             val result = repo.findKey(publicKey)
             if (result == null) throw IllegalArgumentException("The public key '${publicKey.publicKeyId()}' was not found")
-            signingKeyInfoCache.put(result.publicKey, result)
+            populateCaches(result)
             result
         }
 
         return OwnedKeyRecord(publicKey, signingKeyInfo)
+    }
+
+    private fun populateCaches(result: SigningKeyInfo) {
+        signingKeyInfoCache.put(result.publicKey, result)
+        shortHashCache?.put(shortHashOf(result.publicKey), result.publicKey)
     }
 
     @Suppress("ThrowsCount")

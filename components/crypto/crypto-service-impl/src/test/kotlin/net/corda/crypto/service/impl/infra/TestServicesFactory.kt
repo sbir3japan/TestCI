@@ -166,6 +166,7 @@ class TestServicesFactory {
             digestService = PlatformDigestServiceImpl(schemeMetadata),
             wrappingKeyCache = null,
             privateKeyCache = null,
+            shortHashCache = null,
             keyPairGeneratorFactory = { algorithm: String, provider: Provider ->
                 KeyPairGenerator.getInstance(algorithm, provider)
             },

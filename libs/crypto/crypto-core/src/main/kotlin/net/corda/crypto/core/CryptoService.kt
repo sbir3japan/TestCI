@@ -203,6 +203,9 @@ interface CryptoService {
      *
      * @param tenantId The tenant's id which the keys belong to.
      * @param keyIds Key ids to look keys for.
+     * 
+     * @return the set of keys we could find information about, which may not be all keys. In particular
+     *         information about keys for other tenants will be missing.
      */
     fun lookupSigningKeysByPublicKeyShortHash(
         tenantId: String,
@@ -214,6 +217,9 @@ interface CryptoService {
      *
      * @param tenantId The tenant's id which the keys belong to.
      * @param fullKeyIds Key ids to look keys for.
+     * 
+     * @return the set of keys we could find information about, which may not be all keys. In particular
+     *         information about keys for other tenants will be missing.
      */
     fun lookupSigningKeysByPublicKeyHashes(
         tenantId: String,

@@ -20,6 +20,7 @@ import net.corda.crypto.persistence.WrappingKeyInfo
 import net.corda.crypto.softhsm.SigningRepository
 import net.corda.crypto.softhsm.deriveSupportedSchemes
 import net.corda.crypto.softhsm.impl.infra.TestWrappingRepository
+import net.corda.crypto.softhsm.impl.infra.makeShortHashCache
 import net.corda.crypto.softhsm.impl.infra.makeWrappingKeyCache
 import net.corda.v5.crypto.KeySchemeCodes.ECDSA_SECP256K1_CODE_NAME
 import net.corda.v5.crypto.KeySchemeCodes.ECDSA_SECP256R1_CODE_NAME
@@ -88,6 +89,7 @@ class SoftCryptoServiceOperationsTests {
             )
         )
         private val wrappingKeyCache = makeWrappingKeyCache()
+        private val shortHashCache = makeShortHashCache()
         private val signingRepository: SigningRepository = mock()
         private val cryptoService = SoftCryptoService(
             wrappingRepositoryFactory = {
@@ -105,6 +107,7 @@ class SoftCryptoServiceOperationsTests {
                 KeyPairGenerator.getInstance(algorithm, provider)
             },
             wrappingKeyCache = wrappingKeyCache,
+            shortHashCache = shortHashCache,
             signingRepositoryFactory = { signingRepository },
             privateKeyCache = null,
             signingKeyInfoCache = mock(),

@@ -16,6 +16,7 @@ import net.corda.crypto.softhsm.impl.infra.CountingWrappingKey
 import net.corda.crypto.softhsm.impl.infra.TestSigningRepository
 import net.corda.crypto.softhsm.impl.infra.TestWrappingRepository
 import net.corda.crypto.softhsm.impl.infra.makePrivateKeyCache
+import net.corda.crypto.softhsm.impl.infra.makeShortHashCache
 import net.corda.crypto.softhsm.impl.infra.makeSigningKeyInfoCache
 import net.corda.crypto.softhsm.impl.infra.makeSoftCryptoService
 import net.corda.crypto.softhsm.impl.infra.makeWrappingKeyCache
@@ -50,6 +51,7 @@ class SoftCryptoServiceCachingTests {
         // setup
         val privateKeyCache = if (cachePrivateKeys) makePrivateKeyCache() else null
         val wrappingKeyCache = makeWrappingKeyCache()
+        val shortHashCache = makeShortHashCache()
         val signingKeyInfoCache = makeSigningKeyInfoCache()
         val wrappingKeyAlias = "wrapper1"
         val wrapCount = AtomicInteger()
@@ -65,6 +67,7 @@ class SoftCryptoServiceCachingTests {
         val myCryptoService = SoftCryptoService(
             privateKeyCache = privateKeyCache,
             wrappingKeyCache = wrappingKeyCache,
+            shortHashCache = shortHashCache,
             defaultUnmanagedWrappingKeyName = "root",
             unmanagedWrappingKeys = mapOf("root" to rootWrappingKey),
             wrappingKeyFactory = { metadata: CipherSchemeMetadata ->

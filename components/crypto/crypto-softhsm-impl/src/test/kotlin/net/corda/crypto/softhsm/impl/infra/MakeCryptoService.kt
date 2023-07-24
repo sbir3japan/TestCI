@@ -5,6 +5,7 @@ import net.corda.cipher.suite.impl.CipherSchemeMetadataImpl
 import net.corda.cipher.suite.impl.PlatformDigestServiceImpl
 import net.corda.crypto.cipher.suite.CipherSchemeMetadata
 import net.corda.crypto.core.CryptoService
+import net.corda.crypto.core.ShortHash
 import net.corda.crypto.core.aes.WrappingKey
 import net.corda.crypto.core.aes.WrappingKeyImpl
 import net.corda.crypto.softhsm.SigningRepository
@@ -22,6 +23,7 @@ import java.security.PublicKey
 fun makeSoftCryptoService(
     privateKeyCache: Cache<PublicKey, PrivateKey>? = null,
     wrappingKeyCache: Cache<String, WrappingKey>? = null,
+    shortHashCache: Cache<ShortHash, PublicKey>?= null,
     schemeMetadata: CipherSchemeMetadataImpl = CipherSchemeMetadataImpl(),
     rootWrappingKey: WrappingKey = WrappingKeyImpl.generateWrappingKey(schemeMetadata),
     wrappingKeyFactory: (schemeMetadata: CipherSchemeMetadata) -> WrappingKey = { it ->
@@ -40,6 +42,7 @@ fun makeSoftCryptoService(
         digestService = PlatformDigestServiceImpl(schemeMetadata),
         wrappingKeyCache = wrappingKeyCache,
         privateKeyCache = privateKeyCache,
+        shortHashCache =  shortHashCache,
         keyPairGeneratorFactory = { algorithm: String, provider: Provider ->
             KeyPairGenerator.getInstance(algorithm, provider)
         },
