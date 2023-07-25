@@ -15,6 +15,9 @@ dependencies {
     implementation project(":components:configuration:configuration-read-service")
     implementation project(":components:external-messaging-services")
     implementation project(":components:membership:membership-group-read")
+
+    implementation project(":components:interop:interop-identity-cache-service")
+
     implementation project(":components:virtual-node:virtual-node-info-read-service")
     implementation project(":components:virtual-node:cpi-info-read-service")
     implementation project(":components:virtual-node:cpk-read-service")
@@ -74,6 +77,7 @@ dependencies {
     testImplementation project(":libs:lifecycle:registry")
     testImplementation project(":testing:flow:flow-utilities")
     testImplementation project(':testing:test-utilities')
+    //testImplementation project(":components:interop:interop-identity-cache-service")
 
     testRuntimeOnly "org.slf4j:slf4j-simple:$slf4jVersion"
 
@@ -90,6 +94,8 @@ dependencies {
     integrationTestRuntimeOnly project(':libs:serialization:serialization-kryo')
     integrationTestRuntimeOnly project(":components:membership:membership-group-read-impl")
     integrationTestRuntimeOnly project(":components:virtual-node:cpk-read-service-impl")
+    integrationTestRuntimeOnly project(":components:interop:interop-identity-cache-service-impl")
+
 
     integrationTestRuntimeOnly "org.apache.aries.spifly:org.apache.aries.spifly.dynamic.framework.extension:$ariesDynamicFrameworkExtensionVersion"
 }
