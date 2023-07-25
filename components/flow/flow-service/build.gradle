@@ -77,7 +77,7 @@ dependencies {
     testImplementation project(":libs:lifecycle:registry")
     testImplementation project(":testing:flow:flow-utilities")
     testImplementation project(':testing:test-utilities')
-    //testImplementation project(":components:interop:interop-identity-cache-service")
+    testImplementation project(":components:interop:interop-identity-cache-service")
 
     testRuntimeOnly "org.slf4j:slf4j-simple:$slf4jVersion"
 
@@ -94,6 +94,7 @@ dependencies {
     integrationTestRuntimeOnly project(':libs:serialization:serialization-kryo')
     integrationTestRuntimeOnly project(":components:membership:membership-group-read-impl")
     integrationTestRuntimeOnly project(":components:virtual-node:cpk-read-service-impl")
+
     integrationTestRuntimeOnly project(":components:interop:interop-identity-cache-service-impl")
 
 
