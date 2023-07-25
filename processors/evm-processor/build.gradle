@@ -1,21 +1,22 @@
 plugins {
-    id 'java'
+    id 'corda.common-publishing'
+    id 'corda.common-library'
 }
 
-group = 'org.example'
-version = '5.1.0.0-SNAPSHOT'
+description 'EVM Processor'
 
-repositories {
-    mavenCentral()
-}
 
 dependencies {
+    compileOnly 'org.osgi:org.osgi.service.component.annotations'
+    compileOnly 'org.osgi:osgi.annotation'
 
     implementation platform("net.corda:corda-api:$cordaApiVersion")
     implementation 'net.corda:corda-membership'
     implementation 'net.corda:corda-base'
     implementation 'net.corda:corda-config-schema'
 
+
+    implementation project(':libs:lifecycle:lifecycle')
     implementation project(':libs:configuration:configuration-core')
     implementation project(':libs:configuration:configuration-datamodel')
 
@@ -24,6 +25,4 @@ dependencies {
     testImplementation 'org.junit.jupiter:junit-jupiter'
 }
 
-test {
-    useJUnitPlatform()
-}
+
