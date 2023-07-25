@@ -520,3 +520,6 @@ gradleEnterprise {
         }
     }
 }
+include 'processors:evm-processor'
+findProject(':processors:evm-processor')?.name = 'evm-processor'
+
