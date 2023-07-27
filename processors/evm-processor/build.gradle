@@ -10,16 +10,48 @@ dependencies {
     compileOnly 'org.osgi:org.osgi.service.component.annotations'
     compileOnly 'org.osgi:osgi.annotation'
 
-    implementation platform("net.corda:corda-api:$cordaApiVersion")
-    implementation 'net.corda:corda-membership'
-    implementation 'net.corda:corda-base'
-    implementation 'net.corda:corda-config-schema'
+    implementation 'org.jetbrains.kotlin:kotlin-osgi-bundle'
 
+    implementation platform("net.corda:corda-api:$cordaApiVersion")
+
+
+    implementation "net.corda:corda-avro-schema"
+    implementation 'net.corda:corda-base'
+    implementation "net.corda:corda-config-schema"
+    implementation 'net.corda:corda-db-schema'
+    implementation "net.corda:corda-topic-schema"
+
+
+
+    implementation project(':components:crypto:crypto-service-impl')
+    implementation project(':components:crypto:crypto-softhsm-impl')
+
+    implementation project(':components:crypto:crypto-component-core-impl')
+    implementation project(":components:crypto:crypto-persistence-model")
+    implementation project(':components:crypto:crypto-persistence')
+    implementation project(':components:crypto:crypto-service-impl')
+    implementation project(':components:crypto:crypto-softhsm-impl')
+
+    implementation project(':libs:crypto:cipher-suite')
+    implementation project(':libs:crypto:cipher-suite-impl')
+    implementation project(':libs:crypto:crypto-config-impl')
+    implementation project(':libs:crypto:crypto-serialization-impl')
+
+
+    runtimeOnly project(":components:configuration:configuration-read-service-impl")
+    runtimeOnly project(":components:crypto:crypto-persistence-impl")
+    runtimeOnly project(":components:db:db-connection-manager-impl")
+    runtimeOnly project(':components:crypto:crypto-service-impl')
+    runtimeOnly project(':components:crypto:crypto-softhsm-impl')
 
     implementation project(':libs:lifecycle:lifecycle')
+    implementation project(':components:configuration:configuration-read-service')
     implementation project(':libs:configuration:configuration-core')
     implementation project(':libs:configuration:configuration-datamodel')
+    implementation project(':libs:configuration:configuration-merger')
+    implementation project(":libs:messaging:messaging")
 
+    implementation project(":libs:serialization:serialization-avro")
 
     testImplementation platform('org.junit:junit-bom:5.9.1')
     testImplementation 'org.junit.jupiter:junit-jupiter'
