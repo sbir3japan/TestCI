@@ -6,52 +6,85 @@ import net.corda.lifecycle.*
 
 import net.corda.configuration.read.ConfigChangedEvent
 import net.corda.configuration.read.ConfigurationReadService
-import net.corda.crypto.service.impl.bus.CryptoOpsBusProcessor
-import net.corda.crypto.service.impl.bus.HSMRegistrationBusProcessor
 import net.corda.libs.configuration.helper.getConfig
-import net.corda.schema.configuration.MessagingConfig
 import net.corda.schema.configuration.ConfigKeys.MESSAGING_CONFIG
 
-import net.corda.messaging.api.subscription.SubscriptionBase
 import net.corda.messaging.api.subscription.config.RPCConfig
-import net.corda.messaging.api.subscription.config.SubscriptionConfig
 import net.corda.messaging.api.subscription.factory.SubscriptionFactory
 
-import net.corda.data.crypto.wire.hsm.registration.HSMRegistrationRequest
-import net.corda.data.crypto.wire.hsm.registration.HSMRegistrationResponse
-import net.corda.data.crypto.wire.ops.rpc.RpcOpsRequest
-import net.corda.data.crypto.wire.ops.rpc.RpcOpsResponse
-import net.corda.messaging.api.processor.RPCResponderProcessor
 
 import org.osgi.service.component.annotations.Activate
 import org.osgi.service.component.annotations.Component
 import org.osgi.service.component.annotations.Reference
 import org.slf4j.LoggerFactory
-import java.util.concurrent.CompletableFuture
+
+import com.google.gson.Gson
+import net.corda.data.interop.evm.EvmRequest
+import net.corda.data.interop.evm.EvmResponse
+import net.corda.schema.Schemas
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 
 
-class EVMOpsBusProcessor() : RPCResponderProcessor<RpcOpsRequest, RpcOpsResponse> {
+import net.corda.processors.evm.internal.EVMOpsProcessor
+import java.time.Instant
 
-    private companion object {
-        val log = LoggerFactory.getLogger(this::class.java.enclosingClass)
 
-//        const val CLIENT_ID_REST_PROCESSOR = "rest.processor"
+data class RpcRequest(
+    val jsonrpc: String,
+    val id: String,
+    val method: String,
+    val params: List<*>
+)
+
+
+
+data class Response (
+    val id: String,
+    val jsonrpc: String,
+    val result: Any,
+)
+class EthereumConnector {
+    fun send(rpcUrl: String, method: String, params: List<*>): Response {
+        try {
+            val gson = Gson()
+            val client = OkHttpClient()
+            val body = RpcRequest(
+                jsonrpc = "2.0",
+                id = "90.0",
+                method = method,
+                params = params
+            )
+            val requestBase = gson.toJson(body)
+            val requestBody = requestBase.toRequestBody("application/json".toMediaType())
+
+
+            val request = Request.Builder()
+                .url(rpcUrl)
+                .post(requestBody)
+                .addHeader("Content-Type", "application/json")
+                .build()
+            val response = client.newCall(request).execute()
+            val responseBody = response.body?.string()
+            val parsedResponse = gson.fromJson(responseBody, Response::class.java)
+            response.close()
+            return parsedResponse
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+            // TODO: Fix error handling
+        }
+        return Response("", "", "")
     }
-
-    override fun onNext(request: RpcOpsRequest, respFuture: CompletableFuture<RpcOpsResponse>) {
-        TODO("Not yet implemented")
-
-        log.info(request.schema.toString(true))
-
-
-
-
-    }
-
-
-
-
 }
+
+
+
+
+
+
 
 
 @Component(service = [EVMProcessor::class])
@@ -99,9 +132,9 @@ class EVMProcessorImpl @Activate constructor(
     }
 
 
-    private fun startEthereumProcessor(config: SmartConfig) {
-
-    }
+//    private fun startEthereumProcessor(config: SmartConfig) {
+//
+//    }
 
     private fun eventHandler(event: LifecycleEvent, coordinator: LifecycleCoordinator){
         // work here
@@ -131,19 +164,17 @@ class EVMProcessorImpl @Activate constructor(
 
                 val ethereumConfig = event.config.getConfig(MESSAGING_CONFIG)
 
-                coordinator.createManagedResource("RPC_OPS_SUBSCRIPTION") {
+                coordinator.createManagedResource("EVM_OPS_PROCESSOR") {
                     subscriptionFactory.createRPCSubscription(
                         rpcConfig = RPCConfig(
                             groupName = "evm.ops.rpc",
                             clientName = "evm.ops.rpc",
-                            requestTopic = "evm.hsm.rpc.registration",
-                            requestType = RpcOpsRequest::class.java,
-                            responseType = RpcOpsResponse::class.java
+                            requestTopic = Schemas.Interop.INTEROP_EVM_REQUEST,
+                            requestType = EvmRequest::class.java,
+                            responseType = EvmResponse::class.java
                         ),
-                        responderProcessor = EVMOpsBusProcessor(),
+                        responderProcessor = EVMOpsProcessor(),
                         messagingConfig = ethereumConfig
-
-
                     )
                 }
 
