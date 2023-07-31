@@ -1,10 +1,19 @@
 plugins {
     id 'corda.common-publishing'
     id 'corda.common-library'
+
 }
 
 description 'EVM Processor'
 
+repositories {
+    mavenCentral()
+    jcenter()
+    maven { url "https://hyperledger.jfrog.io/artifactory/besu-maven/" }
+    maven { url "https://artifacts.consensys.net/public/maven/maven/" }
+    maven { url "https://splunk.jfrog.io/splunk/ext-releases-local" }
+    maven { url "https://dl.cloudsmith.io/public/consensys/quorum-mainnet-launcher/maven/" }
+}
 
 dependencies {
     compileOnly 'org.osgi:org.osgi.service.component.annotations'
@@ -57,8 +66,13 @@ dependencies {
 
     implementation project(":libs:serialization:serialization-avro")
 
+
+    testImplementation platform(':components:interop')
     testImplementation platform('org.junit:junit-bom:5.9.1')
     testImplementation 'org.junit.jupiter:junit-jupiter'
+
+    testImplementation "org.web3j:web3j-unit:4.9.0"
+
 }
 
 
