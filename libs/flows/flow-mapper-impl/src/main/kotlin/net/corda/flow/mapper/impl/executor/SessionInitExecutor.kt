@@ -4,6 +4,7 @@ import net.corda.avro.serialization.CordaAvroSerializer
 import net.corda.data.flow.event.FlowEvent
 import net.corda.data.flow.event.MessageDirection
 import net.corda.data.flow.event.SessionEvent
+import net.corda.data.flow.event.mapper.FlowMapperEvent
 import net.corda.data.flow.event.session.SessionInit
 import net.corda.data.flow.state.mapper.FlowMapperState
 import net.corda.data.flow.state.mapper.FlowMapperStateType
@@ -11,7 +12,7 @@ import net.corda.flow.mapper.FlowMapperResult
 import net.corda.flow.mapper.executor.FlowMapperEventExecutor
 import net.corda.libs.configuration.SmartConfig
 import net.corda.messaging.api.records.Record
-import net.corda.metrics.CordaMetrics
+import net.corda.session.manager.Constants
 import net.corda.utilities.debug
 import org.slf4j.LoggerFactory
 
@@ -29,36 +30,29 @@ class SessionInitExecutor(
         private val log = LoggerFactory.getLogger(this::class.java.enclosingClass)
     }
 
+    private val isInteropSessionInit = sessionInit.contextSessionProperties?.let { properties ->
+        val map = properties.items.associate { it.key to it.value }
+        map[Constants.FLOW_SESSION_IS_INTEROP]?.equals("true") ?: false
+    } ?: false
+
     private val messageDirection = sessionEvent.messageDirection
-    private val outputTopic = getSessionEventOutputTopic(messageDirection)
+    private val outputTopic = getSessionEventOutputTopic(messageDirection, isInteropSessionInit)
 
     override fun execute(): FlowMapperResult {
         return if (flowMapperState == null) {
-            CordaMetrics.Metric.FlowMapperCreationCount.builder()
-                .withTag(CordaMetrics.Tag.FlowEvent, sessionInit::class.java.name)
-                .build().increment()
             processSessionInit(sessionEvent, sessionInit)
         } else {
             //duplicate
             log.debug { "Duplicate SessionInit event received. Key: $eventKey, Event: $sessionEvent" }
-            if (messageDirection == MessageDirection.OUTBOUND) {
+            if(messageDirection == MessageDirection.OUTBOUND){
                 sessionInit.flowId = null
-                FlowMapperResult(
-                    flowMapperState,
-                    listOf(
-                        Record(
-                            outputTopic,
-                            eventKey,
-                            generateAppMessage(sessionEvent, sessionEventSerializer, flowConfig)
-                        )
-                    )
-                )
-            } else {
-                CordaMetrics.Metric.FlowMapperDeduplicationCount.builder()
-                    .withTag(CordaMetrics.Tag.FlowEvent, sessionInit::class.java.name)
-                    .build().increment()
-                FlowMapperResult(flowMapperState, emptyList())
+                if (!isInteropSessionInit) {
+                    FlowMapperResult(flowMapperState, listOf(Record(outputTopic, eventKey, sessionEvent)))
+                } else {
+                    FlowMapperResult(flowMapperState, listOf(Record(outputTopic, eventKey, FlowMapperEvent(sessionEvent))))
+                }
             }
+            else FlowMapperResult(flowMapperState, emptyList())
         }
     }
 
@@ -70,8 +64,10 @@ class SessionInitExecutor(
                 sessionInit
             )
 
+        log.info("outputTopic=$outputTopic, isInterop=$isInteropSessionInit, " +
+                "direction=$messageDirection, sessionInit")
         return FlowMapperResult(
-            FlowMapperState(flowKey, null, FlowMapperStateType.OPEN),
+            FlowMapperState(flowKey, null, FlowMapperStateType.OPEN, isInteropSessionInit),
             listOf(Record(outputTopic, outputRecordKey, outputRecordValue))
         )
     }
@@ -101,7 +97,11 @@ class SessionInitExecutor(
             SessionInitOutputs(
                 tmpFLowEventKey,
                 sessionEvent.sessionId,
-                generateAppMessage(sessionEvent, sessionEventSerializer, flowConfig)
+                if (!isInteropSessionInit) {
+                    generateAppMessage(sessionEvent, sessionEventSerializer, flowConfig)
+                } else {
+                    FlowMapperEvent(sessionEvent)
+                }
             )
         }
     }

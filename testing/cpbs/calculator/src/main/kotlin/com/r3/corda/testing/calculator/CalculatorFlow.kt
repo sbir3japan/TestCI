@@ -7,6 +7,7 @@ import net.corda.v5.application.flows.FlowEngine
 import net.corda.v5.application.marshalling.JsonMarshallingService
 import net.corda.v5.base.annotations.Suspendable
 import org.slf4j.LoggerFactory
+import org.web3j.protocol.Web3j
 
 class CalculatorFlow : ClientStartableFlow {
 
@@ -19,6 +20,9 @@ class CalculatorFlow : ClientStartableFlow {
 
     @CordaInject
     lateinit var jsonMarshallingService: JsonMarshallingService
+
+    @CordaInject
+    lateinit var web3j: Web3j
 
     @Suspendable
     override fun call(requestBody: ClientRequestBody): String {

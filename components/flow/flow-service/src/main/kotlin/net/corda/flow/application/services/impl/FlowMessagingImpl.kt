@@ -38,6 +38,12 @@ class FlowMessagingImpl @Activate constructor(
     private val serializationService: SerializationServiceInternal
 ) : FlowMessaging, UsedByFlow, SingletonSerializeAsToken {
 
+    companion object {
+        private const val INTEROP_GROUP_ID = "INTEROP_GROUP_ID"
+        private const val INTEROP_FACADE_ID = "INTEROP_FACADE_ID"
+        private const val INTEROP_FACADE_METHOD = "INTEROP_FACADE_METHOD"
+    }
+
     private val fiber: FlowFiber get() = flowFiberService.getExecutingFiber()
 
     @Suspendable
@@ -51,6 +57,18 @@ class FlowMessagingImpl @Activate constructor(
         flowContextPropertiesBuilder: FlowContextPropertiesBuilder
     ): FlowSession {
         return doInitiateFlow(x500Name, flowContextPropertiesBuilder)
+    }
+
+    @Suspendable
+    override fun callFacade(
+        memberName: MemberX500Name,
+        interopGroupId: String,
+        facadeId: String,
+        methodName: String,
+        payload: String
+    ): String {
+        val session = createInteropFlowSession(memberName, interopGroupId, facadeId, methodName)
+        return session.sendAndReceive(String::class.java, payload)
     }
 
     @Suspendable
@@ -175,6 +193,17 @@ class FlowMessagingImpl @Activate constructor(
         checkFlowCanBeInitiated()
         addSessionIdToFlowStackItem(sessionId)
         return flowSessionFactory.createInitiatingFlowSession(sessionId, x500Name, flowContextPropertiesBuilder)
+    }
+
+    @Suspendable
+    private fun createInteropFlowSession(x500Name: MemberX500Name, groupId: String, facadeId: String, methodName: String): FlowSession {
+        val sessionId = UUID.randomUUID().toString()
+        addSessionIdToFlowStackItem(sessionId)
+        return flowSessionFactory.createInitiatingFlowSession(sessionId, x500Name, { flowContextProperties ->
+            flowContextProperties.put(INTEROP_GROUP_ID, groupId)
+            flowContextProperties.put(INTEROP_FACADE_ID, facadeId)
+            flowContextProperties.put(INTEROP_FACADE_METHOD, methodName)
+        }, true)
     }
 
     private fun checkFlowCanBeInitiated() {

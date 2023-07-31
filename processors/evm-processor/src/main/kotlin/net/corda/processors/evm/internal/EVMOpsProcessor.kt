@@ -3,6 +3,8 @@ package net.corda.processors.evm.internal
 import com.google.gson.JsonObject
 import net.corda.data.interop.evm.EvmRequest
 import net.corda.data.interop.evm.EvmResponse
+import net.corda.interop.web3j.internal.EthereumConnector
+
 import net.corda.messaging.api.processor.RPCResponderProcessor
 import org.slf4j.LoggerFactory
 import java.util.concurrent.CompletableFuture
@@ -21,7 +23,6 @@ class EVMOpsProcessor() : RPCResponderProcessor<EvmRequest, EvmResponse> {
     private companion object {
         val log = LoggerFactory.getLogger(this::class.java.enclosingClass)
     }
-
     // Get the transaction receipt details
     private fun getTransactionReceipt(rpcConnection: String, receipt: String): String {
         val resp = evmConnector.send(rpcConnection,"eth_getTransactionReceipt",listOf(receipt))
@@ -63,7 +64,6 @@ class EVMOpsProcessor() : RPCResponderProcessor<EvmRequest, EvmResponse> {
         // Usefor for pre EIP-1559 ones
         println("Estimated Gas: ${estimatedGas}")
 
-        // TODO:  Allow for gas fee estimation
         val transaction = RawTransaction.createTransaction(
             1337.toLong(),
             nonce,
@@ -97,8 +97,6 @@ class EVMOpsProcessor() : RPCResponderProcessor<EvmRequest, EvmResponse> {
 
 
 
-
-
     override fun onNext(request: EvmRequest, respFuture: CompletableFuture<EvmResponse>) {
         log.info(request.schema.toString(true))
         // Paramaters for the transaction/queryS
@@ -121,9 +119,8 @@ class EVMOpsProcessor() : RPCResponderProcessor<EvmRequest, EvmResponse> {
                 respFuture.complete(EvmResponse(flowId,callResult))
             }
         }catch (e: Throwable){
-            // On Error Return the Error
             // Better error handling => Meaningful
-            //
+            println(e.message)
             respFuture.completeExceptionally(e)
         }
     }

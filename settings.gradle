@@ -108,6 +108,8 @@ include 'components:flow:flow-rest-resource-service'
 include 'components:flow:flow-rest-resource-service-impl'
 include 'components:flow:flow-service'
 include 'components:gateway'
+include 'components:interop:interop-service'
+include 'components:interop:web3j-service'
 include 'components:rest-gateway-comp'
 include 'components:kafka-topic-admin'
 include 'components:ledger:ledger-common-flow'
@@ -368,6 +370,7 @@ include 'processors:crypto-processor'
 include 'processors:db-processor'
 include 'processors:flow-processor'
 include 'processors:gateway-processor'
+include 'processors:interop-processor'
 include 'processors:link-manager-processor'
 include 'processors:member-processor'
 include 'processors:rest-processor'
@@ -393,6 +396,8 @@ include 'testing:cpbs:ledger-utxo-demo-app'
 include 'testing:cpbs:ledger-utxo-demo-contract'
 include 'testing:cpbs:extendable-cpb'
 include 'testing:cpbs:test-cordapp'
+include 'testing:cpbs:test-invocation-cordapp'
+include 'testing:cpbs:test-responder-cordapp'
 include 'testing:cpbs:mandelbrot'
 include 'testing:cpbs:sandbox-scr-cpk'
 include 'testing:cpbs:sandbox-security-manager-one'
@@ -452,6 +457,8 @@ include 'tools:plugins:preinstall'
 include 'tools:plugins:secret-config'
 include 'tools:plugins:topic-config'
 include 'tools:plugins:virtual-node'
+include 'testing:cpbs:interop-token-demo-contracts'
+include 'testing:cpbs:interop-token-demo-workflows'
 
 // The following logic dictates if we use the composite build gradle functionality,
 // If this evaluates to true local source code will be used in place of binary dependencies.
@@ -474,6 +481,7 @@ if (compositeBuild.toBoolean() && file(cordaApiLocation).exists()) {
             substitute module('net.corda:corda-ledger-consensual') using project(':ledger:ledger-consensual')
             substitute module('net.corda:corda-ledger-utxo') using project(':ledger:ledger-utxo')
             substitute module('net.corda:corda-membership') using project(':membership')
+            substitute module('net.corda:corda-interop') using project(':interop')
             substitute module('net.corda:corda-serialization') using project(':serialization')
             substitute module('net.corda:corda-notary-plugin') using project(':ledger:notary-plugin')
         }

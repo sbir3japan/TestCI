@@ -26,7 +26,7 @@ dependencies {
 
     implementation("com.squareup.okhttp3:okhttp:4.10.0")
 
-
+    implementation project(':components:interop:web3j-service')
     implementation project(':components:crypto:crypto-service-impl')
     implementation project(':components:crypto:crypto-softhsm-impl')
 

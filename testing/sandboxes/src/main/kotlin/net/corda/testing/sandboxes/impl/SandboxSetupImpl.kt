@@ -65,6 +65,7 @@ class SandboxSetupImpl @Activate constructor(
             "net.corda.ledger-consensual",
             "net.corda.ledger-utxo",
             "net.corda.membership",
+            "net.corda.interop",
             "net.corda.persistence",
             "net.corda.serialization",
             "net.corda.test-api",
