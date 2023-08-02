@@ -118,27 +118,29 @@ class GroupParametersReconciler(
         require(context is VirtualNodeReconciliationContext) {
             "Reconciliation information must be virtual node level for group parameters reconciliation"
         }
-        return context.getOrCreateEntityManager().getCurrentGroupParameters()?.let { entity ->
-            val (signature, signatureSpec) = if (entity.isSigned()) {
-                CryptoSignatureWithKey(
-                    entity.signaturePublicKey!!.buffer,
-                    entity.signatureContent!!.buffer
-                ) to CryptoSignatureSpec(
-                    entity.signatureSpec, null, null
-                )
-            } else null to null
-
-            Stream.of(
-                object : VersionedRecord<HoldingIdentity, InternalGroupParameters> {
-                    override val version = entity.epoch
-                    override val isDeleted = false
-                    override val key = context.virtualNodeInfo.holdingIdentity
-                    override val value = groupParametersFactory.create(
-                        AvroGroupParameters(entity.parameters.buffer, signature, signatureSpec)
+        return context.use {
+            it.getOrCreateEntityManager().getCurrentGroupParameters()?.let { entity ->
+                val (signature, signatureSpec) = if (entity.isSigned()) {
+                    CryptoSignatureWithKey(
+                        entity.signaturePublicKey!!.buffer,
+                        entity.signatureContent!!.buffer
+                    ) to CryptoSignatureSpec(
+                        entity.signatureSpec, null, null
                     )
-                }
-            )
-        } ?: Stream.empty()
+                } else null to null
+
+                Stream.of(
+                    object : VersionedRecord<HoldingIdentity, InternalGroupParameters> {
+                        override val version = entity.epoch
+                        override val isDeleted = false
+                        override val key = context.virtualNodeInfo.holdingIdentity
+                        override val value = groupParametersFactory.create(
+                            AvroGroupParameters(entity.parameters.buffer, signature, signatureSpec)
+                        )
+                    }
+                )
+            } ?: Stream.empty()
+        }
     }
 
     private val ByteArray.buffer get() = ByteBuffer.wrap(this)

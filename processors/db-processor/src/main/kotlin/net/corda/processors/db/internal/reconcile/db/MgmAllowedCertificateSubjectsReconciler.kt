@@ -92,9 +92,6 @@ internal class MgmAllowedCertificateSubjectsReconciler(
         val context = reconciliationContext as? VirtualNodeReconciliationContext ?: return Stream.empty()
 
         val em = context.getOrCreateEntityManager()
-        val currentTransaction = em.transaction
-        currentTransaction.begin()
-
         return getAllAllowedSubjects(em)
             .map { entity ->
                 val subject = MgmAllowedCertificateSubject(entity.subject, context.virtualNodeInfo.holdingIdentity.groupId)
@@ -105,7 +102,6 @@ internal class MgmAllowedCertificateSubjectsReconciler(
                     override val value = subject
                 } as VersionedRecord<MgmAllowedCertificateSubject, MgmAllowedCertificateSubject>
             }.onClose {
-                currentTransaction.rollback()
                 context.close()
             }
     }

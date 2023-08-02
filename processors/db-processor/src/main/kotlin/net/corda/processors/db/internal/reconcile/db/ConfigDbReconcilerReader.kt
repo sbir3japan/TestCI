@@ -11,8 +11,6 @@ val getAllConfigDBVersionedRecords
     : (ReconciliationContext) -> Stream<VersionedRecord<String, Configuration>> = { context ->
 
     val em = context.getOrCreateEntityManager()
-    val currentTransaction = em.transaction
-    currentTransaction.begin()
     em.findAllConfig().map { configEntity ->
         val config = Configuration(
             configEntity.config,
@@ -27,7 +25,6 @@ val getAllConfigDBVersionedRecords
             override val value = config
         } as VersionedRecord<String, Configuration>
     }.onClose {
-        currentTransaction.rollback()
         context.close()
     }
 }

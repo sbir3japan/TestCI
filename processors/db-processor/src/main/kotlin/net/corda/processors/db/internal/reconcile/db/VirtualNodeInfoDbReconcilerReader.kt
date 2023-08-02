@@ -14,8 +14,6 @@ val getAllVirtualNodesDBVersionedRecords
         : (ReconciliationContext) -> Stream<VersionedRecord<HoldingIdentity, VirtualNodeInfo>> =
     { context ->
         val em = context.getOrCreateEntityManager()
-        val currentTransaction = em.transaction
-        currentTransaction.begin()
 
         VirtualNodeRepositoryImpl()
             .findAll(em)
@@ -27,7 +25,6 @@ val getAllVirtualNodesDBVersionedRecords
                     override val value = entity
                 } as VersionedRecord<HoldingIdentity, VirtualNodeInfo>
             }.onClose {
-                currentTransaction.rollback()
                 context.close()
             }
     }
