@@ -112,6 +112,7 @@ class GroupParametersReconciler(
         }
     }
 
+    // Doesn't need DB transaction
     private fun getAllGroupParametersDBVersionedRecords(context: ReconciliationContext):
             Stream<VersionedRecord<HoldingIdentity, InternalGroupParameters>> {
         require(context is VirtualNodeReconciliationContext) {

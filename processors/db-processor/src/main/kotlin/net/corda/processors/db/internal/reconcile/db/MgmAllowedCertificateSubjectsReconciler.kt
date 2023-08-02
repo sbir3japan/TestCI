@@ -86,10 +86,16 @@ internal class MgmAllowedCertificateSubjectsReconciler(
         }
     }
 
+    @Suppress("warnings")
     private fun getAllAllowedSubjects(reconciliationContext: ReconciliationContext):
         Stream<VersionedRecord<MgmAllowedCertificateSubject, MgmAllowedCertificateSubject>> {
         val context = reconciliationContext as? VirtualNodeReconciliationContext ?: return Stream.empty()
-        return getAllAllowedSubjects(context.getOrCreateEntityManager())
+
+        val em = context.getOrCreateEntityManager()
+        val currentTransaction = em.transaction
+        currentTransaction.begin()
+
+        return getAllAllowedSubjects(em)
             .map { entity ->
                 val subject = MgmAllowedCertificateSubject(entity.subject, context.virtualNodeInfo.holdingIdentity.groupId)
                 object : VersionedRecord<MgmAllowedCertificateSubject, MgmAllowedCertificateSubject> {
@@ -97,7 +103,10 @@ internal class MgmAllowedCertificateSubjectsReconciler(
                     override val isDeleted = entity.isDeleted
                     override val key = subject
                     override val value = subject
-                }
+                } as VersionedRecord<MgmAllowedCertificateSubject, MgmAllowedCertificateSubject>
+            }.onClose {
+                currentTransaction.rollback()
+                context.close()
             }
     }
 

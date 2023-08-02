@@ -6,9 +6,14 @@ import net.corda.data.config.ConfigurationSchemaVersion
 import net.corda.libs.configuration.datamodel.findAllConfig
 import net.corda.reconciliation.VersionedRecord
 
+@Suppress("warnings")
 val getAllConfigDBVersionedRecords
     : (ReconciliationContext) -> Stream<VersionedRecord<String, Configuration>> = { context ->
-    context.getOrCreateEntityManager().findAllConfig().map { configEntity ->
+
+    val em = context.getOrCreateEntityManager()
+    val currentTransaction = em.transaction
+    currentTransaction.begin()
+    em.findAllConfig().map { configEntity ->
         val config = Configuration(
             configEntity.config,
             configEntity.config,
@@ -20,6 +25,9 @@ val getAllConfigDBVersionedRecords
             override val isDeleted = configEntity.isDeleted
             override val key = configEntity.section
             override val value = config
-        }
+        } as VersionedRecord<String, Configuration>
+    }.onClose {
+        currentTransaction.rollback()
+        context.close()
     }
 }

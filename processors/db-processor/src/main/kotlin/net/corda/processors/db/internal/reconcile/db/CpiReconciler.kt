@@ -76,6 +76,7 @@ class CpiReconciler(
         }
     }
 
+    // Doesn't need DB transaction
     internal fun getAllCpiInfoDBVersionedRecords(context: ReconciliationContext): Stream<VersionedRecord<CpiIdentifier, CpiMetadata>> {
         val cpiMetadata =  cpiMetadataRepository.findAll(context.getOrCreateEntityManager())
 

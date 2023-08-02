@@ -9,19 +9,25 @@ import java.util.stream.Stream
 /**
  * Gets and converts the database entity classes to 'Corda' classes
  */
+@Suppress("warnings")
 val getAllVirtualNodesDBVersionedRecords
         : (ReconciliationContext) -> Stream<VersionedRecord<HoldingIdentity, VirtualNodeInfo>> =
     { context ->
-        virtualNodeEntitiesToVersionedRecords(VirtualNodeRepositoryImpl().findAll(context.getOrCreateEntityManager()))
-    }
+        val em = context.getOrCreateEntityManager()
+        val currentTransaction = em.transaction
+        currentTransaction.begin()
 
-fun virtualNodeEntitiesToVersionedRecords(virtualNodes: Stream<VirtualNodeInfo>)
-        : Stream<VersionedRecord<HoldingIdentity, VirtualNodeInfo>> =
-    virtualNodes.map { entity ->
-        object : VersionedRecord<HoldingIdentity, VirtualNodeInfo> {
-            override val version = entity.version
-            override val isDeleted = entity.isDeleted
-            override val key = entity.holdingIdentity
-            override val value = entity
-        }
+        VirtualNodeRepositoryImpl()
+            .findAll(em)
+            .map { entity ->
+                object : VersionedRecord<HoldingIdentity, VirtualNodeInfo> {
+                    override val version = entity.version
+                    override val isDeleted = entity.isDeleted
+                    override val key = entity.holdingIdentity
+                    override val value = entity
+                } as VersionedRecord<HoldingIdentity, VirtualNodeInfo>
+            }.onClose {
+                currentTransaction.rollback()
+                context.close()
+            }
     }

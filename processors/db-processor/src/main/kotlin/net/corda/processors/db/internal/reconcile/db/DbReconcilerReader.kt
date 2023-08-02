@@ -73,14 +73,7 @@ class DbReconcilerReader<K : Any, V : Any>(
     override fun getAllVersionedRecords(): Stream<VersionedRecord<K, V>>? {
         return reconciliationContextFactory().map { context ->
             try {
-                val currentTransaction = context.getOrCreateEntityManager().transaction
-                currentTransaction.begin()
-                doGetAllVersionedRecords(context).onClose {
-                    // This class only have access to this em and transaction. This is a read only transaction,
-                    // only used for making streaming DB data possible.
-                    currentTransaction.rollback()
-                    context.close()
-                }
+                doGetAllVersionedRecords(context)
             } catch (e: Exception) {
                 logger.warn("Error while retrieving DB records for reconciliation", e)
                 throw e
