@@ -71,14 +71,14 @@ class DbReconcilerReader<K : Any, V : Any>(
      */
     @Suppress("SpreadOperator")
     override fun getAllVersionedRecords(): Stream<VersionedRecord<K, V>>? {
-        return reconciliationContextFactory().map { context ->
+        return reconciliationContextFactory().flatMap { context ->
             try {
                 doGetAllVersionedRecords(context)
             } catch (e: Exception) {
                 logger.warn("Error while retrieving DB records for reconciliation", e)
                 throw e
             }
-        }.flatMap { i -> i }
+        }
     }
 
     override val isRunning: Boolean
