@@ -24,6 +24,7 @@ import net.corda.sandboxgroupcontext.VirtualNodeContext
 import net.corda.sandboxgroupcontext.getObjectByKey
 import net.corda.sandboxgroupcontext.putObjectByKey
 import net.corda.sandboxgroupcontext.service.CacheControl
+import net.corda.sandboxgroupcontext.service.CacheEviction
 import net.corda.sandboxgroupcontext.service.EvictionListener
 import net.corda.v5.base.exceptions.CordaRuntimeException
 import net.corda.v5.crypto.SecureHash
@@ -47,8 +48,6 @@ import org.osgi.service.component.annotations.Reference
 import org.osgi.service.component.runtime.ServiceComponentRuntime
 import org.osgi.service.component.runtime.dto.ComponentDescriptionDTO
 import org.slf4j.LoggerFactory
-import java.security.AccessControlContext
-import java.security.AccessControlException
 import java.time.Duration
 import java.util.Collections.singleton
 import java.util.Collections.unmodifiableSet
@@ -59,6 +58,9 @@ import java.util.SortedMap
 import java.util.TreeMap
 import java.util.UUID
 import java.util.concurrent.CompletableFuture
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.InvocationKind
+import kotlin.contracts.contract
 
 typealias SatisfiedServiceReferences = Map<String, SortedMap<ServiceReference<*>, Any>>
 
@@ -72,7 +74,7 @@ typealias SatisfiedServiceReferences = Map<String, SortedMap<ServiceReference<*>
  * in EVERY process.
  */
 @Suppress("TooManyFunctions")
-@Component(service = [ SandboxGroupContextService::class ])
+@Component(service = [ SandboxGroupContextService::class, CacheEviction::class ])
 @RequireSandboxCrypto
 @RequireSandboxHooks
 @RequireCordaSystem
@@ -251,19 +253,23 @@ class SandboxGroupContextServiceImpl @Activate constructor(
 
         // Access control context for the sandbox's "main" bundles.
         // All "main" bundles are assumed to have equal access rights.
-        val accessControlContext = bundles.first().adapt(AccessControlContext::class.java)
+        @Suppress("deprecation", "removal")
+        val accessControlContext = bundles.first().adapt(java.security.AccessControlContext::class.java)
 
         val sandboxGroupType = vnc.sandboxGroupType
         val sandboxBundles = bundles + getCordaSystemBundles(sandboxGroupType)
 
         val serviceMarkerType = sandboxGroupType.serviceMarkerType
-        val serviceFilter = vnc.serviceFilter?.let { filter -> "(&$SANDBOX_FACTORY_FILTER$filter)" } ?: SANDBOX_FACTORY_FILTER
-        bundleContext.getServiceReferences(serviceMarkerType, serviceFilter).forEach { serviceRef ->
+        val sandboxFilter = vnc.serviceFilter?.let { filter -> "(&$SANDBOX_FACTORY_FILTER$filter)" } ?: SANDBOX_FACTORY_FILTER
+        bundleContext.getServiceReferences(serviceMarkerType, sandboxFilter).forEach { serviceRef ->
             try {
                 serviceRef.serviceClassNames
                     .filterNot(MARKER_INTERFACES::contains)
                     .onEach { serviceType ->
                         serviceIndex.computeIfAbsent(serviceType) { HashSet() }.add(serviceRef)
+                    }.takeIfElse(emptyList()) {
+                        // Services are only "injectable" if this sandbox type supports injection.
+                        sandboxGroupType.hasInjection
                     }.mapNotNullTo(ArrayList()) { serviceType ->
                         if (systemFilter.match(serviceRef)) {
                             // We always load interfaces for system services.
@@ -287,7 +293,7 @@ class SandboxGroupContextServiceImpl @Activate constructor(
                         // We filtered on services having a component name, so we
                         // should be guaranteed to find its component description.
                         serviceComponentRuntime.getComponentDescriptionDTO(serviceRef)?.also { description ->
-                            injectables[serviceRef] = ServiceDefinition(injectableTypes, description)
+                            injectables[serviceRef] = ServiceDefinition(injectableTypes, description, vnc.serviceFilter)
                         }
                     }
             } catch (e: Exception) {
@@ -306,6 +312,7 @@ class SandboxGroupContextServiceImpl @Activate constructor(
 
         return SandboxServiceContext(
             sandboxId = sandboxId,
+            serviceFilter = vnc.serviceFilter,
             sourceContext = bundleContext,
             serviceComponentRuntime,
             serviceIndex,
@@ -469,8 +476,10 @@ class SandboxGroupContextServiceImpl @Activate constructor(
      * abort this process if we ever iterate over [injectables] without achieving
      * anything new.
      */
+    @Suppress("LongParameterList")
     private class SandboxServiceContext(
         private val sandboxId: UUID,
+        private val serviceFilter: String?,
         private val sourceContext: BundleContext,
         private val serviceComponentRuntime: ServiceComponentRuntime,
         private val serviceIndex: Map<String, MutableSet<ServiceReference<*>>>,
@@ -534,8 +543,15 @@ class SandboxGroupContextServiceImpl @Activate constructor(
                 val entry = iter.next()
                 val injectable = entry.value
                 val sandboxRequirements = injectable.sandboxReferences
-                if (sandboxRequirements.isEmpty()) {
-                    // This service doesn't use any of our prototypes, which means that
+
+                if (!injectable.isByConstructor) {
+                    logger.warn("{} must only use constructor injection - IGNORED", injectable)
+                    injectable.broken()
+                } else if (sandboxRequirements.isNotEmpty()) {
+                    sandboxRequirements.values.forEach(totalRequirements::addAll)
+                } else if (serviceFilter == null) {
+                    // This service doesn't use any of our prototypes, and we don't
+                    // need to filter the set of available services, which means that
                     // the OSGi framework can safely create our new service instance.
                     sourceContext.getServiceObjects(entry.key)?.also { serviceObj ->
                         registerInjectableSandboxService(
@@ -547,11 +563,6 @@ class SandboxGroupContextServiceImpl @Activate constructor(
                             iter.remove()
                         } ?: run(injectable::broken)
                     }
-                } else if (!injectable.isByConstructor) {
-                    logger.warn("{} must only use constructor injection - IGNORED", injectable)
-                    injectable.broken()
-                } else {
-                    sandboxRequirements.values.forEach(totalRequirements::addAll)
                 }
             }
 
@@ -666,7 +677,7 @@ class SandboxGroupContextServiceImpl @Activate constructor(
         private fun addNonInjectable(serviceRef: ServiceReference<*>, closeables: Deque<AutoCloseable>): Boolean {
             var modified = false
             serviceComponentRuntime.getComponentDescriptionDTO(serviceRef)?.let { description ->
-                val nonInjectable = ServiceDefinition(description).initialise(serviceIndex)
+                val nonInjectable = ServiceDefinition(description, serviceFilter).initialise(serviceIndex)
                 if (nonInjectable.sandboxReferences.isEmpty()) {
                     // This service doesn't use any of our prototypes, which means that
                     // the OSGi framework can safely create our new service instance.
@@ -739,14 +750,15 @@ fun closeSafely(closeable: AutoCloseable) {
 }
 
 /**
- * Check whether this [AccessControlContext] is allowed to GET service [serviceType].
+ * Check whether this [AccessControlContext][java.security.AccessControlContext] is allowed to GET service [serviceType].
  */
-private fun AccessControlContext.checkServicePermission(serviceType: String): Boolean {
+@Suppress("deprecation", "removal")
+private fun java.security.AccessControlContext.checkServicePermission(serviceType: String): Boolean {
     val sm = System.getSecurityManager()
     if (sm != null) {
         try {
             sm.checkPermission(ServicePermission(serviceType, GET), this)
-        } catch (ace: AccessControlException) {
+        } catch (ace: java.security.AccessControlException) {
             return false
         }
     }
@@ -794,6 +806,14 @@ private fun Bundle.loadMetadataService(serviceClassName: String, isMetadataServi
     } catch (_: ClassNotFoundException) {
     }
     return null
+}
+
+@OptIn(ExperimentalContracts::class)
+private inline fun <T> T.takeIfElse(otherwise: T, predicate: (T) -> Boolean): T {
+    contract {
+        callsInPlace(predicate, InvocationKind.EXACTLY_ONCE)
+    }
+    return if (predicate(this)) this else otherwise
 }
 
 private val ServiceReference<*>.serviceClassNames: Array<String>

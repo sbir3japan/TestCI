@@ -1,6 +1,9 @@
 package net.corda.flow.application.services
 
 import net.corda.data.flow.state.checkpoint.FlowStackItem
+import net.corda.data.flow.state.checkpoint.FlowStackItemSession
+import net.corda.data.flow.state.session.SessionState
+import net.corda.data.flow.state.session.SessionStateType
 import net.corda.flow.application.services.impl.FlowEngineImpl
 import net.corda.flow.application.versioning.impl.RESET_VERSIONING_MARKER
 import net.corda.flow.application.versioning.impl.VERSIONING_PROPERTY_NAME
@@ -12,6 +15,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import org.mockito.kotlin.any
 import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.doAnswer
 import org.mockito.kotlin.inOrder
@@ -35,6 +39,11 @@ class FlowEngineImplTest {
         .build()
     private val subFlow = mock<SubFlow<String>>()
     private val result = "result"
+    private val errorSessionState =
+        SessionState("s", mock(), mock(), mock(), null, false, null, null, SessionStateType.ERROR, false, null)
+    private val closedSessionState =
+        SessionState("s", mock(), mock(), mock(), null, false, null, null, SessionStateType.CLOSED, false, null)
+
 
     private val flowEngine = FlowEngineImpl(flowFiberService)
 
@@ -52,30 +61,65 @@ class FlowEngineImplTest {
     }
 
     @Test
-    fun `sub flow completes successfully`() {
+    fun `sub flow with no sessions tied to it completes successfully and does not suspend`() {
         assertThat(flowEngine.subFlow(subFlow)).isEqualTo(result)
 
         // verify unordered calls.
         verify(sandboxDependencyInjector).injectServices(subFlow)
-        verify(flowStack).push(subFlow)
+        verify(flowStack).push(subFlow, flowFiber.getExecutionContext().flowMetrics)
 
         // verify ordered calls
         inOrder(sandboxDependencyInjector, flowFiber, flowStack, subFlow) {
             verify(sandboxDependencyInjector).injectServices(subFlow)
             verify(subFlow).call()
+            verify(flowFiber, never()).suspend(any())
+        }
+    }
 
+    @Test
+    fun `sub flow with uninitiated sessions tied to it completes successfully and does not suspend`() {
+        val flowStackItemSession = FlowStackItemSession("s", false)
+        flowStackItem.sessions = listOf(flowStackItemSession)
+        assertThat(flowEngine.subFlow(subFlow)).isEqualTo(result)
+
+        // verify unordered calls.
+        verify(sandboxDependencyInjector).injectServices(subFlow)
+        verify(flowStack).push(subFlow, flowFiber.getExecutionContext().flowMetrics)
+
+        // verify ordered calls
+        inOrder(sandboxDependencyInjector, flowFiber, flowStack, subFlow) {
+            verify(sandboxDependencyInjector).injectServices(subFlow)
+            verify(subFlow).call()
+            verify(flowFiber, never()).suspend(any())
+        }
+    }
+
+    @Test
+    fun `sub flow with initiated sessions tied to it completes successfully and suspends`() {
+        val flowStackItemSession = FlowStackItemSession("s", true)
+        flowStackItem.sessions = listOf(flowStackItemSession)
+        assertThat(flowEngine.subFlow(subFlow)).isEqualTo(result)
+
+        // verify unordered calls.
+        verify(sandboxDependencyInjector).injectServices(subFlow)
+        verify(flowStack).push(subFlow, flowFiber.getExecutionContext().flowMetrics)
+
+        // verify ordered calls
+        inOrder(sandboxDependencyInjector, flowFiber, flowStack, subFlow) {
+            verify(sandboxDependencyInjector).injectServices(subFlow)
+            verify(subFlow).call()
             // Assert the flow stack item is popped of the stack
             // and passed to the sub flow finished IO request
             argumentCaptor<FlowIORequest.SubFlowFinished>().apply {
                 verify(flowFiber).suspend(capture())
 
-                assertThat(firstValue.sessionIds).isEqualTo(flowStackItem.sessions.map { it.sessionId })
+                assertThat(firstValue.sessionIds).containsOnly(flowStackItemSession.sessionId)
             }
         }
     }
 
     @Test
-    fun `sub flow completes with error`() {
+    fun `sub flow with no sessions tied to it completes with error and does not suspend`() {
         val error = Exception()
 
         whenever(subFlow.call()).doAnswer { throw error }
@@ -84,9 +128,57 @@ class FlowEngineImplTest {
 
         assertThat(thrownError).isEqualTo(error)
 
-        // verify unordered calls
+        // verify unordered calls.
         verify(sandboxDependencyInjector).injectServices(subFlow)
-        verify(flowStack).push(subFlow)
+        verify(flowStack).push(subFlow, flowFiber.getExecutionContext().flowMetrics)
+
+        // verify ordered calls
+        inOrder(sandboxDependencyInjector, flowFiber, flowStack, subFlow) {
+            verify(sandboxDependencyInjector).injectServices(subFlow)
+            verify(subFlow).call()
+            verify(flowFiber, never()).suspend(any())
+        }
+    }
+
+    @Test
+    fun `sub flow with uninitiated sessions tied to it completes with error and does not suspend`() {
+        val flowStackItemSession = FlowStackItemSession("s", false)
+        flowStackItem.sessions = listOf(flowStackItemSession)
+        val error = Exception()
+
+        whenever(subFlow.call()).doAnswer { throw error }
+
+        val thrownError = assertThrows<Exception> { flowEngine.subFlow(subFlow) }
+
+        assertThat(thrownError).isEqualTo(error)
+
+        // verify unordered calls.
+        verify(sandboxDependencyInjector).injectServices(subFlow)
+        verify(flowStack).push(subFlow, flowFiber.getExecutionContext().flowMetrics)
+
+        // verify ordered calls
+        inOrder(sandboxDependencyInjector, flowFiber, flowStack, subFlow) {
+            verify(sandboxDependencyInjector).injectServices(subFlow)
+            verify(subFlow).call()
+            verify(flowFiber, never()).suspend(any())
+        }
+    }
+
+    @Test
+    fun `sub flow with initiated sessions tied to it completes with error and suspends`() {
+        val flowStackItemSession = FlowStackItemSession("s", true)
+        flowStackItem.sessions = listOf(flowStackItemSession)
+        val error = Exception()
+
+        whenever(subFlow.call()).doAnswer { throw error }
+
+        val thrownError = assertThrows<Exception> { flowEngine.subFlow(subFlow) }
+
+        assertThat(thrownError).isEqualTo(error)
+
+        // verify unordered calls.
+        verify(sandboxDependencyInjector).injectServices(subFlow)
+        verify(flowStack).push(subFlow, flowFiber.getExecutionContext().flowMetrics)
 
         // verify ordered calls
         inOrder(sandboxDependencyInjector, flowFiber, flowStack, subFlow) {
@@ -101,6 +193,122 @@ class FlowEngineImplTest {
                 assertThat(firstValue.throwable).isEqualTo(error)
                 assertThat(firstValue.sessionIds).isEqualTo(flowStackItem.sessions.map { it.sessionId })
             }
+        }
+    }
+
+    @Test
+    fun `sub flow with error sessions tied to it completes with error and doesn't suspend`() {
+        val flowStackItemSession = FlowStackItemSession("s", true)
+
+        flowStackItem.sessions = listOf(flowStackItemSession)
+
+        val error = Exception()
+
+        whenever(subFlow.call()).doAnswer { throw error }
+
+        whenever(
+            flowFiberService
+                .getExecutingFiber()
+                .getExecutionContext().flowCheckpoint.getSessionState("s")
+        ).doAnswer { errorSessionState }
+
+        val thrownError = assertThrows<Exception> { flowEngine.subFlow(subFlow) }
+
+        assertThat(thrownError).isEqualTo(error)
+
+        // verify unordered calls.
+        verify(sandboxDependencyInjector).injectServices(subFlow)
+        verify(flowStack).push(subFlow, flowFiber.getExecutionContext().flowMetrics)
+
+        // verify ordered calls
+        inOrder(sandboxDependencyInjector, flowFiber, flowStack, subFlow) {
+            verify(sandboxDependencyInjector).injectServices(subFlow)
+            verify(subFlow).call()
+            verify(flowFiber, never()).suspend(any())
+        }
+    }
+
+    @Test
+    fun `sub flow with closed sessions tied to it completes with error and doesn't suspend`() {
+        val flowStackItemSession = FlowStackItemSession("s", true)
+
+        flowStackItem.sessions = listOf(flowStackItemSession)
+
+        val error = Exception()
+
+        whenever(subFlow.call()).doAnswer { throw error }
+
+        whenever(
+            flowFiberService
+                .getExecutingFiber()
+                .getExecutionContext()
+                .flowCheckpoint.getSessionState("s")
+        ).doAnswer { closedSessionState }
+
+        val thrownError = assertThrows<Exception> { flowEngine.subFlow(subFlow) }
+
+        assertThat(thrownError).isEqualTo(error)
+
+        // verify unordered calls.
+        verify(sandboxDependencyInjector).injectServices(subFlow)
+        verify(flowStack).push(subFlow, flowFiber.getExecutionContext().flowMetrics)
+
+        // verify ordered calls
+        inOrder(sandboxDependencyInjector, flowFiber, flowStack, subFlow) {
+            verify(sandboxDependencyInjector).injectServices(subFlow)
+            verify(subFlow).call()
+            verify(flowFiber, never()).suspend(any())
+        }
+    }
+
+    @Test
+    fun `sub flow with error sessions tied to it completes successfully and doesn't suspend`() {
+        val flowStackItemSession = FlowStackItemSession("s", true)
+        flowStackItem.sessions = listOf(flowStackItemSession)
+
+        whenever(
+            flowFiberService
+                .getExecutingFiber()
+                .getExecutionContext().flowCheckpoint.getSessionState("s")
+        ).doAnswer { errorSessionState }
+
+        assertThat(flowEngine.subFlow(subFlow)).isEqualTo(result)
+
+        // verify unordered calls.
+        verify(sandboxDependencyInjector).injectServices(subFlow)
+        verify(flowStack).push(subFlow, flowFiber.getExecutionContext().flowMetrics)
+
+        // verify ordered calls
+        inOrder(sandboxDependencyInjector, flowFiber, flowStack, subFlow) {
+            verify(sandboxDependencyInjector).injectServices(subFlow)
+            verify(subFlow).call()
+            verify(flowFiber, never()).suspend(any())
+        }
+    }
+
+    @Test
+    fun `sub flow with closed sessions tied to it completes successfully and doesn't suspend`() {
+        val flowStackItemSession = FlowStackItemSession("s", true)
+        flowStackItem.sessions = listOf(flowStackItemSession)
+
+        whenever(
+            flowFiberService
+                .getExecutingFiber()
+                .getExecutionContext()
+                .flowCheckpoint.getSessionState("s")
+        ).doAnswer { closedSessionState }
+
+        assertThat(flowEngine.subFlow(subFlow)).isEqualTo(result)
+
+        // verify unordered calls.
+        verify(sandboxDependencyInjector).injectServices(subFlow)
+        verify(flowStack).push(subFlow, flowFiber.getExecutionContext().flowMetrics)
+
+        // verify ordered calls
+        inOrder(sandboxDependencyInjector, flowFiber, flowStack, subFlow) {
+            verify(sandboxDependencyInjector).injectServices(subFlow)
+            verify(subFlow).call()
+            verify(flowFiber, never()).suspend(any())
         }
     }
 

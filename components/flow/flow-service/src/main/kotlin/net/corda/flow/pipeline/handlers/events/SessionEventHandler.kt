@@ -47,7 +47,6 @@ class SessionEventHandler @Activate constructor(
 
     private companion object {
         val log = LoggerFactory.getLogger(this::class.java.enclosingClass)
-        private const val INTEROP_RESPONDER_FLOW = "INTEROP_RESPONDER_FLOW"
     }
 
     override val type = SessionEvent::class.java
@@ -80,6 +79,8 @@ class SessionEventHandler @Activate constructor(
         }
 
         checkpoint.putSessionState(updatedSessionState)
+        //do this last because the Holding Identity won't be available until after the checkpoint has been initiated
+        context.flowMetrics.flowSessionMessageReceived(sessionEvent.payload::class.java.name)
 
         return context
     }
@@ -100,58 +101,82 @@ class SessionEventHandler @Activate constructor(
         initialSessionState: SessionState,
     ) {
         val sessionId = sessionEvent.sessionId
+        val (requestedProtocolName, initiatorVersionsSupported) = getProtocolInfo(sessionInit, sessionEvent)
+
+        val initiatedFlowNameAndProtocolResult = initializeCheckpointAndGetResult(
+            context, sessionEvent, sessionInit, requestedProtocolName, initiatorVersionsSupported
+        )
+
+        //set initial session state, so it can be found when trying to send the confirmation message
+        context.checkpoint.putSessionState(initialSessionState)
+        context.flowMetrics.flowStarted()
+
+        initiatedFlowNameAndProtocolResult.let { result ->
+            when {
+                result.isSuccess -> sendConfirmMessage(
+                    result.getOrNull(),
+                    requestedProtocolName,
+                    initiatorVersionsSupported,
+                    context,
+                    sessionId
+                )
+                result.isFailure -> sendErrorMessage(
+                    context,
+                    sessionId,
+                    initiatedFlowNameAndProtocolResult.exceptionOrNull() ?:
+                    FlowFatalException("Failed to create initiated checkpoint for session: $sessionId.")
+                )
+            }
+        }
+    }
+
+    private fun initializeCheckpointAndGetResult(
+        context: FlowEventContext<*>,
+        sessionEvent: SessionEvent,
+        sessionInit: SessionInit,
+        requestedProtocolName: String,
+        initiatorVersionsSupported: List<Int>
+    ): Result<FlowAndProtocolVersion> {
+        val sessionId = sessionEvent.sessionId
         val initiatingIdentity = sessionEvent.initiatingIdentity
         val initiatedIdentity = sessionEvent.initiatedIdentity
         val holdingIdentity = initiatedIdentity.toCorda()
-        val (requestedProtocolName, initiatorVersionsSupported) = getProtocolInfo(sessionInit, sessionEvent)
-        var initiatedFlowNameAndProtocol: FlowAndProtocolVersion? = null
+        var initiatedFlowNameAndProtocolResult: Result<FlowAndProtocolVersion>? = null
 
         checkpointInitializer.initialize(
             context.checkpoint,
             WaitingFor(WaitingForSessionInit(sessionId)),
             holdingIdentity
         ) {
-            val flowAndProtocolVersion = if (!initialSessionState.isInteropSession) {
-                val protocolStore = try {
-                    flowSandboxService.get(holdingIdentity, it).protocolStore
-                } catch (e: Exception) {
-                    // We assume that all sandbox creation failures are transient. This likely isn't true, but to handle
-                    // it properly will need some changes to the exception handling to get the context elsewhere. Transient here
-                    // will get the right failure eventually, so this is fine for now.
-                    throw FlowTransientException(
-                        "Failed to create the flow sandbox: ${e.message ?: "No exception message provided."}",
-                        e
-                    )
-                }
-                protocolStore.responderForProtocol(requestedProtocolName, initiatorVersionsSupported, context)
-            } else {
-                val className = KeyValueStore(sessionInit.contextUserProperties)[INTEROP_RESPONDER_FLOW]
-                    ?: throw FlowTransientException("Failed to create the flow sandbox. " +
-                            "Missing flowClassName while starting an interoperable flow.")
-
-                log.info("Starting interoperable flow $className.")
-                FlowAndProtocolVersion("", className)
+            val protocolStore = try {
+                flowSandboxService.get(holdingIdentity, it).protocolStore
+            } catch (e: Exception) {
+                throw FlowTransientException(
+                    "Failed to create the flow sandbox: ${e.message ?: "No exception message provided."}",
+                    e
+                )
             }
 
-            initiatedFlowNameAndProtocol = flowAndProtocolVersion
+            initiatedFlowNameAndProtocolResult = runCatching {
+                protocolStore.responderForProtocol(requestedProtocolName, initiatorVersionsSupported, context)
+            }
+
             FlowStartContext.newBuilder()
                 .setStatusKey(FlowKey(sessionId, initiatedIdentity))
-                .setInitiatorType(if (initialSessionState.isInteropSession) FlowInitiatorType.INTEROP else FlowInitiatorType.P2P)
+                .setInitiatorType(FlowInitiatorType.P2P)
                 .setRequestId(sessionId)
                 .setIdentity(initiatedIdentity)
                 .setCpiId(sessionInit.cpiId)
                 .setInitiatedBy(initiatingIdentity)
-                .setFlowClassName(flowAndProtocolVersion.flowClassName)
+                .setFlowClassName(initiatedFlowNameAndProtocolResult?.getOrNull()?.flowClassName ?: "Invalid protocol")
                 .setContextPlatformProperties(keyValuePairListOf(mapOf(MDC_CLIENT_ID to sessionId)))
                 .setCreatedTimestamp(Instant.now())
                 .build()
         }
 
-        //set initial session state, so it can be found when trying to send the confirmation message
-        context.checkpoint.putSessionState(initialSessionState)
-
-        sendConfirmMessage(initiatedFlowNameAndProtocol, requestedProtocolName, initiatorVersionsSupported, context, sessionId)
+        return initiatedFlowNameAndProtocolResult!!
     }
+
 
     private fun getProtocolInfo(
         sessionInit: SessionInit,
@@ -186,6 +211,21 @@ class SessionEventHandler @Activate constructor(
                 context.checkpoint,
                 sessionId,
                 getContextSessionProperties(flowAndProtocolVersion),
+                Instant.now()
+            )
+        )
+    }
+
+    private fun sendErrorMessage(
+        context: FlowEventContext<*>,
+        sessionId: String,
+        exception: Throwable
+    ) {
+        context.checkpoint.putSessionStates(
+            flowSessionManager.sendErrorMessages(
+                context.checkpoint,
+                listOf(sessionId),
+                exception,
                 Instant.now()
             )
         )

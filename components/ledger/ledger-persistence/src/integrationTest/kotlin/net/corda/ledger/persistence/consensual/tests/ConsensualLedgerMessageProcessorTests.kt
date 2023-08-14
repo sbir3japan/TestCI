@@ -32,10 +32,11 @@ import net.corda.ledger.consensual.data.transaction.ConsensualLedgerTransactionI
 import net.corda.ledger.consensual.data.transaction.TRANSACTION_META_DATA_CONSENSUAL_LEDGER_VERSION
 import net.corda.ledger.consensual.data.transaction.consensualComponentGroupStructure
 import net.corda.ledger.persistence.processor.DelegatedRequestHandlerSelector
-import net.corda.ledger.persistence.processor.PersistenceRequestProcessor
+import net.corda.ledger.persistence.processor.LedgerPersistenceRequestProcessor
 import net.corda.messaging.api.records.Record
 import net.corda.persistence.common.ResponseFactory
 import net.corda.persistence.common.getSerializationService
+import net.corda.sandboxgroupcontext.CurrentSandboxGroupContext
 import net.corda.sandboxgroupcontext.SandboxGroupContext
 import net.corda.sandboxgroupcontext.getSandboxSingletonService
 import net.corda.test.util.dsl.entities.cpx.getCpkFileHashes
@@ -97,6 +98,7 @@ class ConsensualLedgerMessageProcessorTests {
     private lateinit var deserializer: CordaAvroDeserializer<EntityResponse>
     private lateinit var delegatedRequestHandlerSelector: DelegatedRequestHandlerSelector
     private lateinit var cpiInfoReadService: CpiInfoReadService
+    private lateinit var currentSandboxGroupContext: CurrentSandboxGroupContext
 
     @BeforeAll
     fun setup(
@@ -116,6 +118,7 @@ class ConsensualLedgerMessageProcessorTests {
                 .createAvroDeserializer({}, EntityResponse::class.java)
             delegatedRequestHandlerSelector = setup.fetchService(TIMEOUT_MILLIS)
             cpiInfoReadService = setup.fetchService(TIMEOUT_MILLIS)
+            currentSandboxGroupContext = setup.fetchService(TIMEOUT_MILLIS)
         }
     }
 
@@ -144,7 +147,8 @@ class ConsensualLedgerMessageProcessorTests {
         )
 
         // Send request to message processor
-        val processor = PersistenceRequestProcessor(
+        val processor = LedgerPersistenceRequestProcessor(
+            currentSandboxGroupContext,
             virtualNode.entitySandboxService,
             delegatedRequestHandlerSelector,
             responseFactory

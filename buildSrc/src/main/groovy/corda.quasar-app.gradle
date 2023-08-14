@@ -18,6 +18,7 @@ quasar {
         'com.typesafe.**',
         'de.javakaffee.kryoserializers**',
         'io.micrometer.**',
+        'io.zipkin.**',
         'javax.**',
         'kotlin**',
         'org.apache.**',

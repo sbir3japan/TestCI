@@ -27,9 +27,11 @@ import net.corda.p2p.linkmanager.hosting.LinkManagerHostingMap
 import net.corda.p2p.linkmanager.inbound.InboundAssignmentListener
 import net.corda.p2p.linkmanager.membership.NetworkMessagingValidator
 import net.corda.p2p.linkmanager.membership.lookup
+import net.corda.p2p.linkmanager.metrics.recordInboundMessagesMetric
 import net.corda.p2p.linkmanager.sessions.PendingSessionMessageQueues
 import net.corda.p2p.linkmanager.sessions.SessionManager
 import net.corda.schema.Schemas
+import net.corda.tracing.traceEventProcessing
 import net.corda.utilities.Either
 import net.corda.utilities.debug
 import net.corda.utilities.time.Clock
@@ -82,9 +84,9 @@ internal class OutboundMessageProcessor(
     }
 
     override fun onNext(events: List<EventLogRecord<String, AppMessage>>): List<Record<*, *>> {
-        val records = mutableListOf<Record<String, *>>()
+        val records = mutableListOf<Record<*, *>>()
         for (event in events) {
-            records += processEvent(event)
+            records += traceEventProcessing(event,"P2P Link Manager Outbound Event") { processEvent(event)}
         }
         return records
     }
@@ -199,26 +201,20 @@ internal class OutboundMessageProcessor(
             message.payload,
         )
         if (linkManagerHostingMap.isHostedLocally(message.header.destination.toCorda())) {
-            //TODO new log statement added temporarily for Interop Team, revert to debug as part of CORE-10683
-            logger.info("Sending outbound message hosted locally ${message.header.messageId} from ${message.header.source} " +
-                    "to ${message.header.destination}.")
+            recordInboundMessagesMetric(inboundMessage)
             return listOf(Record(Schemas.P2P.P2P_IN_TOPIC, LinkManager.generateKey(), AppMessage(inboundMessage)))
         } else if (destMemberInfo != null) {
             val source = message.header.source.toCorda()
             val groupPolicy = groupPolicyProvider.getGroupPolicy(source)
             if (groupPolicy == null) {
-                //TODO extended warn statement added temporarily for Interop Team, revert to debug as part of CORE-10683
                 logger.warn(
-                    "Could not find the group information in the GroupPolicyProvider for $source to ${message.header.destination}. " +
+                    "Could not find the group information in the GroupPolicyProvider for $source. " +
                     "The message ${message.header.messageId} was discarded."
                 )
                 return emptyList()
             }
 
             val linkOutMessage = MessageConverter.linkOutFromUnauthenticatedMessage(inboundMessage, source, destMemberInfo, groupPolicy)
-            //TODO logger info level and source identity added temporarily for Interop Team, revert to debug as part of CORE-10683
-            logger.info ("Sending outbound message ${message.header.messageId} to ${message.header.destination} " +
-                    "for ${linkOutMessage.header.address}." )
             return listOf(Record(Schemas.P2P.LINK_OUT_TOPIC, LinkManager.generateKey(), linkOutMessage))
         } else {
             logger.warn("Trying to send unauthenticated message ${message.header.messageId} from ${message.header.source.toCorda()} " +
@@ -271,6 +267,7 @@ internal class OutboundMessageProcessor(
         val source = messageAndKey.message.header.source.toCorda()
         val destination = messageAndKey.message.header.destination.toCorda()
         if (linkManagerHostingMap.isHostedLocally(destination)) {
+            recordInboundMessagesMetric(messageAndKey.message)
             return if (isReplay) {
                 listOf(Record(Schemas.P2P.P2P_IN_TOPIC, messageAndKey.key, AppMessage(messageAndKey.message)),
                     recordForLMReceivedMarker(messageAndKey.message.header.messageId)
