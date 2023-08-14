@@ -3,7 +3,6 @@ package net.corda.interop.web3j.internal
 import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -157,12 +156,12 @@ class EthereumConnector {
      * @return The matching data class from candidateDataClasses, or null if no match is found.
      */
     private fun findDataClassForJson(json: String): KClass<*>? {
-        if (jsonStringContainsKey(json, "error")) {
-            return JsonRpcError::class
+        return if (jsonStringContainsKey(json, "error")) {
+            JsonRpcError::class
         } else if (jsonStringContainsNestedKey(json, "contractAddress")) {
-            return TransactionResponse::class
+            TransactionResponse::class
         } else {
-            return JsonRpcResponse::class
+            JsonRpcResponse::class
         }
 
     }
@@ -174,7 +173,6 @@ class EthereumConnector {
      * @return The useful data extracted from the input as a string, or an empty string if not applicable.
      */
     private fun returnUsefulData(input: Any): ProcessedResponse {
-        println("INPUT ${input}")
         when (input) {
             is JsonRpcError -> {
                  throw EVMErrorException(input)

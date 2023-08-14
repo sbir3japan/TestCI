@@ -56,7 +56,7 @@ class EVMOpsProcessor : RPCResponderProcessor<EvmRequest, EvmResponse> {
 
 
     inner class RetryPolicy(private val maxRetries: Int, private val delayMs: Long) {
-        fun execute(action: () -> Unit): Unit {
+        fun execute(action: () -> Unit) {
             var retries = 0
             while (retries <= maxRetries) {
                 try {
@@ -354,7 +354,7 @@ class EVMOpsProcessor : RPCResponderProcessor<EvmRequest, EvmResponse> {
 
             is GetBalance -> {
                 val balance = getBalance(rpcConnection, from)
-                respFuture.complete(EvmResponse(flowId, balance.toString()))
+                respFuture.complete(EvmResponse(flowId, balance))
             }
 
             is GetCode -> {
@@ -364,13 +364,13 @@ class EVMOpsProcessor : RPCResponderProcessor<EvmRequest, EvmResponse> {
 
             is GetTransactionByHash -> {
                 val transaction = getTransactionByHash(rpcConnection, data)
-                respFuture.complete(EvmResponse(flowId, transaction.toString()))
+                respFuture.complete(EvmResponse(flowId, transaction))
 
             }
 
             is GetTransactionReceipt -> {
                 val receipt = getTransactionReceipt(rpcConnection, payload.transactionHash)
-                respFuture.complete(EvmResponse(flowId, receipt.toString()))
+                respFuture.complete(EvmResponse(flowId, receipt))
             }
 
             is MaxPriorityFeePerGas -> {
@@ -379,7 +379,7 @@ class EVMOpsProcessor : RPCResponderProcessor<EvmRequest, EvmResponse> {
             }
 
             is SendRawTransaction -> {
-                var transactionOutput: String;
+                var transactionOutput: String
                 runBlocking {
                     transactionOutput = sendTransaction(rpcConnection, from, to, payload.payload)
                 }

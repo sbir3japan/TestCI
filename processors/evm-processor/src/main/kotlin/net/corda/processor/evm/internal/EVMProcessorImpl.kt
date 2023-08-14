@@ -120,7 +120,6 @@ class EVMProcessorImpl @Activate constructor(
 
 
     private fun setStatus(status: LifecycleStatus, coordinator: LifecycleCoordinator) {
-        log.trace("Crypto processor is set to be $status")
         coordinator.updateStatus(status)
     }
     data class BootConfigEvent(val config: SmartConfig) : LifecycleEvent
