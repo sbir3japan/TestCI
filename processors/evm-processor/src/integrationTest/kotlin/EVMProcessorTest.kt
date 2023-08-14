@@ -5,11 +5,12 @@ import net.corda.data.interop.evm.request.ChainId
 import net.corda.data.interop.evm.request.EstimateGas
 import net.corda.data.interop.evm.request.GasPrice
 import net.corda.data.interop.evm.request.GetCode
-import net.corda.data.interop.evm.request.GetTransactionReceipt
 import net.corda.data.interop.evm.request.SendRawTransaction
-import net.corda.interop.web3j.internal.main
-import net.corda.processors.evm.internal.EVMOpsProcessor
+import net.corda.data.interop.evm.request.Syncing
+
+import net.corda.processor.evm.internal.EVMOpsProcessor
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import java.util.concurrent.CompletableFuture
@@ -37,7 +38,7 @@ class EvmProcessorTest {
 
 
     @BeforeEach
-    fun `deploy smart contract`() {
+    fun setUp() {
         val processor = EVMOpsProcessor()
         val evmRequest = EvmRequest(
             "RandomFlowId",
@@ -212,8 +213,7 @@ class EvmProcessorTest {
         val evmResponse = CompletableFuture<EvmResponse>()
         processor.onNext(evmRequest, evmResponse)
         val response = evmResponse.get()
-        println(response)
-        assert(response!=null)
+        assertNotNull(response.payload)
     }
 
 
@@ -230,25 +230,24 @@ class EvmProcessorTest {
         val evmResponse = CompletableFuture<EvmResponse>()
         processor.onNext(evmRequest, evmResponse)
         val response = evmResponse.get()
-        println(response.payload)
-
-
-        println("RESPONSE PAYLOAD ${response.payload}")
-
-        val transactionReceiptRequest = EvmRequest(
-            "RandomFlowId2",
-            "",
-            "",
-            "http://127.0.01:8545",
-            GetTransactionReceipt(response.payload)
-        )
-        val transactionResponse = CompletableFuture<EvmResponse>()
-        processor.onNext(transactionReceiptRequest,transactionResponse)
-        val transactionOutput = transactionResponse.get()
-        println(transactionOutput)
+        assertNotNull(response.payload)
     }
 
-
+    @Test
+    fun `Is Syncing`() {
+        val processor = EVMOpsProcessor()
+        val evmRequest = EvmRequest(
+            "RandomFlowId",
+            "",
+            "",
+            "http://127.0.0.1:8545",
+            Syncing()
+        )
+        val evmResponse = CompletableFuture<EvmResponse>()
+        processor.onNext(evmRequest, evmResponse)
+        val response = evmResponse.get()
+        assert(response.payload == "false")
+    }
 
 
 }

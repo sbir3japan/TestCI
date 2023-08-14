@@ -9,11 +9,10 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.util.concurrent.TimeUnit
-import com.google.gson.Gson
-import com.google.gson.JsonObject
 import kotlin.reflect.KClass
-import com.google.gson.JsonParser
 import net.corda.v5.base.exceptions.CordaRuntimeException
+import com.fasterxml.jackson.databind.JsonNode
+
 
 
 data class JsonRpcResponse @JsonCreator constructor(
@@ -36,11 +35,11 @@ data class Error @JsonCreator constructor(
     @JsonProperty("data") val data: String?
 )
 
-data class RpcRequest(
-    val jsonrpc: String,
-    val id: String,
-    val method: String,
-    val params: List<*>
+data class RpcRequest @JsonCreator constructor(
+    @JsonProperty("jsonrpc") val jsonrpc: String,
+    @JsonProperty("id") val id: String,
+    @JsonProperty("method") val method: String,
+    @JsonProperty("params") val params: List<*>
 )
 
 
@@ -115,14 +114,14 @@ class EthereumConnector {
 
     private val maxLoopedRequests = 10
 
-    private fun checkNestedKey(jsonObject: JsonObject, nestedKey: String): Boolean {
+    private fun checkNestedKey(jsonObject: JsonNode, nestedKey: String): Boolean {
         if (jsonObject.has(nestedKey)) {
             return true
         }
 
-        for ((_, value) in jsonObject.entrySet()) {
-            if (value.isJsonObject) {
-                if (checkNestedKey(value.asJsonObject, nestedKey)) {
+        for ((_, value) in jsonObject.fields()) {
+            if (value.isObject) {
+                if (checkNestedKey(value, nestedKey)) {
                     return true
                 }
             }
@@ -133,7 +132,7 @@ class EthereumConnector {
 
     private fun jsonStringContainsNestedKey(jsonString: String, nestedKey: String): Boolean {
         return try {
-            val jsonObject = JsonParser().parse(jsonString).asJsonObject
+            val jsonObject = objectMapper.readTree(jsonString)
             checkNestedKey(jsonObject, nestedKey)
         } catch (e: Exception) {
             // Handle any parsing errors here
@@ -144,8 +143,8 @@ class EthereumConnector {
 
     private fun jsonStringContainsKey(jsonString: String, key: String): Boolean {
         return try {
-            val jsonObject = JsonParser().parse(jsonString).asJsonObject
-            jsonObject.has(key)
+            val jsonNode: JsonNode = objectMapper.readTree(jsonString)
+            jsonNode.has(key)
         } catch (e: Exception) {
             // Handle any parsing errors here
             false
@@ -203,7 +202,9 @@ class EthereumConnector {
      */
     private fun rpcCall(rpcUrl: String, method: String, params: List<Any?>): RPCResponse {
         val body = RpcRequest(JSON_RPC_VERSION, "90.0", method, params)
+        println("BEFORE REQUEST BASE")
         val requestBase = objectMapper.writeValueAsString(body)
+        println("AFTER REQUEST BASE")
         val requestBody = requestBase.toRequestBody("application/json".toMediaType())
         val request = Request.Builder()
             .url(rpcUrl)
@@ -239,6 +240,7 @@ class EthereumConnector {
             }
 
             // Make the RPC call to the Ethereum node
+        println("BEFORE RESPONSE CALL")
             val response = rpcCall(rpcUrl, method, params)
             val responseBody = response.message
             val success = response.success
