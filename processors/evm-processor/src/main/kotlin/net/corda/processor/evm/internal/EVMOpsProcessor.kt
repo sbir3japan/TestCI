@@ -256,6 +256,8 @@ class EVMOpsProcessor : RPCResponderProcessor<EvmRequest, EvmResponse> {
     ): String {
         // Do this async
         val (nonce, chainId) = prepareTransaction(rpcConnection, from)
+        println("CHAINID $chainId")
+        println("NONCE $nonce")
 
         val transaction = RawTransaction.createTransaction(
             chainId,
@@ -264,8 +266,8 @@ class EVMOpsProcessor : RPCResponderProcessor<EvmRequest, EvmResponse> {
             contractAddress,
             BigInteger.valueOf(0),
             payload,
-            BigInteger.valueOf(10000000),
-            BigInteger.valueOf(51581475500)
+            BigInteger.valueOf(100000000),
+            BigInteger.valueOf(515814755000)
         )
 
         val signer = Credentials.create("0x8f2a55949038a9610f50fb23b5883af3b4ecb3c3bb792cbcefbd1542c692be63")
@@ -277,9 +279,9 @@ class EVMOpsProcessor : RPCResponderProcessor<EvmRequest, EvmResponse> {
         val tReceipt =
             evmConnector.send(rpcConnection, "eth_sendRawTransaction", listOf(Numeric.toHexString(signed)))
         println("Receipt: $tReceipt")
-        if (!tReceipt.success) {
-            return tReceipt.result.toString()
-        }
+//        if (!tReceipt.success) {
+//            return tReceipt.result.toString()
+//        }
 
         // Exception Case When Contract is Being Created we need to wait the address
         println("CONTRACT ADDRESS EMPTY: $contractAddress")

@@ -9,6 +9,7 @@ import net.corda.data.interop.evm.request.GetTransactionReceipt
 import net.corda.data.interop.evm.request.SendRawTransaction
 import net.corda.interop.web3j.internal.main
 import net.corda.processors.evm.internal.EVMOpsProcessor
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import java.util.concurrent.CompletableFuture
@@ -29,7 +30,7 @@ class EvmProcessorTest {
         "0xa9059cbb000000000000000000000000c5973ef0360fcd067dc5db140cd15b7e725c7c1a000000000000000000000000000000000013426172c74d822b878fe800000000"
     private val queryBalanceForAddress = "0x70a08231000000000000000000000000fe3b557e8fb62b89f4916b721be55ceb828dbd73"
     private val transfer100Encoded =
-        "0xa9059cbb0000000000000000000000001a26cd80b83491c948b264c4a04c7324cbde95970000000000000000000000000000000000000000000000000000000000000064"
+        "0xa9059cbb000000000000000000000000c5973ef0360fcd067dc5db140cd15b7e725c7c1a000000000000000000000000000000000000000000000000000000000000000a"
     private val transferWithInvalidParams = "0x095bcdb6000000000000000000000000c5973ef0360fcd067dc5db140cd15b7e725c7c1a000000000000000000000000000000000013426172c74d822b878fe80000000000000000000000000000000000000000000000000000000000000000000186a0"
     private val mainAddress = "0xfe3b557e8fb62b89f4916b721be55ceb828dbd73"
 
@@ -69,7 +70,7 @@ class EvmProcessorTest {
         val evmResponse = CompletableFuture<EvmResponse>()
         processor.onNext(evmRequest, evmResponse)
         val returnedResponse = evmResponse.get()
-        assert("0x00000000000000000000000000000000000000000000d3c21bcecceda1000000" == returnedResponse.payload)
+        assertEquals("0x00000000000000000000000000000000000000000000d3c21bcecceda1000000", returnedResponse.payload)
     }
 
 
@@ -88,6 +89,7 @@ class EvmProcessorTest {
         processor.onNext(evmRequest, evmResponse)
         val returnedResponse = evmResponse.get()
         println("Returned Response ${returnedResponse}")
+
     }
 
     @Test
@@ -126,7 +128,7 @@ class EvmProcessorTest {
 
         val returnedResponse = evmResponse.get()
         println("Returned Response ${returnedResponse}")
-        // TODO: Need to decode this result to get valuable input, but at the very least a hash is being returned
+
     }
 
 

@@ -1,6 +1,9 @@
 package net.corda.interop.web3j.internal
 
+import com.fasterxml.jackson.annotation.JsonCreator
+import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -13,25 +16,24 @@ import com.google.gson.JsonParser
 import net.corda.v5.base.exceptions.CordaRuntimeException
 
 
-data class JsonRpcResponse(
-    val jsonrpc: String,
-    val id: String,
-    val result: String
+data class JsonRpcResponse @JsonCreator constructor(
+    @JsonProperty("jsonrpc") val jsonrpc: String,
+    @JsonProperty("id") val id: String,
+    @JsonProperty("result") val result: String?
 )
-
 
 class EVMErrorException(val errorResponse: JsonRpcError) : Exception("Custom error")
 
-data class JsonRpcError(
-    val jsonrpc: String,
-    val id: String,
-    val error: Error
+data class JsonRpcError @JsonCreator constructor(
+    @JsonProperty("jsonrpc") val jsonrpc: String,
+    @JsonProperty("id") val id: String,
+    @JsonProperty("error") val error: Error
 )
 
-data class Error(
-    val code: Int,
-    val message: String,
-    val data: String
+data class Error @JsonCreator constructor(
+    @JsonProperty("code") val code: Int,
+    @JsonProperty("message") val message: String,
+    @JsonProperty("data") val data: String?
 )
 
 data class RpcRequest(
@@ -44,7 +46,7 @@ data class RpcRequest(
 
 data class ProcessedResponse(
     val success: Boolean,
-    val payload: String
+    val payload: String?
 )
 
 data class RPCResponse (
@@ -54,46 +56,53 @@ data class RPCResponse (
 
 
 
-data class Response (
-    val id: String,
-    val jsonrpc: String,
-    val result: Any?,
-    val success: Boolean
+//@JsonCreator
+//data class Response (
+//    val id: String,
+//    val jsonrpc: String,
+//    val result: Any?,
+//)
+
+data class Response @JsonCreator constructor(
+    @JsonProperty("id") val id: String,
+    @JsonProperty("jsonrpc") val jsonrpc: String,
+    @JsonProperty("result") val result: Any?
+
 )
 
-data class TransactionResponse (
-    val id: String,
-    val jsonrpc: String,
-    val result: TransactionData
+data class TransactionResponse @JsonCreator constructor(
+    @JsonProperty("id") val id: String,
+    @JsonProperty("jsonrpc") val jsonrpc: String,
+    @JsonProperty("result") val result: TransactionData
 )
 
-data class TransactionData(
-    val blockHash: String,
-    val blockNumber: String,
-    val contractAddress: String,
-    val cumulativeGasUsed: String,
-    val from: String,
-    val gasUsed: String,
-    val effectiveGasPrice: String,
-    val logs: List<TransactionLog>,
-    val logsBloom: String,
-    val status: String,
-    val to: String?,
-    val transactionHash: String,
-    val transactionIndex: String,
-    val type: String
+data class TransactionData @JsonCreator constructor(
+    @JsonProperty("blockHash") val blockHash: String,
+    @JsonProperty("blockNumber") val blockNumber: String,
+    @JsonProperty("contractAddress") val contractAddress: String,
+    @JsonProperty("cumulativeGasUsed") val cumulativeGasUsed: String,
+    @JsonProperty("from") val from: String,
+    @JsonProperty("gasUsed") val gasUsed: String,
+    @JsonProperty("effectiveGasPrice") val effectiveGasPrice: String,
+    @JsonProperty("logs") val logs: List<TransactionLog>,
+    @JsonProperty("logsBloom") val logsBloom: String,
+    @JsonProperty("status") val status: String,
+    @JsonProperty("to") val to: String?,
+    @JsonProperty("transactionHash") val transactionHash: String,
+    @JsonProperty("transactionIndex") val transactionIndex: String,
+    @JsonProperty("type") val type: String
 )
 
-data class TransactionLog(
-    val address: String,
-    val topics: List<String>,
-    val data: String,
-    val blockNumber: String,
-    val transactionHash: String,
-    val transactionIndex: String,
-    val blockHash: String,
-    val logIndex: String,
-    val removed: Boolean
+data class TransactionLog @JsonCreator constructor(
+    @JsonProperty("address") val address: String,
+    @JsonProperty("topics") val topics: List<String>,
+    @JsonProperty("data") val data: String,
+    @JsonProperty("blockNumber") val blockNumber: String,
+    @JsonProperty("transactionHash") val transactionHash: String,
+    @JsonProperty("transactionIndex") val transactionIndex: String,
+    @JsonProperty("blockHash") val blockHash: String,
+    @JsonProperty("logIndex") val logIndex: String,
+    @JsonProperty("removed") val removed: Boolean
 )
 
 class EthereumConnector {
@@ -102,7 +111,8 @@ class EthereumConnector {
         private const val JSON_RPC_VERSION = "2.0"
     }
 
-    private val gson = Gson()
+    private val objectMapper = ObjectMapper()
+
     private val maxLoopedRequests = 10
 
     private fun checkNestedKey(jsonObject: JsonObject, nestedKey: String): Boolean {
@@ -176,7 +186,7 @@ class EthereumConnector {
                 }catch(e: Exception){
                     return ProcessedResponse(true, input.result.toString())
                 }                }
-            is JsonRpcResponse -> return ProcessedResponse(true,input.result.toString())
+            is JsonRpcResponse -> return ProcessedResponse(true,input.result)
         }
         return ProcessedResponse(false,"")
     }
@@ -193,7 +203,7 @@ class EthereumConnector {
      */
     private fun rpcCall(rpcUrl: String, method: String, params: List<Any?>): RPCResponse {
         val body = RpcRequest(JSON_RPC_VERSION, "90.0", method, params)
-        val requestBase = gson.toJson(body)
+        val requestBase = objectMapper.writeValueAsString(body)
         val requestBody = requestBase.toRequestBody("application/json".toMediaType())
         val request = Request.Builder()
             .url(rpcUrl)
@@ -221,10 +231,11 @@ class EthereumConnector {
         waitForResponse: Boolean,
         requests: Int
     ): Response {
-        try {
+        println(waitForResponse)
+        println("PARAMS ${params}")
             // Check if the maximum number of requests has been reached
             if (requests > maxLoopedRequests) {
-                return Response("90", "2.0", "Timed Out", false)
+                return Response("90", "2.0", "Timed Out")
             }
 
             // Make the RPC call to the Ethereum node
@@ -235,21 +246,16 @@ class EthereumConnector {
             // Handle the response based on success status
             if (!success) {
                 println("Request Failed")
-                return Response("90", "2.0", response.message, false)
+                return Response("90", "2.0", response.message)
             }
 
             // Parse the JSON response into the base response object
             println("Response Body: $responseBody ")
-            val baseResponse = gson.fromJson<Response>(responseBody, Response::class.java)
 
-
-            // If the base response is null and waitForResponse is true, wait for 2 seconds and make a recursive call
+        // If the base response is null and waitForResponse is true, wait for 2 seconds and make a recursive call
             // TODO: This is temporarily required for
 
-            if (baseResponse.result == null && waitForResponse) {
-                TimeUnit.SECONDS.sleep(2)
-                return makeRequest(rpcUrl, method, params, true, requests + 1) // Return the recursive call
-            }
+
 
             // Find the appropriate data class for parsing the actual response
             val responseType = findDataClassForJson(
@@ -258,22 +264,17 @@ class EthereumConnector {
 
             println("RESPONSE BODY: ${responseBody}")
             // Parse the actual response using the determined data class
-            val actualParsedResponse = gson.fromJson<Any>(responseBody, responseType?.java ?: Any::class.java)
+            val actualParsedResponse = objectMapper.readValue(responseBody, responseType?.java ?: Any::class.java)
             // Get the useful response data from the parsed response
+
+
             val usefulResponse = returnUsefulData(actualParsedResponse)
-
-            return Response("90", "2.0", usefulResponse.payload, usefulResponse.success)
-        }catch(error: Exception) {
-            println("AT POST EXCEPTION ${error.message}")
-            if (waitForResponse) {
-                TimeUnit.SECONDS.sleep(2)
-                return makeRequest(rpcUrl, method, params, waitForResponse, requests + 1) // Return the recursive call
-            }else {
-                throw CordaRuntimeException("Post Failure Method: ${error.message}")
-
-            }
-
+        // simplify this
+        if (usefulResponse.payload == null || usefulResponse.payload=="null" && waitForResponse) {
+            TimeUnit.SECONDS.sleep(2)
+            return makeRequest(rpcUrl, method, params, true, requests + 1) // Return the recursive call
         }
+            return Response("90", "2.0", usefulResponse.payload)
     }
 
     /**
