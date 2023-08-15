@@ -13,7 +13,6 @@ import net.corda.v5.base.exceptions.CordaRuntimeException
 import com.fasterxml.jackson.databind.JsonNode
 
 
-
 data class JsonRpcResponse @JsonCreator constructor(
     @JsonProperty("jsonrpc") val jsonrpc: String,
     @JsonProperty("id") val id: String,
@@ -47,19 +46,11 @@ data class ProcessedResponse(
     val payload: String?
 )
 
-data class RPCResponse (
-    val success:Boolean,
+data class RPCResponse(
+    val success: Boolean,
     val message: String
 )
 
-
-
-//@JsonCreator
-//data class Response (
-//    val id: String,
-//    val jsonrpc: String,
-//    val result: Any?,
-//)
 
 data class Response @JsonCreator constructor(
     @JsonProperty("id") val id: String,
@@ -125,10 +116,16 @@ class EthereumConnector {
                 }
             }
         }
-
         return false
     }
 
+    /**
+     * Finds whether a json string contains a give nested key .
+     *
+     * @param jsonString The json string to be parsed.
+     * @param key The Key string to be found.
+     * @return The matching data class from candidateDataClasses, or null if no match is found.
+     */
     private fun jsonStringContainsNestedKey(jsonString: String, nestedKey: String): Boolean {
         return try {
             val jsonObject = objectMapper.readTree(jsonString)
@@ -140,6 +137,13 @@ class EthereumConnector {
     }
 
 
+    /**
+     * Finds if a json string contains a given key
+     *
+     * @param jsonString The Key string to be found.
+     * @param key The Key string to be found.
+     * @return The matching data class from candidateDataClasses, or null if no match is found.
+     */
     private fun jsonStringContainsKey(jsonString: String, key: String): Boolean {
         return try {
             val jsonNode: JsonNode = objectMapper.readTree(jsonString)
@@ -149,21 +153,21 @@ class EthereumConnector {
             false
         }
     }
+
     /**
      * Finds the appropriate data class from the candidateDataClasses list that fits the JSON structure.
      *
      * @param json The JSON string to be parsed.
      * @return The matching data class from candidateDataClasses, or null if no match is found.
      */
-    private fun findDataClassForJson(json: String): KClass<*>? {
-        return if (jsonStringContainsKey(json, "error")) {
-            JsonRpcError::class
+    private fun findDataClassForJson(json: String): Class<*>? {
+        return if (jsonStringContainsKey(json, "error")){
+            JsonRpcError::class.java
         } else if (jsonStringContainsNestedKey(json, "contractAddress")) {
-            TransactionResponse::class
+            TransactionResponse::class.java
         } else {
-            JsonRpcResponse::class
+            JsonRpcResponse::class.java
         }
-
     }
 
     /**
@@ -175,19 +179,21 @@ class EthereumConnector {
     private fun returnUsefulData(input: Any): ProcessedResponse {
         when (input) {
             is JsonRpcError -> {
-                 throw EVMErrorException(input)
+                throw EVMErrorException(input)
             }
-            is TransactionResponse -> {
-                try{
-                    return ProcessedResponse(true, input.result.contractAddress)
-                }catch(e: Exception){
-                    return ProcessedResponse(true, input.result.toString())
-                }                }
-            is JsonRpcResponse -> return ProcessedResponse(true,input.result)
-        }
-        return ProcessedResponse(false,"")
-    }
 
+            is TransactionResponse -> {
+                try {
+                    return ProcessedResponse(true, input.result.contractAddress)
+                } catch (e: Exception) {
+                    return ProcessedResponse(true, input.result.toString())
+                }
+            }
+
+            is JsonRpcResponse -> return ProcessedResponse(true, input.result)
+        }
+        return ProcessedResponse(false, "")
+    }
 
 
     /**
@@ -213,6 +219,7 @@ class EthereumConnector {
             RPCResponse(true, it.string())
         } ?: throw CordaRuntimeException("Response was null")
     }
+
     /**
      * Makes an RPC request to the Ethereum node and waits for the response.
      *
@@ -230,51 +237,39 @@ class EthereumConnector {
         waitForResponse: Boolean,
         requests: Int
     ): Response {
-        println(waitForResponse)
-        println("PARAMS ${params}")
-            // Check if the maximum number of requests has been reached
-            if (requests > maxLoopedRequests) {
-                return Response("90", "2.0", "Timed Out")
-            }
+        // Check if the maximum number of requests has been reached
+        if (requests > maxLoopedRequests) {
+            return Response("90", "2.0", "Timed Out")
+        }
+        // Make the RPC call to the Ethereum node
+        val response = rpcCall(rpcUrl, method, params)
+        val responseBody = response.message
+        val success = response.success
+        // Handle the response based on success status
+        if (!success) {
+            println("Request Failed")
+            return Response("90", "2.0", response.message)
+        }
 
-            // Make the RPC call to the Ethereum node
-        println("BEFORE RESPONSE CALL")
-            val response = rpcCall(rpcUrl, method, params)
-            val responseBody = response.message
-            val success = response.success
+        println("Response Body: $responseBody ")
 
-            // Handle the response based on success status
-            if (!success) {
-                println("Request Failed")
-                return Response("90", "2.0", response.message)
-            }
+        // Find the appropriate data class for parsing the actual response
+        val responseType = findDataClassForJson(
+            responseBody
+        )
 
-            // Parse the JSON response into the base response object
-            println("Response Body: $responseBody ")
-
-        // If the base response is null and waitForResponse is true, wait for 2 seconds and make a recursive call
-            // TODO: This is temporarily required for
-
-
-
-            // Find the appropriate data class for parsing the actual response
-            val responseType = findDataClassForJson(
-                responseBody
-            )
-
-            println("RESPONSE BODY: ${responseBody}")
-            // Parse the actual response using the determined data class
-            val actualParsedResponse = objectMapper.readValue(responseBody, responseType?.java ?: Any::class.java)
-            // Get the useful response data from the parsed response
+        // Parse the actual response using the determined data class
+        val actualParsedResponse = objectMapper.readValue(responseBody, responseType ?: Any::class.java)
+        // Get the useful response data from the parsed response
 
 
-            val usefulResponse = returnUsefulData(actualParsedResponse)
-        // simplify this
-        if (usefulResponse.payload == null || usefulResponse.payload=="null" && waitForResponse) {
+        val usefulResponse = returnUsefulData(actualParsedResponse)
+        if (usefulResponse.payload == null || usefulResponse.payload == "null" && waitForResponse) {
+            // TODO: Get rid of this
             TimeUnit.SECONDS.sleep(2)
             return makeRequest(rpcUrl, method, params, true, requests + 1) // Return the recursive call
         }
-            return Response("90", "2.0", usefulResponse.payload)
+        return Response("90", "2.0", usefulResponse.payload)
     }
 
     /**
