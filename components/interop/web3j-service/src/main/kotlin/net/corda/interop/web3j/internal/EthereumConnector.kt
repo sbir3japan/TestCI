@@ -1,140 +1,34 @@
 package net.corda.interop.web3j.internal
 
-import com.fasterxml.jackson.annotation.JsonCreator
-import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.ObjectMapper
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.util.concurrent.TimeUnit
-import kotlin.reflect.KClass
 import net.corda.v5.base.exceptions.CordaRuntimeException
 import com.fasterxml.jackson.databind.JsonNode
+import org.osgi.service.component.annotations.Activate
+import org.osgi.service.component.annotations.Reference
 
 
-data class JsonRpcResponse @JsonCreator constructor(
-    @JsonProperty("jsonrpc") val jsonrpc: String,
-    @JsonProperty("id") val id: String,
-    @JsonProperty("result") val result: String?
-)
-
-class EVMErrorException(val errorResponse: JsonRpcError) : Exception("Custom error")
-
-data class JsonRpcError @JsonCreator constructor(
-    @JsonProperty("jsonrpc") val jsonrpc: String,
-    @JsonProperty("id") val id: String,
-    @JsonProperty("error") val error: Error
-)
-
-data class Error @JsonCreator constructor(
-    @JsonProperty("code") val code: Int,
-    @JsonProperty("message") val message: String,
-    @JsonProperty("data") val data: String?
-)
-
-data class RpcRequest @JsonCreator constructor(
-    @JsonProperty("jsonrpc") val jsonrpc: String,
-    @JsonProperty("id") val id: String,
-    @JsonProperty("method") val method: String,
-    @JsonProperty("params") val params: List<*>
-)
 
 
-data class ProcessedResponse(
-    val success: Boolean,
-    val payload: String?
-)
 
-data class RPCResponse(
-    val success: Boolean,
-    val message: String
-)
-
-
-data class Response @JsonCreator constructor(
-    @JsonProperty("id") val id: String,
-    @JsonProperty("jsonrpc") val jsonrpc: String,
-    @JsonProperty("result") val result: Any?
-
-)
-
-data class TransactionResponse @JsonCreator constructor(
-    @JsonProperty("id") val id: String,
-    @JsonProperty("jsonrpc") val jsonrpc: String,
-    @JsonProperty("result") val result: TransactionData
-)
-
-data class TransactionData @JsonCreator constructor(
-    @JsonProperty("blockHash") val blockHash: String,
-    @JsonProperty("blockNumber") val blockNumber: String,
-    @JsonProperty("contractAddress") val contractAddress: String,
-    @JsonProperty("cumulativeGasUsed") val cumulativeGasUsed: String,
-    @JsonProperty("from") val from: String,
-    @JsonProperty("gasUsed") val gasUsed: String,
-    @JsonProperty("effectiveGasPrice") val effectiveGasPrice: String,
-    @JsonProperty("logs") val logs: List<TransactionLog>,
-    @JsonProperty("logsBloom") val logsBloom: String,
-    @JsonProperty("status") val status: String,
-    @JsonProperty("to") val to: String?,
-    @JsonProperty("transactionHash") val transactionHash: String,
-    @JsonProperty("transactionIndex") val transactionIndex: String,
-    @JsonProperty("type") val type: String
-)
-
-data class TransactionLog @JsonCreator constructor(
-    @JsonProperty("address") val address: String,
-    @JsonProperty("topics") val topics: List<String>,
-    @JsonProperty("data") val data: String,
-    @JsonProperty("blockNumber") val blockNumber: String,
-    @JsonProperty("transactionHash") val transactionHash: String,
-    @JsonProperty("transactionIndex") val transactionIndex: String,
-    @JsonProperty("blockHash") val blockHash: String,
-    @JsonProperty("logIndex") val logIndex: String,
-    @JsonProperty("removed") val removed: Boolean
-)
-
-class EthereumConnector {
+class EthereumConnector @Activate constructor(
+    @Reference(service = OkHttpClient::class)
+    private val httpClient: OkHttpClient
+) {
 
     companion object {
         private const val JSON_RPC_VERSION = "2.0"
+        private val objectMapper = ObjectMapper()
+        private const val maxLoopedRequests = 10
     }
 
-    private val objectMapper = ObjectMapper()
 
-    private val maxLoopedRequests = 10
 
-    private fun checkNestedKey(jsonObject: JsonNode, nestedKey: String): Boolean {
-        if (jsonObject.has(nestedKey)) {
-            return true
-        }
 
-        for ((_, value) in jsonObject.fields()) {
-            if (value.isObject) {
-                if (checkNestedKey(value, nestedKey)) {
-                    return true
-                }
-            }
-        }
-        return false
-    }
-
-    /**
-     * Finds whether a json string contains a give nested key .
-     *
-     * @param jsonString The json string to be parsed.
-     * @param key The Key string to be found.
-     * @return The matching data class from candidateDataClasses, or null if no match is found.
-     */
-    private fun jsonStringContainsNestedKey(jsonString: String, nestedKey: String): Boolean {
-        return try {
-            val jsonObject = objectMapper.readTree(jsonString)
-            checkNestedKey(jsonObject, nestedKey)
-        } catch (e: Exception) {
-            // Handle any parsing errors here
-            false
-        }
-    }
 
 
     /**
@@ -154,19 +48,36 @@ class EthereumConnector {
         }
     }
 
+    val expectedReturnTypes = mapOf(
+        "eth_call" to JsonRpcResponse::class.java,
+        "eth_chainId" to JsonRpcResponse::class.java,
+        "eth_estimateGas" to JsonRpcResponse::class.java,
+        "eth_gasPrice" to JsonRpcResponse::class.java,
+        "eth_getBalance" to JsonRpcResponse::class.java,
+        "eth_getTransactionByHash" to TransactionResponse::class.java,
+        "eth_getTransactionCount" to JsonRpcResponse::class.java,
+        "eth_getTransactionReceipt" to TransactionResponse::class.java,
+        "eth_maxPriorityFeePerGas " to JsonRpcResponse::class.java,
+        "eth_subscribe" to JsonRpcResponse::class.java,
+        "eth_syncing" to JsonRpcResponse::class.java,
+        "eth_unsubscribe" to JsonRpcResponse::class.java,
+        "eth_sendRawTransaction" to JsonRpcResponse::class.java,
+        "eth_getBlockByNumber" to NonEip1559Block::class.java,
+        )
+
     /**
      * Finds the appropriate data class from the candidateDataClasses list that fits the JSON structure.
      *
      * @param json The JSON string to be parsed.
      * @return The matching data class from candidateDataClasses, or null if no match is found.
      */
-    private fun findDataClassForJson(json: String): Class<*>? {
+    private fun findDataClassForJson(json: String,method: String): Class<*>? {
+        println("method $method")
         return if (jsonStringContainsKey(json, "error")){
             JsonRpcError::class.java
-        } else if (jsonStringContainsNestedKey(json, "contractAddress")) {
-            TransactionResponse::class.java
-        } else {
-            JsonRpcResponse::class.java
+        }
+        else{
+            expectedReturnTypes[method]
         }
     }
 
@@ -179,12 +90,14 @@ class EthereumConnector {
     private fun returnUsefulData(input: Any): ProcessedResponse {
         when (input) {
             is JsonRpcError -> {
+                println("AT JSON RPC ERROR")
+                println(input)
                 throw EVMErrorException(input)
             }
 
             is TransactionResponse -> {
                 try {
-                    return ProcessedResponse(true, input.result.contractAddress)
+                    return ProcessedResponse(true, input.result?.contractAddress)
                 } catch (e: Exception) {
                     return ProcessedResponse(true, input.result.toString())
                 }
@@ -209,16 +122,19 @@ class EthereumConnector {
         println("BEFORE REQUEST BASE")
         val requestBase = objectMapper.writeValueAsString(body)
         println("AFTER REQUEST BASE")
+        println("PARAMS $params")
+        println("Resuest Base: $requestBase")
         val requestBody = requestBase.toRequestBody("application/json".toMediaType())
         val request = Request.Builder()
             .url(rpcUrl)
             .post(requestBody)
             .addHeader("Content-Type", "application/json")
             .build()
-        return OkHttpClient().newCall(request).execute().body?.use {
+        return httpClient.newCall(request).execute().body?.use {
             RPCResponse(true, it.string())
         } ?: throw CordaRuntimeException("Response was null")
     }
+
 
     /**
      * Makes an RPC request to the Ethereum node and waits for the response.
@@ -255,14 +171,12 @@ class EthereumConnector {
 
         // Find the appropriate data class for parsing the actual response
         val responseType = findDataClassForJson(
-            responseBody
+            responseBody,
+            method
         )
-
         // Parse the actual response using the determined data class
         val actualParsedResponse = objectMapper.readValue(responseBody, responseType ?: Any::class.java)
         // Get the useful response data from the parsed response
-
-
         val usefulResponse = returnUsefulData(actualParsedResponse)
         if (usefulResponse.payload == null || usefulResponse.payload == "null" && waitForResponse) {
             // TODO: Get rid of this

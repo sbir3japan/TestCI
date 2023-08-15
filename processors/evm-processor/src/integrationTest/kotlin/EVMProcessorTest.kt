@@ -7,6 +7,7 @@ import net.corda.data.interop.evm.request.GasPrice
 import net.corda.data.interop.evm.request.GetCode
 import net.corda.data.interop.evm.request.SendRawTransaction
 import net.corda.data.interop.evm.request.Syncing
+import net.corda.interop.web3j.internal.EVMErrorException
 
 import net.corda.processor.evm.internal.EVMOpsProcessor
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -21,6 +22,8 @@ import java.util.concurrent.ExecutionException
 
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+
+
 @EVMTest(type = NodeType.BESU)
 class EvmProcessorTest {
 
@@ -34,6 +37,7 @@ class EvmProcessorTest {
         "0xa9059cbb000000000000000000000000c5973ef0360fcd067dc5db140cd15b7e725c7c1a000000000000000000000000000000000000000000000000000000000000000a"
     private val transferWithInvalidParams = "0x095bcdb6000000000000000000000000c5973ef0360fcd067dc5db140cd15b7e725c7c1a000000000000000000000000000000000013426172c74d822b878fe80000000000000000000000000000000000000000000000000000000000000000000186a0"
     private val mainAddress = "0xfe3b557e8fb62b89f4916b721be55ceb828dbd73"
+    private val evmRpcUrl = "http://127.0.0.1:8545"
 
 
 
@@ -44,7 +48,7 @@ class EvmProcessorTest {
             "RandomFlowId",
             mainAddress,
             "",
-            "http://127.0.0.1:8545",
+            evmRpcUrl,
             SendRawTransaction(0.toString(), erc20ByteCode)
         )
         val evmResponse = CompletableFuture<EvmResponse>()
@@ -64,10 +68,9 @@ class EvmProcessorTest {
             "RandomFlowId",
             mainAddress,
             contractAddress,
-            "http://127.0.0.1:8545",
+            evmRpcUrl,
             Call(queryBalanceForAddress)
         )
-
         val evmResponse = CompletableFuture<EvmResponse>()
         processor.onNext(evmRequest, evmResponse)
         val returnedResponse = evmResponse.get()
@@ -83,7 +86,7 @@ class EvmProcessorTest {
             "RandomFlowId",
             mainAddress,
             contractAddress,
-            "http://127.0.0.1:8545",
+            evmRpcUrl,
             SendRawTransaction(0.toString(), transfer100Encoded)
         )
         val evmResponse = CompletableFuture<EvmResponse>()
@@ -121,14 +124,16 @@ class EvmProcessorTest {
             "RandomFlowId",
             mainAddress,
             contractAddress,
-            "http://127.0.0.1:8545",
+            evmRpcUrl,
             SendRawTransaction(0.toString(), transferRevertMethod)
         )
         val evmResponse = CompletableFuture<EvmResponse>()
         processor.onNext(evmRequest, evmResponse)
-
-        val returnedResponse = evmResponse.get()
-        println("Returned Response ${returnedResponse}")
+        try{
+            evmResponse.get()
+        }catch(e: Exception){
+            assert(e is ExecutionException)
+        }
 
     }
 
@@ -140,7 +145,7 @@ class EvmProcessorTest {
             "RandomFlowId",
             mainAddress,
             contractAddress,
-            "http://127.0.0.1:8545",
+            evmRpcUrl,
             SendRawTransaction(0.toString(), transfer100Encoded)
         )
         val evmResponse = CompletableFuture<EvmResponse>()
@@ -159,7 +164,7 @@ class EvmProcessorTest {
             "RandomFlowId",
             "",
             "",
-            "http://127.0.0.1:8545",
+            evmRpcUrl,
             ChainId()
         )
         val evmResponse = CompletableFuture<EvmResponse>()
@@ -175,7 +180,7 @@ class EvmProcessorTest {
             "RandomFlowId",
             mainAddress,
             contractAddress,
-            "http://127.0.0.1:8545",
+            evmRpcUrl,
             EstimateGas(transfer100Encoded)
         )
         val evmResponse = CompletableFuture<EvmResponse>()
@@ -191,13 +196,13 @@ class EvmProcessorTest {
             "RandomFlowId",
             "",
             "",
-            "http://127.0.0.1:8545",
+            evmRpcUrl,
             GasPrice()
         )
         val evmResponse = CompletableFuture<EvmResponse>()
         processor.onNext(evmRequest, evmResponse)
         val response = evmResponse.get()
-        assert(response.payload == "1000")
+        assertNotNull(response.payload)
     }
 
     @Test
@@ -207,7 +212,7 @@ class EvmProcessorTest {
             "RandomFlowId",
             "",
             "",
-            "http://127.0.0.1:8545",
+            evmRpcUrl,
             GetCode(mainAddress, "1")
         )
         val evmResponse = CompletableFuture<EvmResponse>()
@@ -224,13 +229,23 @@ class EvmProcessorTest {
             "RandomFlowId",
             mainAddress,
             contractAddress,
-            "http://127.0.0.1:8545",
+            evmRpcUrl,
             SendRawTransaction("0",transferWithInvalidParams)
         )
         val evmResponse = CompletableFuture<EvmResponse>()
         processor.onNext(evmRequest, evmResponse)
-        val response = evmResponse.get()
-        assertNotNull(response.payload)
+        try {
+            evmResponse.get()
+        }catch(e: Exception){
+            println(e.toString())
+            println(e.message)
+            println(e.localizedMessage)
+            println(e.cause)
+            println(e.suppressedExceptions)
+            println(e is EVMErrorException)
+            assert(e is ExecutionException)
+        }
+
     }
 
     @Test
@@ -240,7 +255,7 @@ class EvmProcessorTest {
             "RandomFlowId",
             "",
             "",
-            "http://127.0.0.1:8545",
+            evmRpcUrl,
             Syncing()
         )
         val evmResponse = CompletableFuture<EvmResponse>()

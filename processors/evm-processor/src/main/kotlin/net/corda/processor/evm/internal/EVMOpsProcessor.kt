@@ -27,11 +27,10 @@ import net.corda.data.interop.evm.request.Syncing
 import net.corda.interop.web3j.internal.EVMErrorException
 import java.util.concurrent.TimeUnit
 import com.fasterxml.jackson.databind.node.JsonNodeFactory
+import okhttp3.OkHttpClient
 import org.slf4j.Logger
 
 class TransientErrorException(message: String) : Exception(message)
-
-// GOING TO GET RID OF gson
 
 /**
  * EVMOpsProcessor is an implementation of the RPCResponderProcessor for handling Ethereum Virtual Machine (EVM) requests.
@@ -44,7 +43,7 @@ class EVMOpsProcessor : RPCResponderProcessor<EvmRequest, EvmResponse> {
         val log: Logger = LoggerFactory.getLogger(this::class.java.enclosingClass)
         private const val maxRetries = 3
         private const val retryDelayMs = 1000L // 1 second
-        private val evmConnector = EthereumConnector()
+        private val evmConnector = EthereumConnector(OkHttpClient())
         private val scheduledExecutorService = Executors.newFixedThreadPool(20)
         private val transientEthereumErrorCodes = listOf(
             -32000, -32005, -32010, -32016, -32002,
@@ -130,7 +129,7 @@ class EVMOpsProcessor : RPCResponderProcessor<EvmRequest, EvmResponse> {
      * @return The chain Id as a Long.
      */
     private fun getChainId(rpcConnection: String): Long {
-        val resp = evmConnector.send(rpcConnection, "eth_chainId", listOf(""))
+        val resp = evmConnector.send(rpcConnection, "eth_chainId", emptyList<String>())
         println("CHAIN ID = ${Numeric.toBigInt(resp.result.toString())}")
         return Numeric.toBigInt(resp.result.toString()).toLong()
     }
@@ -142,7 +141,7 @@ class EVMOpsProcessor : RPCResponderProcessor<EvmRequest, EvmResponse> {
      * @return The Gas Price as a BigInteger.
      */
     private fun getGasPrice(rpcConnection: String): BigInteger {
-        val resp = evmConnector.send(rpcConnection, "eth_gasPrice", listOf(""))
+        val resp = evmConnector.send(rpcConnection, "eth_gasPrice", emptyList<String>())
         return BigInteger.valueOf(Integer.decode(resp.result.toString()).toLong())
     }
 
@@ -154,7 +153,7 @@ class EVMOpsProcessor : RPCResponderProcessor<EvmRequest, EvmResponse> {
      * @return The Gas Price as a BigInteger.
      */
     private fun isSyncing(rpcConnection: String): String {
-        val resp = evmConnector.send(rpcConnection, "eth_syncing", listOf(""))
+        val resp = evmConnector.send(rpcConnection, "eth_syncing", emptyList<String>())
         return resp.result.toString()
     }
 
@@ -167,7 +166,7 @@ class EVMOpsProcessor : RPCResponderProcessor<EvmRequest, EvmResponse> {
      */
     private fun maxPriorityFeePerGas(rpcConnection: String): BigInteger {
         // Send an RPC request to retrieve the maximum priority fee per gas.
-        val resp = evmConnector.send(rpcConnection, "eth_maxPriorityFeePerGas", listOf(""))
+        val resp = evmConnector.send(rpcConnection, "eth_maxPriorityFeePerGas", emptyList<String>())
 
         // Return the maximum priority fee per gas as a BigInteger.
         return BigInteger.valueOf(Integer.decode(resp.result.toString()).toLong())
@@ -183,7 +182,7 @@ class EVMOpsProcessor : RPCResponderProcessor<EvmRequest, EvmResponse> {
      */
     private fun getCode(rpcConnection: String, address: String, blockNumber: String): String {
         // Send an RPC request to retrieve the code at the specified address and block number.
-        val resp = evmConnector.send(rpcConnection, "eth_getCode", listOf(address, blockNumber))
+        val resp = evmConnector.send(rpcConnection, "eth_getCode", listOf(address, Numeric.toHexStringWithPrefix(BigInteger.valueOf(blockNumber.toLong()))))
 
         // Return the code as a string.
         return resp.result.toString()
@@ -202,7 +201,7 @@ class EVMOpsProcessor : RPCResponderProcessor<EvmRequest, EvmResponse> {
     private fun estimateGas(rpcConnection: String, from: String, to: String, payload: String): BigInteger {
         val rootObject = JsonNodeFactory.instance.objectNode()
 
-        rootObject.put("to", to)
+        rootObject.put("to", to.ifEmpty { from })
         rootObject.put("data", payload)
         rootObject.put("input", payload)
         rootObject.put("from", from)
@@ -210,6 +209,25 @@ class EVMOpsProcessor : RPCResponderProcessor<EvmRequest, EvmResponse> {
         println("GAS RESP: $resp")
         return BigInteger.valueOf(Integer.decode(resp.result.toString()).toLong())
     }
+
+
+    /**
+     * Fetch the block of an ethereum ledger by number.
+     *
+     * @param rpcUrl The URL of the Ethereum RPC endpoint.
+     * @param number The number of the block being fetched
+     * @param includeTransaction Whether to return the transaaction hashes included in the block
+     * @return The transaction count as a BigInteger.
+     */
+    private fun getBlockByNumber(rpcUrl: String, number: String, includeTransaction: Boolean): String {
+        val block = evmConnector.send(
+            rpcUrl,
+            "eth_getBlockByNumber",
+            listOf(number, includeTransaction.toString())
+        )
+        return block.result.toString()
+    }
+
 
     /**
      * Fetch the number of transactions made by an address.
@@ -266,6 +284,13 @@ class EVMOpsProcessor : RPCResponderProcessor<EvmRequest, EvmResponse> {
     ): String {
         // Do this async
         val (nonce, chainId) = prepareTransaction(rpcConnection, from)
+
+//        val mpbg = maxPriorityFeePerGas(rpcConnection)
+        val bpn = getBlockByNumber(rpcConnection,"0x0",true)
+        println("BPN $bpn")
+        val eg = estimateGas(rpcConnection,from,contractAddress, payload)
+        println("ESTIMATE GAS = $eg")
+//        println("MPBG = $mpbg")
         println("CHAINID $chainId")
         println("NONCE $nonce")
 
