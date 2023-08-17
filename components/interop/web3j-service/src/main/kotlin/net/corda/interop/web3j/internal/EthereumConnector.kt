@@ -1,12 +1,7 @@
 package net.corda.interop.web3j.internal
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
 import java.util.concurrent.TimeUnit
-import net.corda.v5.base.exceptions.CordaRuntimeException
 import com.fasterxml.jackson.databind.JsonNode
 import org.osgi.service.component.annotations.Activate
 import org.osgi.service.component.annotations.Reference
@@ -16,14 +11,30 @@ import org.osgi.service.component.annotations.Reference
 
 
 class EthereumConnector @Activate constructor(
-    @Reference(service = OkHttpClient::class)
-    private val httpClient: OkHttpClient
+    @Reference(service = EvmRPCCall::class)
+    private val evmRpc: EvmRPCCall
 ) {
 
     companion object {
-        private const val JSON_RPC_VERSION = "2.0"
         private val objectMapper = ObjectMapper()
         private const val maxLoopedRequests = 10
+        // Expected return types
+        private val expectedReturnTypes = mapOf(
+            "eth_call" to JsonRpcResponse::class.java,
+            "eth_chainId" to JsonRpcResponse::class.java,
+            "eth_estimateGas" to JsonRpcResponse::class.java,
+            "eth_gasPrice" to JsonRpcResponse::class.java,
+            "eth_getBalance" to JsonRpcResponse::class.java,
+            "eth_getTransactionByHash" to TransactionResponse::class.java,
+            "eth_getTransactionCount" to JsonRpcResponse::class.java,
+            "eth_getTransactionReceipt" to TransactionResponse::class.java,
+            "eth_maxPriorityFeePerGas " to JsonRpcResponse::class.java,
+            "eth_subscribe" to JsonRpcResponse::class.java,
+            "eth_syncing" to JsonRpcResponse::class.java,
+            "eth_unsubscribe" to JsonRpcResponse::class.java,
+            "eth_sendRawTransaction" to JsonRpcResponse::class.java,
+            "eth_getBlockByNumber" to NonEip1559Block::class.java,
+        )
     }
 
 
@@ -48,22 +59,6 @@ class EthereumConnector @Activate constructor(
         }
     }
 
-    val expectedReturnTypes = mapOf(
-        "eth_call" to JsonRpcResponse::class.java,
-        "eth_chainId" to JsonRpcResponse::class.java,
-        "eth_estimateGas" to JsonRpcResponse::class.java,
-        "eth_gasPrice" to JsonRpcResponse::class.java,
-        "eth_getBalance" to JsonRpcResponse::class.java,
-        "eth_getTransactionByHash" to TransactionResponse::class.java,
-        "eth_getTransactionCount" to JsonRpcResponse::class.java,
-        "eth_getTransactionReceipt" to TransactionResponse::class.java,
-        "eth_maxPriorityFeePerGas " to JsonRpcResponse::class.java,
-        "eth_subscribe" to JsonRpcResponse::class.java,
-        "eth_syncing" to JsonRpcResponse::class.java,
-        "eth_unsubscribe" to JsonRpcResponse::class.java,
-        "eth_sendRawTransaction" to JsonRpcResponse::class.java,
-        "eth_getBlockByNumber" to NonEip1559Block::class.java,
-        )
 
     /**
      * Finds the appropriate data class from the candidateDataClasses list that fits the JSON structure.
@@ -96,44 +91,19 @@ class EthereumConnector @Activate constructor(
             }
 
             is TransactionResponse -> {
-                try {
-                    return ProcessedResponse(true, input.result?.contractAddress)
+                return try {
+                    ProcessedResponse(true, input.result?.contractAddress)
                 } catch (e: Exception) {
-                    return ProcessedResponse(true, input.result.toString())
+                    ProcessedResponse(true, input.result.toString())
                 }
             }
 
             is JsonRpcResponse -> return ProcessedResponse(true, input.result)
+            is NonEip1559Block -> return ProcessedResponse(true, input.result)
         }
         return ProcessedResponse(false, "")
     }
 
-
-    /**
-     * Makes an RPC call to the Ethereum node and returns the JSON response as an RPCResponse object.
-     *
-     * @param rpcUrl The URL of the Ethereum RPC endpoint.
-     * @param method The RPC method to call.
-     * @param params The parameters for the RPC call.
-     * @return An RPCResponse object representing the result of the RPC call.
-     */
-    private fun rpcCall(rpcUrl: String, method: String, params: List<Any?>): RPCResponse {
-        val body = RpcRequest(JSON_RPC_VERSION, "90.0", method, params)
-        println("BEFORE REQUEST BASE")
-        val requestBase = objectMapper.writeValueAsString(body)
-        println("AFTER REQUEST BASE")
-        println("PARAMS $params")
-        println("Resuest Base: $requestBase")
-        val requestBody = requestBase.toRequestBody("application/json".toMediaType())
-        val request = Request.Builder()
-            .url(rpcUrl)
-            .post(requestBody)
-            .addHeader("Content-Type", "application/json")
-            .build()
-        return httpClient.newCall(request).execute().body?.use {
-            RPCResponse(true, it.string())
-        } ?: throw CordaRuntimeException("Response was null")
-    }
 
 
     /**
@@ -158,7 +128,7 @@ class EthereumConnector @Activate constructor(
             return Response("90", "2.0", "Timed Out")
         }
         // Make the RPC call to the Ethereum node
-        val response = rpcCall(rpcUrl, method, params)
+        val response = evmRpc.rpcCall(rpcUrl, method, params)
         val responseBody = response.message
         val success = response.success
         // Handle the response based on success status
@@ -179,10 +149,10 @@ class EthereumConnector @Activate constructor(
         // Get the useful response data from the parsed response
         val usefulResponse = returnUsefulData(actualParsedResponse)
         if (usefulResponse.payload == null || usefulResponse.payload == "null" && waitForResponse) {
-            // TODO: Get rid of this
             TimeUnit.SECONDS.sleep(2)
             return makeRequest(rpcUrl, method, params, true, requests + 1) // Return the recursive call
         }
+
         return Response("90", "2.0", usefulResponse.payload)
     }
 

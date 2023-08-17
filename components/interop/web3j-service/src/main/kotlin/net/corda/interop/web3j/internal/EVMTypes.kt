@@ -4,8 +4,8 @@ import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonProperty
 import net.corda.v5.base.exceptions.CordaRuntimeException
 
-class EVMTypes {
-}
+class EVMErrorException(val errorResponse: JsonRpcError) : CordaRuntimeException(errorResponse.error.toString())
+
 
 data class JsonRpcResponse @JsonCreator constructor(
     @JsonProperty("jsonrpc") val jsonrpc: String,
@@ -13,7 +13,6 @@ data class JsonRpcResponse @JsonCreator constructor(
     @JsonProperty("result") val result: String?
 )
 
-class EVMErrorException(val errorResponse: JsonRpcError) : CordaRuntimeException(errorResponse.error.toString())
 
 data class JsonRpcError @JsonCreator constructor(
     @JsonProperty("jsonrpc") val jsonrpc: String,
@@ -37,7 +36,7 @@ data class RpcRequest @JsonCreator constructor(
 
 data class ProcessedResponse(
     val success: Boolean,
-    val payload: String?
+    val payload: Any?
 )
 
 data class RPCResponse(
@@ -94,6 +93,7 @@ data class NonEip1559Block @JsonCreator constructor(
     @JsonProperty("jsonrpc") val jsonrpc: String,
     @JsonProperty("result") val result: NonEip1559BlockData
 )
+
 data class NonEip1559BlockData @JsonCreator constructor(
     @JsonProperty("number") val number: String,
     @JsonProperty("hash") val hash: String,

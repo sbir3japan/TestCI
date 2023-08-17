@@ -1,5 +1,6 @@
 package net.corda.processor.evm.internal
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import net.corda.data.interop.evm.EvmRequest
 import net.corda.data.interop.evm.request.SendRawTransaction
 import net.corda.data.interop.evm.EvmResponse
@@ -27,24 +28,138 @@ import net.corda.data.interop.evm.request.Syncing
 import net.corda.interop.web3j.internal.EVMErrorException
 import java.util.concurrent.TimeUnit
 import com.fasterxml.jackson.databind.node.JsonNodeFactory
+import net.corda.interop.web3j.internal.EvmRPCCall
+import net.corda.v5.base.exceptions.CordaRuntimeException
 import okhttp3.OkHttpClient
 import org.slf4j.Logger
+import kotlin.reflect.KClass
 
-class TransientErrorException(message: String) : Exception(message)
 
 /**
  * EVMOpsProcessor is an implementation of the RPCResponderProcessor for handling Ethereum Virtual Machine (EVM) requests.
  * It allows executing smart contract calls and sending transactions on an Ethereum network.
  */
+
+
+// Seperate the event receiver and the dispatcher
+// Have a dispatcher factory
+// This is very important for unit testing
+// Paramater to the EVMOpsProcessor should be network type (We want this per virtual node)
+// Have a dispatcher factory, take the operationa and network type
+// Dispatcher factory
+
+
+
+
+
+abstract class EvmDispatcher(){
+
+    abstract fun dispatch(request: EvmRequest): EvmResponse
+
+
+}
+
+abstract class GetChainIdDispatcher: EvmDispatcher() {
+
+    abstract override fun dispatch(request: EvmRequest): EvmResponse
+
+
+
+
+}
+
+
+abstract class GetBalanceDispatcher: EvmDispatcher() {
+
+    abstract override fun dispatch(request: EvmRequest): EvmResponse
+
+
+
+
+}
+
+// Is this cacheable
+class BesuGetBalanceDispatcher( val evmConnector: EthereumConnector): GetBalanceDispatcher() {
+    /**
+     * Retrieves the balance of a given Ethereum address using the provided RPC connection.
+     *
+     * @param rpcConnection The RPC connection URL for Ethereum communication.
+     * @param from The Ethereum address for which to retrieve the balance.
+     * @return The balance of the specified Ethereum address as a string.
+     */
+
+
+     override fun dispatch(evmRequest: EvmRequest): EvmResponse {
+        // Send an RPC request to retrieve the balance of the specified address.
+        val resp = evmConnector.send(evmRequest.rpcUrl, "eth_getBalance", listOf(evmRequest.from, "latest"))
+
+        // Return the balance as a string.
+        // implement flow id
+        return EvmResponse(evmRequest.flowId, resp.result.toString())
+    }
+
+
+
+}
+
+//class QuorumGetBalanceDispatcher: GetBalanceDispatcher() {
+//
+//}
+
+interface DispatcherFactory{
+
+    // Design patterns
+    fun balanceDispatcher(evmConnector: EthereumConnector): EvmDispatcher
+}
+
+
+object BesuDispatcherFactory: DispatcherFactory {
+
+
+    override fun balanceDispatcher(evmConnector: EthereumConnector): EvmDispatcher {
+        return BesuGetBalanceDispatcher(evmConnector)
+    }
+
+
+
+}
+
+object QuorumDispatcherFactory: DispatcherFactory {
+
+
+    override fun balanceDispatcher(evmConnector: EthereumConnector): EvmDispatcher {
+        return BesuGetBalanceDispatcher(evmConnector)
+    }
+
+
+
+}
+
+
+// Move this to their own classes
+
 class EVMOpsProcessor : RPCResponderProcessor<EvmRequest, EvmResponse> {
 
+    lateinit var dispatcher: Map<KClass<*>,EvmDispatcher>
 
+    constructor(){
+        val evmConnector = EthereumConnector(EvmRPCCall(OkHttpClient()))
+        dispatcher = mapOf<KClass<*>,EvmDispatcher>(
+             GetBalance::class to BesuDispatcherFactory.balanceDispatcher(evmConnector)
+            // Rather then the b
+        )
+    }
     private companion object {
         val log: Logger = LoggerFactory.getLogger(this::class.java.enclosingClass)
         private const val maxRetries = 3
+        // Make this cleaner using SECONDS
         private const val retryDelayMs = 1000L // 1 second
-        private val evmConnector = EthereumConnector(OkHttpClient())
-        private val scheduledExecutorService = Executors.newFixedThreadPool(20)
+        // Use the mapping to set retries and retryDelayMS
+        private val evmConnector = EthereumConnector(EvmRPCCall( OkHttpClient()))
+        private val fixedThreadPool = Executors.newFixedThreadPool(20)
+
+        // Make a mapping to a textual description
+        // Have it as a map
         private val transientEthereumErrorCodes = listOf(
             -32000, -32005, -32010, -32016, -32002,
             -32003, -32004, -32007, -32008, -32009,
@@ -54,6 +169,16 @@ class EVMOpsProcessor : RPCResponderProcessor<EvmRequest, EvmResponse> {
     }
 
 
+    // TODO: Move to a seperate class
+    /**
+     * The Retry Policy is responsibly for retrying an ethereum call, given that the ethereum error is transient
+     *
+     * @param maxRetries The maximum amount of retires allowed for a given error.
+     * @param delayMs The Ethereum address for which to retrieve the balance.
+     * @return The balance of the specified Ethereum address as a string.
+     */
+
+    // Discuss whether the use of corda runtime exceptions is appropriate, or use something that inherits from them
     inner class RetryPolicy(private val maxRetries: Int, private val delayMs: Long) {
         fun execute(action: () -> Unit) {
             var retries = 0
@@ -61,20 +186,19 @@ class EVMOpsProcessor : RPCResponderProcessor<EvmRequest, EvmResponse> {
                 try {
                     return action()
                 } catch (e: EVMErrorException) {
-                    if (transientEthereumErrorCodes.contains(e.errorResponse.error.code)) {
-                        // Log or handle the error if needed
+                    if (e.errorResponse.error.code in transientEthereumErrorCodes) {
                         retries++
                         if (retries <= maxRetries) {
+                            // Suspend and Wakeup with the threadpool
                             TimeUnit.MILLISECONDS.sleep(delayMs)
                         } else {
-                            throw e // If retries exhausted, rethrow the exception
+                            throw CordaRuntimeException(e.message)
                         }
                     } else {
-                        throw e
+                        throw CordaRuntimeException(e.message)
                     }
                 }
             }
-            throw IllegalStateException("Execution should not reach here")
         }
     }
 
@@ -146,6 +270,7 @@ class EVMOpsProcessor : RPCResponderProcessor<EvmRequest, EvmResponse> {
     }
 
 
+
     /**
      * Get the set syncing status from the Ethereum node.
      *
@@ -205,8 +330,8 @@ class EVMOpsProcessor : RPCResponderProcessor<EvmRequest, EvmResponse> {
         rootObject.put("data", payload)
         rootObject.put("input", payload)
         rootObject.put("from", from)
+
         val resp = evmConnector.send(rpcConnection, "eth_estimateGas", listOf(rootObject, "latest"))
-        println("GAS RESP: $resp")
         return BigInteger.valueOf(Integer.decode(resp.result.toString()).toLong())
     }
 
@@ -257,16 +382,25 @@ class EVMOpsProcessor : RPCResponderProcessor<EvmRequest, EvmResponse> {
         return resp.result.toString()
     }
 
+
+    /**
+     * Fetches the information that needs to be gathered to send out a transaction for a given address
+     *
+     * @param rpcConnection The URL of the Ethereum RPC endpoint.
+     * @param transactionHash The hash of the transaction to query.
+     * @return The JSON representation of the transaction receipt.
+     */
     private suspend fun prepareTransaction(rpcConnection: String, from: String): Pair<BigInteger, Long> =
         coroutineScope {
             val nonceDeferred = async { getTransactionCount(rpcConnection, from) }
             val chainIdDeferred = async { getChainId(rpcConnection) }
-
             val nonce = nonceDeferred.await()
             val chainId = chainIdDeferred.await()
 
             nonce to chainId
         }
+
+
 
     /**
      * Send a transaction to the Ethereum network.
@@ -285,27 +419,21 @@ class EVMOpsProcessor : RPCResponderProcessor<EvmRequest, EvmResponse> {
         // Do this async
         val (nonce, chainId) = prepareTransaction(rpcConnection, from)
 
-//        val mpbg = maxPriorityFeePerGas(rpcConnection)
-        val bpn = getBlockByNumber(rpcConnection,"0x0",true)
-        println("BPN $bpn")
-        val eg = estimateGas(rpcConnection,from,contractAddress, payload)
-        println("ESTIMATE GAS = $eg")
-//        println("MPBG = $mpbg")
-        println("CHAINID $chainId")
-        println("NONCE $nonce")
+        // Will be replaced with getting the latest blocka
+        val blockByNumber = getBlockByNumber(rpcConnection, "latest",false)
+        println("BN $blockByNumber")
 
         val transaction = RawTransaction.createTransaction(
             chainId,
             nonce,
-            BigInteger.valueOf(10000000),
+            BigInteger.valueOf(Numeric.toBigInt("0x47b760").toLong()),
             contractAddress,
             BigInteger.valueOf(0),
             payload,
-            BigInteger.valueOf(100000000),
-            BigInteger.valueOf(515814755000)
+            BigInteger.valueOf(10000000),
+            BigInteger.valueOf(51581475500)
         )
 
-        // Should not hardhace
         val signer = Credentials.create("0x8f2a55949038a9610f50fb23b5883af3b4ecb3c3bb792cbcefbd1542c692be63")
 
         val signed = TxSignServiceImpl(signer).sign(transaction, "1337".toLong())
@@ -343,26 +471,37 @@ class EVMOpsProcessor : RPCResponderProcessor<EvmRequest, EvmResponse> {
 
     private fun handleRequest(request: EvmRequest, respFuture: CompletableFuture<EvmResponse>) {
         log.info(request.schema.toString(true))
-        // Parameters for the transaction/query
+
+        // No Need to make any copys for this
         val rpcConnection = request.rpcUrl
         val data = request.specificData.toString()
         val flowId = request.flowId
         val from = request.from
         val to = request.to
-        val payload = request.payload
+
+
+        //
+        val resp = dispatcher[request.payload]?.dispatch(request)
+
+        respFuture.complete(resp)
 
 
 
-        when (payload) {
+
+
+        // Create a class that inherits from this
+        // Each one of these elements would be its own class
+        // Lets be OO
+        // No Need to make any copies for all of the data
+
+
+        when (val payload = request.payload) {
             is Call -> {
-                // Handle the Call
-                println("PAYLOAD: ${payload.payload}")
                 val callResult = sendCall(rpcConnection, to, payload.payload)
                 respFuture.complete(EvmResponse(flowId, callResult))
             }
 
             is ChainId -> {
-                // Handle the Chain Id
                 val chainId = getChainId(rpcConnection)
                 respFuture.complete(EvmResponse(flowId, chainId.toString()))
             }
@@ -425,7 +564,7 @@ class EVMOpsProcessor : RPCResponderProcessor<EvmRequest, EvmResponse> {
     override fun onNext(request: EvmRequest, respFuture: CompletableFuture<EvmResponse>) {
         val retryPolicy = RetryPolicy(maxRetries, retryDelayMs)
 
-        scheduledExecutorService.submit {
+        fixedThreadPool.submit {
             try {
                 retryPolicy.execute {
                     handleRequest(request, respFuture)
