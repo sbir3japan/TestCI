@@ -71,7 +71,9 @@ data class TransactionData @JsonCreator constructor(
     @JsonProperty("to") val to: String?,
     @JsonProperty("transactionHash") val transactionHash: String,
     @JsonProperty("transactionIndex") val transactionIndex: String,
-    @JsonProperty("type") val type: String
+    @JsonProperty("type") val type: String,
+    @JsonProperty("extDataGasUsed") val extDataGasUsed: String?,
+
 )
 
 data class TransactionLog @JsonCreator constructor(
@@ -83,7 +85,9 @@ data class TransactionLog @JsonCreator constructor(
     @JsonProperty("transactionIndex") val transactionIndex: String,
     @JsonProperty("blockHash") val blockHash: String,
     @JsonProperty("logIndex") val logIndex: String,
-    @JsonProperty("removed") val removed: Boolean
+    @JsonProperty("removed") val removed: Boolean,
+    @JsonProperty("extDataGasUsed") val extDataGasUsed: String?,
+
 )
 
 
@@ -118,4 +122,9 @@ data class NonEip1559BlockData @JsonCreator constructor(
     @JsonProperty("transactions") val transactions: List<Any>?,
     @JsonProperty("withdrawalsRoot") val withdrawalsRoot: String?,
     @JsonProperty("withdrawals") val withdrawals: List<String>?,
+    @JsonProperty("blockExtraData") val blockExtraData: String?,
+    @JsonProperty("blockGasCost") val blockGasCost: String?,
+    @JsonProperty("extDataGasUsed") val extDataGasUsed: String?,
+    @JsonProperty("extDataHash") val extDataHash: String?,
+
     )

@@ -1,20 +1,13 @@
 package net.corda.processor.evm.internal
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import net.corda.data.interop.evm.EvmRequest
 import net.corda.data.interop.evm.request.SendRawTransaction
 import net.corda.data.interop.evm.EvmResponse
 import net.corda.messaging.api.processor.RPCResponderProcessor
 import org.slf4j.LoggerFactory
-import org.web3j.crypto.Credentials
-import org.web3j.crypto.RawTransaction
-import org.web3j.service.TxSignServiceImpl
-import org.web3j.utils.Numeric
-import java.math.BigInteger
 import java.util.concurrent.CompletableFuture
 import net.corda.interop.web3j.internal.EthereumConnector
 import java.util.concurrent.Executors
-import kotlinx.coroutines.*
 import net.corda.data.interop.evm.request.Call
 import net.corda.data.interop.evm.request.ChainId
 import net.corda.data.interop.evm.request.EstimateGas
@@ -23,15 +16,12 @@ import net.corda.data.interop.evm.request.GetBalance
 import net.corda.data.interop.evm.request.GetCode
 import net.corda.data.interop.evm.request.GetTransactionByHash
 import net.corda.data.interop.evm.request.GetTransactionReceipt
-import net.corda.data.interop.evm.request.MaxPriorityFeePerGas
 import net.corda.data.interop.evm.request.Syncing
 import net.corda.interop.web3j.internal.EVMErrorException
 import java.util.concurrent.TimeUnit
-import com.fasterxml.jackson.databind.node.JsonNodeFactory
 import net.corda.interop.web3j.DispatcherFactory
 import net.corda.interop.web3j.EvmDispatcher
 import net.corda.interop.web3j.internal.EvmRPCCall
-//import net.corda.interop.web3j.internal.quorum.factory
 import net.corda.v5.base.exceptions.CordaRuntimeException
 import okhttp3.OkHttpClient
 import org.slf4j.Logger
@@ -42,48 +32,10 @@ import kotlin.reflect.KClass
  * EVMOpsProcessor is an implementation of the RPCResponderProcessor for handling Ethereum Virtual Machine (EVM) requests.
  * It allows executing smart contract calls and sending transactions on an Ethereum network.
  */
-
-
-// Seperate the event receiver and the dispatcher
-// Have a dispatcher factory
-// This is very important for unit testing
-// Paramater to the EVMOpsProcessor should be network type (We want this per virtual node)
-// Have a dispatcher factory, take the operationa and network type
-// Dispatcher factory
-
-
-
-
-
-
-
-
-
-
-// Move this to their own classes
-
 class EVMOpsProcessor
     (factory: DispatcherFactory) : RPCResponderProcessor<EvmRequest, EvmResponse> {
 
     private var dispatcher: Map<KClass<*>, EvmDispatcher>
-
-    init {
-        val evmConnector = EthereumConnector(EvmRPCCall(OkHttpClient()))
-        // Need a Config of what network we need to send this to
-        dispatcher = mapOf<KClass<*>, EvmDispatcher>(
-            GetBalance::class to factory.balanceDispatcher(evmConnector),
-            Call::class to factory.callDispatcher(evmConnector),
-            ChainId::class to factory.chainIdDispatcher(evmConnector),
-            EstimateGas::class to factory.estimateGasDispatcher(evmConnector),
-            GasPrice::class to factory.gasPriceDispatcher(evmConnector),
-            GetBalance::class to factory.getBalanceDispatcher(evmConnector),
-            GetCode::class to factory.getCodeDispatcher(evmConnector),
-            GetTransactionByHash::class to factory.getTransactionByHashDispatcher(evmConnector),
-            GetTransactionReceipt::class to factory.getTransactionByReceiptDispatcher(evmConnector),
-            SendRawTransaction::class to factory.sendRawTransactionDispatcher(evmConnector),
-            Syncing::class to factory.isSyncingDispatcher(evmConnector)
-        )
-    }
 
     private companion object {
         val log: Logger = LoggerFactory.getLogger(this::class.java.enclosingClass)
@@ -107,7 +59,40 @@ class EVMOpsProcessor
     }
 
 
-    // TODO: Move to a seperate class
+    init {
+        val evmConnector = EthereumConnector(EvmRPCCall(OkHttpClient()))
+        dispatcher = mapOf<KClass<*>, EvmDispatcher>(
+            GetBalance::class to factory.balanceDispatcher(evmConnector),
+            Call::class to factory.callDispatcher(evmConnector),
+            ChainId::class to factory.chainIdDispatcher(evmConnector),
+            EstimateGas::class to factory.estimateGasDispatcher(evmConnector),
+            GasPrice::class to factory.gasPriceDispatcher(evmConnector),
+            GetBalance::class to factory.getBalanceDispatcher(evmConnector),
+            GetCode::class to factory.getCodeDispatcher(evmConnector),
+            GetTransactionByHash::class to factory.getTransactionByHashDispatcher(evmConnector),
+            GetTransactionReceipt::class to factory.getTransactionByReceiptDispatcher(evmConnector),
+            SendRawTransaction::class to factory.sendRawTransactionDispatcher(evmConnector),
+            Syncing::class to factory.isSyncingDispatcher(evmConnector)
+        )
+    }
+
+
+    private fun handleRequest(request: EvmRequest, respFuture: CompletableFuture<EvmResponse>) {
+        log.info(request.schema.toString(true))
+
+        dispatcher[request.payload::class]
+            ?.dispatch(request).apply {
+                respFuture.complete(this)
+            }
+            ?: {
+                val errorMessage = "Unregistered EVM operation: ${request.payload.javaClass}"
+                log.error (errorMessage)
+                throw CordaRuntimeException (errorMessage)
+            }
+    }
+
+
+
     /**
      * The Retry Policy is responsibly for retrying an ethereum call, given that the ethereum error is transient
      *
@@ -144,93 +129,7 @@ class EVMOpsProcessor
 
 
 
-    private fun handleRequest(request: EvmRequest, respFuture: CompletableFuture<EvmResponse>) {
-        log.info(request.schema.toString(true))
 
-        dispatcher[request.payload::class]
-            ?.dispatch(request).apply {
-                respFuture.complete(this)
-            }
-            ?: {
-                val errorMessage = "Unregistered EVM operation: ${request.payload.javaClass}"
-                log.error (errorMessage)
-                throw CordaRuntimeException (errorMessage)
-            }
-
-
-
-
-
-        // Create a class that inherits from this
-        // Each one of these elements would be its own class
-        // Lets be OO
-        // No Need to make any copies for all of the data
-
-
-//        when (val payload = request.payload) {
-//            is Call -> {
-//                val callResult = sendCall(rpcConnection, to, payload.payload)
-//                respFuture.complete(EvmResponse(flowId, callResult))
-//            }
-//
-//            is ChainId -> {
-//                val chainId = getChainId(rpcConnection)
-//                respFuture.complete(EvmResponse(flowId, chainId.toString()))
-//            }
-//
-//            is EstimateGas -> {
-//                val estimateGas = estimateGas(rpcConnection, from, to, payload.payload.toString())
-//                respFuture.complete(EvmResponse(flowId, estimateGas.toString()))
-//            }
-//
-//            is GasPrice -> {
-//                val gasPrice = getGasPrice(rpcConnection)
-//                respFuture.complete(EvmResponse(flowId, gasPrice.toString()))
-//            }
-//
-//            is GetBalance -> {
-//                val balance = getBalance(rpcConnection, from)
-//                respFuture.complete(EvmResponse(flowId, balance))
-//            }
-//
-//            is GetCode -> {
-//                val code = getCode(rpcConnection, payload.address, payload.blockNumber)
-//                respFuture.complete(EvmResponse(flowId, code))
-//            }
-//
-//            is GetTransactionByHash -> {
-//                val transaction = getTransactionByHash(rpcConnection, data)
-//                respFuture.complete(EvmResponse(flowId, transaction))
-//
-//            }
-//
-//            is GetTransactionReceipt -> {
-//                val receipt = getTransactionReceipt(rpcConnection, payload.transactionHash)
-//                respFuture.complete(EvmResponse(flowId, receipt))
-//            }
-//
-//            is MaxPriorityFeePerGas -> {
-//                val maxPriority = maxPriorityFeePerGas(rpcConnection)
-//                respFuture.complete(EvmResponse(flowId, maxPriority.toString()))
-//            }
-//
-//            is SendRawTransaction -> {
-//                var transactionOutput: String
-//                runBlocking {
-//                    transactionOutput = sendTransaction(rpcConnection, from, to, payload.payload)
-//                }
-//                val result = EvmResponse(flowId, transactionOutput)
-//                respFuture.complete(result)
-//            }
-//
-//            is Syncing -> {
-//                val syncingStatus = isSyncing(rpcConnection)
-//                respFuture.complete(EvmResponse(flowId, syncingStatus))
-//            }
-//
-//        }
-
-    }
 
 
     override fun onNext(request: EvmRequest, respFuture: CompletableFuture<EvmResponse>) {
