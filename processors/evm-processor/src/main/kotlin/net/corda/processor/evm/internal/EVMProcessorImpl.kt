@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory
 
 import net.corda.data.interop.evm.EvmRequest
 import net.corda.data.interop.evm.EvmResponse
+import net.corda.interop.web3j.internal.quorum.BesuDispatcherFactory
 import net.corda.processor.evm.internal.EVMOpsProcessor
 import net.corda.schema.Schemas
 
@@ -109,7 +110,7 @@ class EVMProcessorImpl @Activate constructor(
                             requestType = EvmRequest::class.java,
                             responseType = EvmResponse::class.java
                         ),
-                        responderProcessor = EVMOpsProcessor(),
+                        responderProcessor = EVMOpsProcessor(BesuDispatcherFactory),
                         messagingConfig = ethereumConfig
                     )
                 }

@@ -8,7 +8,7 @@ import net.corda.data.interop.evm.request.GetCode
 import net.corda.data.interop.evm.request.SendRawTransaction
 import net.corda.data.interop.evm.request.Syncing
 import net.corda.interop.web3j.internal.EVMErrorException
-
+import net.corda.interop.web3j.internal.quorum.BesuDispatcherFactory
 import net.corda.processor.evm.internal.EVMOpsProcessor
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -39,11 +39,9 @@ class EvmProcessorTest {
     private val mainAddress = "0xfe3b557e8fb62b89f4916b721be55ceb828dbd73"
     private val evmRpcUrl = "http://127.0.0.1:8545"
 
-
-
     @BeforeEach
     fun setUp() {
-        val processor = EVMOpsProcessor()
+        val processor = EVMOpsProcessor(BesuDispatcherFactory)
         val evmRequest = EvmRequest(
             "RandomFlowId",
             mainAddress,
@@ -54,15 +52,15 @@ class EvmProcessorTest {
         val evmResponse = CompletableFuture<EvmResponse>()
         processor.onNext(evmRequest, evmResponse)
         val returnedResponse = evmResponse.get()
-        println(returnedResponse.payload)
+        println("Returned Response $returnedResponse")
         contractAddress = returnedResponse.payload
-        println(contractAddress)
+        assertNotNull(contractAddress)
     }
 
     // Checking that the balance can be correctly called
     @Test
     fun `Test a function balance call`() {
-        val processor = EVMOpsProcessor()
+        val processor = EVMOpsProcessor(BesuDispatcherFactory)
         // Define this
         val evmRequest = EvmRequest(
             "RandomFlowId",
@@ -80,7 +78,7 @@ class EvmProcessorTest {
 
     @Test
     fun `Test the transfer function of an ERC20 Contract`() {
-        val processor = EVMOpsProcessor()
+        val processor = EVMOpsProcessor(BesuDispatcherFactory)
 
         val evmRequest = EvmRequest(
             "RandomFlowId",
@@ -93,12 +91,13 @@ class EvmProcessorTest {
         processor.onNext(evmRequest, evmResponse)
         val returnedResponse = evmResponse.get()
         println("Returned Response ${returnedResponse}")
+        assertNotNull(returnedResponse)
 
     }
 
     @Test
     fun `Handle Test To The Wrong RpcUrl`() {
-        val processor = EVMOpsProcessor()
+        val processor = EVMOpsProcessor(BesuDispatcherFactory)
         val evmRequest = EvmRequest(
             "RandomFlowId",
             mainAddress,
@@ -119,7 +118,7 @@ class EvmProcessorTest {
 
     @Test
     fun `handle Transfer Revert Method`() {
-        val processor = EVMOpsProcessor()
+        val processor = EVMOpsProcessor(BesuDispatcherFactory)
         val evmRequest = EvmRequest(
             "RandomFlowId",
             mainAddress,
@@ -140,7 +139,7 @@ class EvmProcessorTest {
 
     @Test
     fun `Handle Invalid Paramater Input`() {
-        val processor = EVMOpsProcessor()
+        val processor = EVMOpsProcessor(BesuDispatcherFactory)
         val evmRequest = EvmRequest(
             "RandomFlowId",
             mainAddress,
@@ -159,7 +158,7 @@ class EvmProcessorTest {
 
     @Test
     fun `Retrieve the ChainId`() {
-        val processor = EVMOpsProcessor()
+        val processor = EVMOpsProcessor(BesuDispatcherFactory)
         val evmRequest = EvmRequest(
             "RandomFlowId",
             "",
@@ -170,12 +169,15 @@ class EvmProcessorTest {
         val evmResponse = CompletableFuture<EvmResponse>()
         processor.onNext(evmRequest, evmResponse)
         val response = evmResponse.get()
-        assert(response.payload == "2018")
+        assertEquals(
+            "0x7e2",
+            response.payload,
+        )
     }
 
     @Test
     fun `Estimate Gas`() {
-        val processor = EVMOpsProcessor()
+        val processor = EVMOpsProcessor(BesuDispatcherFactory)
         val evmRequest = EvmRequest(
             "RandomFlowId",
             mainAddress,
@@ -186,12 +188,12 @@ class EvmProcessorTest {
         val evmResponse = CompletableFuture<EvmResponse>()
         processor.onNext(evmRequest, evmResponse)
         val response = evmResponse.get()
-        assert(response.payload == "52117")
+        assertEquals("0xcb95",response.payload)
     }
 
     @Test
     fun `Get Gas Price`() {
-        val processor = EVMOpsProcessor()
+        val processor = EVMOpsProcessor(BesuDispatcherFactory)
         val evmRequest = EvmRequest(
             "RandomFlowId",
             "",
@@ -207,7 +209,7 @@ class EvmProcessorTest {
 
     @Test
     fun `Get Code`() {
-        val processor = EVMOpsProcessor()
+        val processor = EVMOpsProcessor(BesuDispatcherFactory)
         val evmRequest = EvmRequest(
             "RandomFlowId",
             "",
@@ -224,7 +226,7 @@ class EvmProcessorTest {
 
     @Test
     fun `Invalid Paramaters`(){
-        val processor = EVMOpsProcessor()
+        val processor = EVMOpsProcessor(BesuDispatcherFactory)
         val evmRequest = EvmRequest(
             "RandomFlowId",
             mainAddress,
@@ -238,10 +240,6 @@ class EvmProcessorTest {
             evmResponse.get()
         }catch(e: Exception){
             println(e.toString())
-            println(e.message)
-            println(e.localizedMessage)
-            println(e.cause)
-            println(e.suppressedExceptions)
             println(e is EVMErrorException)
             assert(e is ExecutionException)
         }
@@ -250,7 +248,7 @@ class EvmProcessorTest {
 
     @Test
     fun `Is Syncing`() {
-        val processor = EVMOpsProcessor()
+        val processor = EVMOpsProcessor(BesuDispatcherFactory)
         val evmRequest = EvmRequest(
             "RandomFlowId",
             "",
@@ -261,8 +259,6 @@ class EvmProcessorTest {
         val evmResponse = CompletableFuture<EvmResponse>()
         processor.onNext(evmRequest, evmResponse)
         val response = evmResponse.get()
-        assert(response.payload == "false")
+        assertEquals(response.payload,"false")
     }
-
-
 }
