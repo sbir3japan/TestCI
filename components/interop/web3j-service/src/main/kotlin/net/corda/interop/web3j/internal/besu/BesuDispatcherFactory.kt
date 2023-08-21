@@ -8,11 +8,11 @@ import net.corda.interop.web3j.internal.besu.*
 object BesuDispatcherFactory : DispatcherFactory {
 
     override fun balanceDispatcher(evmConnector: EthereumConnector): EvmDispatcher {
-        return BesuGetBalanceDispatcher(evmConnector)
+        return CallDispatcher(evmConnector)
     }
 
     override fun chainIdDispatcher(evmConnector: EthereumConnector): EvmDispatcher {
-        return BesuChainIdDispatcher(evmConnector)
+        return ChainIdDispatcher(evmConnector)
     }
 
     override fun callDispatcher(evmConnector: EthereumConnector): EvmDispatcher {

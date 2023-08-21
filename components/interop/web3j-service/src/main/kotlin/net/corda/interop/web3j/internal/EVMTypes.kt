@@ -126,5 +126,4 @@ data class NonEip1559BlockData @JsonCreator constructor(
     @JsonProperty("blockGasCost") val blockGasCost: String?,
     @JsonProperty("extDataGasUsed") val extDataGasUsed: String?,
     @JsonProperty("extDataHash") val extDataHash: String?,
-
     )
