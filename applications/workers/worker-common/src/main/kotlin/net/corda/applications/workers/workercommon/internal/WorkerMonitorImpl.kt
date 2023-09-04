@@ -5,6 +5,7 @@ import io.javalin.core.util.Header
 import io.micrometer.cloudwatch2.CloudWatchConfig
 import io.micrometer.cloudwatch2.CloudWatchMeterRegistry
 import io.micrometer.core.instrument.Clock
+import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.binder.jvm.ClassLoaderMetrics
 import io.micrometer.core.instrument.binder.jvm.JvmGcMetrics
 import io.micrometer.core.instrument.binder.jvm.JvmHeapPressureMetrics
@@ -55,23 +56,6 @@ internal class WorkerMonitorImpl @Activate constructor(
 
     private val objectMapper = ObjectMapper()
     private val prometheusRegistry: PrometheusMeterRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
-    private val cloudwatchConfig = object : CloudWatchConfig {
-
-        override fun get(key: String): String? {
-            return null
-        }
-
-        override fun namespace(): String {
-            val suffix = System.getenv(K8S_NAMESPACE_KEY)?.let {
-                "/$it"
-            } ?: ""
-            return "$CORDA_NAMESPACE$suffix"
-        }
-    }
-    private val cloudwatchClient = CloudWatchAsyncClient.builder()
-        .credentialsProvider(WebIdentityTokenFileCredentialsProvider.create())
-        .build()
-    private val cloudWatchRegistry = CloudWatchMeterRegistry(cloudwatchConfig, Clock.SYSTEM, cloudwatchClient)
     private val lastLogMessage = ConcurrentHashMap(mapOf(HTTP_HEALTH_ROUTE to "", HTTP_STATUS_ROUTE to ""))
 
     private fun setupMetrics(name: String) {
@@ -79,7 +63,7 @@ internal class WorkerMonitorImpl @Activate constructor(
         CordaMetrics.configure(name, prometheusRegistry)
         if (System.getenv(CLOUDWATCH_ENABLED_KEY) == "true") {
             logger.info("Enabling the cloudwatch metrics registry")
-            CordaMetrics.configure(name, cloudWatchRegistry)
+            CordaMetrics.configure(name, configureCloudwatch())
         }
 
         ClassLoaderMetrics().bindTo(CordaMetrics.registry)
@@ -160,4 +144,24 @@ internal class WorkerMonitorImpl @Activate constructor(
         }.map {
             it.name
         }
+
+    private fun configureCloudwatch() : MeterRegistry {
+        val cloudwatchConfig = object : CloudWatchConfig {
+
+            override fun get(key: String): String? {
+                return null
+            }
+
+            override fun namespace(): String {
+                val suffix = System.getenv(K8S_NAMESPACE_KEY)?.let {
+                    "/$it"
+                } ?: ""
+                return "$CORDA_NAMESPACE$suffix"
+            }
+        }
+        val cloudwatchClient = CloudWatchAsyncClient.builder()
+            .credentialsProvider(WebIdentityTokenFileCredentialsProvider.create())
+            .build()
+        return CloudWatchMeterRegistry(cloudwatchConfig, Clock.SYSTEM, cloudwatchClient)
+    }
 }
