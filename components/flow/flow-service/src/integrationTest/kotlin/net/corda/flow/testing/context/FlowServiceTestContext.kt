@@ -72,7 +72,7 @@ import org.osgi.service.component.annotations.Reference
 import org.slf4j.LoggerFactory
 import java.nio.ByteBuffer
 import java.time.Instant
-import java.util.*
+import java.util.UUID
 
 @Suppress("Unused")
 @Component(service = [FlowServiceTestContext::class])
