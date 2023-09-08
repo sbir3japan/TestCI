@@ -117,11 +117,6 @@ object CordaMetrics {
         object FlowEventSuspensionWaitTime : Metric<Timer>("flow.event.suspension.wait.time", CordaMetrics::timer)
 
         /**
-         * Number of times a scheduled wakeup is published for flows and subFlows.
-         */
-        object FlowScheduledWakeupCount : Metric<Counter>("flow.scheduled.wakeup.count", Metrics::counter)
-
-        /**
          * Number of events a flow received in order for it to complete.
          */
         object FlowEventProcessedCount : Metric<DistributionSummary>("flow.event.processed.count", Metrics::summary)
@@ -241,12 +236,6 @@ object CordaMetrics {
          * Time it took for gateway to process certificate revocation checks.
          */
         object GatewayRevocationChecksLatency: Metric<Timer>("p2p.gateway.cert.revocation.check.time", CordaMetrics::timer)
-
-        /**
-         * The time taken from requesting a uniqueness check to a response being received from the perspective of
-         * a client (requesting) node.
-         */
-        object LedgerUniquenessClientRunTime : Metric<Timer>("ledger.uniqueness.client.run.time", CordaMetrics::timer)
 
         /**
          * The overall time for the uniqueness checker to process a batch, inclusive of all sub-batches.
@@ -851,6 +840,13 @@ object CordaMetrics {
 
     val registry: CompositeMeterRegistry = Metrics.globalRegistry
 
+    private val allowedMetrics = setOf(
+        Metric.FlowRunTime,
+        Metric.HttpRequestTime
+    ).mapTo(mutableSetOf()) {
+        it.metricsName
+    }
+
     /**
      * Configure the Metrics Registry
      *
@@ -860,6 +856,9 @@ object CordaMetrics {
     fun configure(workerType: String, registry: MeterRegistry) {
         this.registry.add(registry).config()
             .commonTags(Tag.WorkerType.value, workerType)
+            .meterFilter(MeterFilter.accept {
+                it.name in allowedMetrics
+            })
             .meterFilter(object : MeterFilter {
                 override fun map(id: Meter.Id): Meter.Id {
                     // prefix all metrics with `corda`, except standard JVM and Process metrics
@@ -889,7 +888,7 @@ object CordaMetrics {
         val name: String,
         val func: (String, Iterable<micrometerTag>) -> T
     ) {
-        val allTags: MutableList<micrometerTag> = mutableListOf()
+        private val allTags: MutableList<micrometerTag> = mutableListOf()
 
         /**
          * Remove all tags from this builder.
