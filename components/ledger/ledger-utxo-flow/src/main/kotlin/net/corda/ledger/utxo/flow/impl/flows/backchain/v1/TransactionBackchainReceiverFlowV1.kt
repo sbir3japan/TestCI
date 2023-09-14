@@ -122,9 +122,7 @@ class TransactionBackchainReceiverFlowV1(
             }
         }
 
-        if (sortedTransactionIds.isNotEmpty()) {
-            session.send(TransactionBackchainRequestV1.Stop)
-        }
+        session.send(TransactionBackchainRequestV1.Stop)
 
         utxoLedgerMetricRecorder.recordTransactionBackchainLength(sortedTransactionIds.size)
 
