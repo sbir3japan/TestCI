@@ -20,6 +20,7 @@ import net.corda.taskmanager.TaskManager
 import net.corda.utilities.debug
 import org.slf4j.LoggerFactory
 import java.lang.Thread.sleep
+import java.time.Duration
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -193,7 +194,7 @@ class MultiSourceEventMediatorImpl<K : Any, S : Any, E : Any>(
     private fun pollConsumers(): List<CordaConsumerRecord<K, E>> {
         return metrics.pollTimer.recordCallable {
             consumers.map { consumer ->
-                consumer.poll(config.pollTimeout)
+                consumer.poll(Duration.ofMillis(20))
             }.flatten()
         }!!
     }
