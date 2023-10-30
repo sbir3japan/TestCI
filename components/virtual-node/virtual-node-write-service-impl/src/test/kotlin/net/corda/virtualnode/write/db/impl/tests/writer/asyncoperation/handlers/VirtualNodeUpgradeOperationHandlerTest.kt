@@ -36,6 +36,7 @@ import net.corda.v5.membership.MemberInfo
 import net.corda.virtualnode.HoldingIdentity
 import net.corda.virtualnode.OperationalStatus
 import net.corda.virtualnode.OperationalStatus.ACTIVE
+import net.corda.virtualnode.OperationalStatus.INACTIVE
 import net.corda.virtualnode.VirtualNodeInfo
 import net.corda.virtualnode.write.db.VirtualNodeWriteServiceException
 import net.corda.virtualnode.write.db.impl.writer.VirtualNodeEntityRepository
@@ -170,10 +171,10 @@ class VirtualNodeUpgradeOperationHandlerTest {
         vaultDmlConnectionId = UUID.randomUUID(),
         cryptoDmlConnectionId = UUID.randomUUID(),
         uniquenessDmlConnectionId = UUID.randomUUID(),
-        flowOperationalStatus = OperationalStatus.INACTIVE,
-        flowStartOperationalStatus = OperationalStatus.INACTIVE,
-        flowP2pOperationalStatus = OperationalStatus.INACTIVE,
-        vaultDbOperationalStatus = OperationalStatus.INACTIVE,
+        flowOperationalStatus = INACTIVE,
+        flowStartOperationalStatus = INACTIVE,
+        flowP2pOperationalStatus = INACTIVE,
+        vaultDbOperationalStatus = INACTIVE,
         externalMessagingRouteConfig = externalMessagingRouteConfig,
         timestamp = Instant.now()
     )
@@ -327,10 +328,10 @@ class VirtualNodeUpgradeOperationHandlerTest {
     fun `upgrade handler validates there is no operation in progress`() {
         val vNode = inProgressOpVnodeInfo.copy(
             cpiIdentifier = currentCpiId,
-            flowOperationalStatus = OperationalStatus.INACTIVE,
-            flowStartOperationalStatus = OperationalStatus.INACTIVE,
-            flowP2pOperationalStatus = OperationalStatus.INACTIVE,
-            vaultDbOperationalStatus = OperationalStatus.INACTIVE,
+            flowOperationalStatus = INACTIVE,
+            flowStartOperationalStatus = INACTIVE,
+            flowP2pOperationalStatus = INACTIVE,
+            vaultDbOperationalStatus = INACTIVE,
             operationInProgress = "some-op",
         )
         whenever(virtualNodeRepository.find(em, ShortHash.of(vnodeId))).thenReturn(vNode)
@@ -349,10 +350,10 @@ class VirtualNodeUpgradeOperationHandlerTest {
     fun `upgrade handler allows upgrade to proceed with operation in progress if forceUpgrade is specified`() {
         val vNode = inProgressOpVnodeInfo.copy(
             cpiIdentifier = currentCpiId,
-            flowP2pOperationalStatus = OperationalStatus.INACTIVE,
-            flowStartOperationalStatus = OperationalStatus.INACTIVE,
-            flowOperationalStatus = OperationalStatus.INACTIVE,
-            vaultDbOperationalStatus = OperationalStatus.INACTIVE,
+            flowP2pOperationalStatus = INACTIVE,
+            flowStartOperationalStatus = INACTIVE,
+            flowOperationalStatus = INACTIVE,
+            vaultDbOperationalStatus = INACTIVE,
             operationInProgress = "Upgrade vNode"
         )
 
