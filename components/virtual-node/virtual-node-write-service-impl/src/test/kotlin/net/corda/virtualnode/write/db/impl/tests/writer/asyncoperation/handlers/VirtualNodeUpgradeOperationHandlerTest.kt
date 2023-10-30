@@ -564,8 +564,7 @@ class VirtualNodeUpgradeOperationHandlerTest {
 
         assertUpgradedVnodeInfoIsPublished(
             vnodeInfoCapture.firstValue,
-            expectedOperationInProgress = requestId,
-            expectedExternalMessagingRouteConfig = newExternalMessagingRouteConfig
+            expectedOperationInProgress = requestId
         )
     }
 
@@ -738,8 +737,8 @@ class VirtualNodeUpgradeOperationHandlerTest {
 
         verify(virtualNodeInfoPublisher, times(2)).publish(vnodeInfoCapture.capture())
 
-        assertUpgradedVnodeInfoIsPublished(vnodeInfoCapture.firstValue, requestId, newExternalMessagingRouteConfig)
-        assertUpgradedVnodeInfoIsPublished(vnodeInfoCapture.secondValue, null, newExternalMessagingRouteConfig)
+        assertUpgradedVnodeInfoIsPublished(vnodeInfoCapture.firstValue, requestId)
+        assertUpgradedVnodeInfoIsPublished(vnodeInfoCapture.secondValue, null)
     }
 
     @Test
@@ -783,8 +782,8 @@ class VirtualNodeUpgradeOperationHandlerTest {
         verify(virtualNodeInfoPublisher, times(2)).publish(vnodeInfoCapture.capture())
         verify(migrationUtility, times(0)).runVaultMigrations(any(), any(), any())
 
-        assertUpgradedVnodeInfoIsPublished(vnodeInfoCapture.firstValue, requestId, newExternalMessagingRouteConfig)
-        assertUpgradedVnodeInfoIsPublished(vnodeInfoCapture.secondValue, null, newExternalMessagingRouteConfig)
+        assertUpgradedVnodeInfoIsPublished(vnodeInfoCapture.firstValue, requestId)
+        assertUpgradedVnodeInfoIsPublished(vnodeInfoCapture.secondValue, null)
     }
 
     @Test
@@ -828,10 +827,9 @@ class VirtualNodeUpgradeOperationHandlerTest {
 
         assertUpgradedVnodeInfoIsPublished(
             vnodeInfoRecordsCapture.firstValue,
-            requestId,
-            newExternalMessagingRouteConfig
+            requestId
         )
-        assertUpgradedVnodeInfoIsPublished(vnodeInfoRecordsCapture.secondValue, null, newExternalMessagingRouteConfig)
+        assertUpgradedVnodeInfoIsPublished(vnodeInfoRecordsCapture.secondValue, null)
     }
 
     @Test
@@ -882,16 +880,14 @@ class VirtualNodeUpgradeOperationHandlerTest {
 
         assertUpgradedVnodeInfoIsPublished(
             vnodeInfoRecordsCapture.firstValue,
-            requestId,
-            newExternalMessagingRouteConfig
+            requestId
         )
-        assertUpgradedVnodeInfoIsPublished(vnodeInfoRecordsCapture.secondValue, null, newExternalMessagingRouteConfig)
+        assertUpgradedVnodeInfoIsPublished(vnodeInfoRecordsCapture.secondValue, null)
     }
 
     private fun assertUpgradedVnodeInfoIsPublished(
         publishedRecordList: List<Record<net.corda.data.identity.HoldingIdentity, net.corda.data.virtualnode.VirtualNodeInfo>>,
-        expectedOperationInProgress: String?,
-        expectedExternalMessagingRouteConfig: String?
+        expectedOperationInProgress: String?
     ) {
         assertThat(publishedRecordList).isNotNull
         assertThat(publishedRecordList).hasSize(1)
@@ -908,6 +904,6 @@ class VirtualNodeUpgradeOperationHandlerTest {
         assertThat(virtualNodeInfo.cpiIdentifier.name).isEqualTo(cpiName)
         assertThat(virtualNodeInfo.cpiIdentifier.version).isEqualTo("v2")
         assertThat(virtualNodeInfo.operationInProgress).isEqualTo(expectedOperationInProgress)
-        assertThat(virtualNodeInfo.externalMessagingRouteConfig).isEqualTo(expectedExternalMessagingRouteConfig)
+        assertThat(virtualNodeInfo.externalMessagingRouteConfig).isEqualTo(newExternalMessagingRouteConfig)
     }
 }
