@@ -705,9 +705,7 @@ class VirtualNodeUpgradeOperationHandlerTest {
         getCpiMetadataReturnsTargetCpi()
         getCpiMetadataReturnsCurrentCpi()
         upgradeReturnsInProgressVnode(requestTimestamp)
-        whenever(virtualNodeRepository.completedOperation(em, request.virtualNodeShortHash)).thenReturn(
-            noInProgressOpVnodeInfo
-        )
+        completedOperationReturnsNotInProgressVnode()
 
         val vnodeInfoRecordsCapture =
             argumentCaptor<List<Record<net.corda.data.identity.HoldingIdentity, net.corda.data.virtualnode.VirtualNodeInfo>>>()
@@ -747,9 +745,7 @@ class VirtualNodeUpgradeOperationHandlerTest {
             )
         )
             .thenReturn(true)
-        whenever(virtualNodeRepository.completedOperation(em, request.virtualNodeShortHash)).thenReturn(
-            noInProgressOpVnodeInfo
-        )
+        completedOperationReturnsNotInProgressVnode()
 
         val vnodeInfoRecordsCapture =
             argumentCaptor<List<Record<net.corda.data.identity.HoldingIdentity, net.corda.data.virtualnode.VirtualNodeInfo>>>()
@@ -764,6 +760,12 @@ class VirtualNodeUpgradeOperationHandlerTest {
             requestId
         )
         assertUpgradedVnodeInfoIsPublished(vnodeInfoRecordsCapture.secondValue, null)
+    }
+
+    private fun completedOperationReturnsNotInProgressVnode() {
+        whenever(virtualNodeRepository.completedOperation(em, request.virtualNodeShortHash)).thenReturn(
+            noInProgressOpVnodeInfo
+        )
     }
 
     private fun upgradeReturnsInProgressVnode(requestTimestamp: Instant?) {
