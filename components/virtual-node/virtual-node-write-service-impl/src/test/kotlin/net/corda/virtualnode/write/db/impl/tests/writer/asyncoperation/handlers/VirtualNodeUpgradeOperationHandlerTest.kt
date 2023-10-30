@@ -255,23 +255,6 @@ class VirtualNodeUpgradeOperationHandlerTest {
         block()
     }
 
-    private fun withFailedOperation(state: VirtualNodeOperationStateDto, reason: String, block: () -> Unit) {
-        whenever(
-            virtualNodeRepository.failedOperation(
-                eq(em),
-                eq(vnodeId),
-                eq(requestId),
-                eq(request.toString()),
-                any(),
-                eq(reason),
-                eq(VirtualNodeOperationType.UPGRADE),
-                eq(state)
-            )
-        ).thenReturn(noInProgressOpVnodeInfo)
-
-        block()
-    }
-
     @BeforeEach
     fun setUp() {
         whenever(em.transaction)
@@ -493,7 +476,7 @@ class VirtualNodeUpgradeOperationHandlerTest {
 
         whenever(entityTransaction.rollbackOnly).thenReturn(true).thenReturn(false)
 
-        withFailedOperation(VirtualNodeOperationStateDto.UNEXPECTED_FAILURE, "err") {
+        withRejectedOperation(VirtualNodeOperationStateDto.UNEXPECTED_FAILURE, "err" ) {
             handler.handle(
                 Instant.now(),
                 requestId,
@@ -705,7 +688,7 @@ class VirtualNodeUpgradeOperationHandlerTest {
         val vnodeInfoCapture =
             argumentCaptor<List<Record<net.corda.data.identity.HoldingIdentity, net.corda.data.virtualnode.VirtualNodeInfo>>>()
 
-        withFailedOperation(VirtualNodeOperationStateDto.MIGRATIONS_FAILED, "Inner exception") {
+        withRejectedOperation(VirtualNodeOperationStateDto.MIGRATIONS_FAILED, "Inner exception" ) {
             handler.handle(requestTimestamp, requestId, request)
         }
 
