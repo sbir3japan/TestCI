@@ -35,6 +35,7 @@ import net.corda.v5.base.types.MemberX500Name
 import net.corda.v5.membership.MemberInfo
 import net.corda.virtualnode.HoldingIdentity
 import net.corda.virtualnode.OperationalStatus
+import net.corda.virtualnode.OperationalStatus.ACTIVE
 import net.corda.virtualnode.VirtualNodeInfo
 import net.corda.virtualnode.write.db.VirtualNodeWriteServiceException
 import net.corda.virtualnode.write.db.impl.writer.VirtualNodeEntityRepository
@@ -304,13 +305,13 @@ class VirtualNodeUpgradeOperationHandlerTest {
 
     @Test
     fun `upgrade handler validates vault_db_operational_status is INACTIVE`() {
-        val activeVnode = mock<VirtualNodeInfo> {
-            whenever(it.cpiIdentifier).thenReturn(currentCpiId)
-            whenever(it.flowOperationalStatus).thenReturn(OperationalStatus.ACTIVE)
-            whenever(it.flowStartOperationalStatus).thenReturn(OperationalStatus.ACTIVE)
-            whenever(it.flowP2pOperationalStatus).thenReturn(OperationalStatus.ACTIVE)
-            whenever(it.vaultDbOperationalStatus).thenReturn(OperationalStatus.ACTIVE)
-        }
+        val activeVnode = inProgressOpVnodeInfo.copy(
+            cpiIdentifier = currentCpiId,
+            flowOperationalStatus = ACTIVE,
+            flowStartOperationalStatus = ACTIVE,
+            flowP2pOperationalStatus = ACTIVE,
+            vaultDbOperationalStatus = ACTIVE
+        )
         whenever(virtualNodeRepository.find(em, ShortHash.of(vnodeId))).thenReturn(activeVnode)
 
         withRejectedOperation(VirtualNodeOperationStateDto.VALIDATION_FAILED, "Virtual node must be in maintenance") {
