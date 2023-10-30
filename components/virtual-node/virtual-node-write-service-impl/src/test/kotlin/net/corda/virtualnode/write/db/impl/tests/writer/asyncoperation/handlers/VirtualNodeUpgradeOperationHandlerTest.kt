@@ -324,14 +324,14 @@ class VirtualNodeUpgradeOperationHandlerTest {
 
     @Test
     fun `upgrade handler validates there is no operation in progress`() {
-        val vNode = mock<VirtualNodeInfo> {
-            whenever(it.cpiIdentifier).thenReturn(currentCpiId)
-            whenever(it.flowOperationalStatus).thenReturn(OperationalStatus.INACTIVE)
-            whenever(it.flowStartOperationalStatus).thenReturn(OperationalStatus.INACTIVE)
-            whenever(it.flowP2pOperationalStatus).thenReturn(OperationalStatus.INACTIVE)
-            whenever(it.vaultDbOperationalStatus).thenReturn(OperationalStatus.INACTIVE)
-            whenever(it.operationInProgress).thenReturn("some-op")
-        }
+        val vNode = inProgressOpVnodeInfo.copy(
+            cpiIdentifier = currentCpiId,
+            flowOperationalStatus = OperationalStatus.INACTIVE,
+            flowStartOperationalStatus = OperationalStatus.INACTIVE,
+            flowP2pOperationalStatus = OperationalStatus.INACTIVE,
+            vaultDbOperationalStatus = OperationalStatus.INACTIVE,
+            operationInProgress = "some-op",
+        )
         whenever(virtualNodeRepository.find(em, ShortHash.of(vnodeId))).thenReturn(vNode)
         whenever(oldVirtualNodeEntityRepository.getCpiMetadataByChecksum(targetCpiChecksum)).thenReturn(null)
 
@@ -346,16 +346,12 @@ class VirtualNodeUpgradeOperationHandlerTest {
 
     @Test
     fun `upgrade handler allows upgrade to proceed with operation in progress if forceUpgrade is specified`() {
-        val vNode = VirtualNodeInfo(
-            holdingIdentity,
-            currentCpiId,
-            vaultDmlConnectionId = UUID.randomUUID(),
-            cryptoDmlConnectionId = UUID.randomUUID(),
+        val vNode = inProgressOpVnodeInfo.copy(
+            cpiIdentifier = currentCpiId,
             flowP2pOperationalStatus = OperationalStatus.INACTIVE,
             flowStartOperationalStatus = OperationalStatus.INACTIVE,
             flowOperationalStatus = OperationalStatus.INACTIVE,
             vaultDbOperationalStatus = OperationalStatus.INACTIVE,
-            timestamp = Instant.now(),
             operationInProgress = "Upgrade vNode"
         )
 
