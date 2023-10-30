@@ -389,7 +389,7 @@ class VirtualNodeUpgradeOperationHandlerTest {
 
     @Test
     fun `upgrade handler can't find target CPI throws`() {
-        whenever(virtualNodeRepository.find(em, ShortHash.of(vnodeId))).thenReturn(vNode)
+        findReturnsVnode()
         whenever(oldVirtualNodeEntityRepository.getCpiMetadataByChecksum(targetCpiChecksum)).thenReturn(null)
 
         withRejectedOperation(
@@ -406,7 +406,7 @@ class VirtualNodeUpgradeOperationHandlerTest {
 
     @Test
     fun `upgrade handler can't find current CPI associated with target CPI throws`() {
-        whenever(virtualNodeRepository.find(em, ShortHash.of(vnodeId))).thenReturn(vNode)
+        findReturnsVnode()
         whenever(oldVirtualNodeEntityRepository.getCpiMetadataByChecksum(targetCpiChecksum)).thenReturn(
             targetCpiMetadata
         )
@@ -449,7 +449,7 @@ class VirtualNodeUpgradeOperationHandlerTest {
 
     @Test
     fun `upgrade handler fails to upgrade, rolls back transaction`() {
-        whenever(virtualNodeRepository.find(em, ShortHash.of(vnodeId))).thenReturn(vNode)
+        findReturnsVnode()
         whenever(oldVirtualNodeEntityRepository.getCpiMetadataByChecksum(targetCpiChecksum)).thenReturn(
             targetCpiMetadata
         )
@@ -487,7 +487,7 @@ class VirtualNodeUpgradeOperationHandlerTest {
     fun `upgrade handler successfully persists and publishes a single vnode info when no vault DDL provided`() {
         val requestTimestamp = Instant.now()
 
-        whenever(virtualNodeRepository.find(em, ShortHash.of(vnodeId))).thenReturn(vNode)
+        findReturnsVnode()
         whenever(oldVirtualNodeEntityRepository.getCpiMetadataByChecksum(targetCpiChecksum)).thenReturn(
             targetCpiMetadata
         )
@@ -525,7 +525,7 @@ class VirtualNodeUpgradeOperationHandlerTest {
     fun `upgrade handler re-publishes updated mgm information when group policy changed`() {
         val requestTimestamp = Instant.now()
 
-        whenever(virtualNodeRepository.find(em, ShortHash.of(vnodeId))).thenReturn(vNode)
+        findReturnsVnode()
         whenever(oldVirtualNodeEntityRepository.getCpiMetadataByChecksum(targetCpiChecksum)).thenReturn(
             nonStaticTargetCpiMetadata
         )
@@ -557,7 +557,7 @@ class VirtualNodeUpgradeOperationHandlerTest {
     fun `serial from registration request is increased when not null for automated re-registration`() {
         val requestTimestamp = Instant.now()
 
-        whenever(virtualNodeRepository.find(em, ShortHash.of(vnodeId))).thenReturn(vNode)
+        findReturnsVnode()
         whenever(oldVirtualNodeEntityRepository.getCpiMetadataByChecksum(targetCpiChecksum)).thenReturn(
             nonStaticTargetCpiMetadata
         )
@@ -608,7 +608,7 @@ class VirtualNodeUpgradeOperationHandlerTest {
     fun `serial from registration request is not attached when null for automated re-registration`() {
         val requestTimestamp = Instant.now()
 
-        whenever(virtualNodeRepository.find(em, ShortHash.of(vnodeId))).thenReturn(vNode)
+        findReturnsVnode()
         whenever(oldVirtualNodeEntityRepository.getCpiMetadataByChecksum(targetCpiChecksum)).thenReturn(
             nonStaticTargetCpiMetadata
         )
@@ -659,7 +659,7 @@ class VirtualNodeUpgradeOperationHandlerTest {
     fun `migrations thrown an exception, operation is written with the details`() {
         val requestTimestamp = Instant.now()
 
-        whenever(virtualNodeRepository.find(em, ShortHash.of(vnodeId))).thenReturn(vNode)
+        findReturnsVnode()
         whenever(oldVirtualNodeEntityRepository.getCpiMetadataByChecksum(targetCpiChecksum)).thenReturn(
             targetCpiMetadata
         )
@@ -705,7 +705,7 @@ class VirtualNodeUpgradeOperationHandlerTest {
             )
         ).thenThrow(LiquibaseDiffCheckFailedException("outer error", java.lang.Exception("Inner error")))
 
-        whenever(virtualNodeRepository.find(em, ShortHash.of(vnodeId))).thenReturn(vNode)
+        findReturnsVnode()
         whenever(oldVirtualNodeEntityRepository.getCpiMetadataByChecksum(targetCpiChecksum)).thenReturn(
             targetCpiMetadata
         )
@@ -743,7 +743,7 @@ class VirtualNodeUpgradeOperationHandlerTest {
     fun `upgrade handler successfully persists, runs migrations with vault ddl, publishes vnode info and completes operation`() {
         val requestTimestamp = Instant.now()
 
-        whenever(virtualNodeRepository.find(em, ShortHash.of(vnodeId))).thenReturn(vNode)
+        findReturnsVnode()
         whenever(oldVirtualNodeEntityRepository.getCpiMetadataByChecksum(targetCpiChecksum)).thenReturn(
             targetCpiMetadata
         )
@@ -792,7 +792,7 @@ class VirtualNodeUpgradeOperationHandlerTest {
             whenever(it.areChangesetsDeployedOnVault(any(), any(), any())).thenReturn(false)
         }
 
-        whenever(virtualNodeRepository.find(em, ShortHash.of(vnodeId))).thenReturn(vNode)
+        findReturnsVnode()
         whenever(oldVirtualNodeEntityRepository.getCpiMetadataByChecksum(targetCpiChecksum)).thenReturn(
             targetCpiMetadata
         )
@@ -836,6 +836,10 @@ class VirtualNodeUpgradeOperationHandlerTest {
             requestId
         )
         assertUpgradedVnodeInfoIsPublished(vnodeInfoRecordsCapture.secondValue, null)
+    }
+
+    private fun findReturnsVnode() {
+        whenever(virtualNodeRepository.find(em, ShortHash.of(vnodeId))).thenReturn(vNode)
     }
 
     private fun assertUpgradedVnodeInfoIsPublished(
