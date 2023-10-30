@@ -445,8 +445,7 @@ class VirtualNodeUpgradeOperationHandlerTest {
     fun `upgrade handler fails to upgrade, rolls back transaction`() {
         findReturnsVnode()
         getCpiMetadataReturnsTargetCpi()
-        whenever(oldVirtualNodeEntityRepository.getCPIMetadataById(eq(em), eq(cpiId)))
-            .thenReturn(currentCpiMetadata)
+        getCpiMetadataReturnsCurrentCpi()
         whenever(
             virtualNodeRepository.upgradeVirtualNodeCpi(
                 any(),
@@ -481,8 +480,7 @@ class VirtualNodeUpgradeOperationHandlerTest {
 
         findReturnsVnode()
         getCpiMetadataReturnsTargetCpi()
-        whenever(oldVirtualNodeEntityRepository.getCPIMetadataById(eq(em), eq(cpiId)))
-            .thenReturn(currentCpiMetadata)
+        getCpiMetadataReturnsCurrentCpi()
         whenever(
             virtualNodeRepository.upgradeVirtualNodeCpi(
                 eq(em),
@@ -651,8 +649,7 @@ class VirtualNodeUpgradeOperationHandlerTest {
 
         findReturnsVnode()
         getCpiMetadataReturnsTargetCpi()
-        whenever(oldVirtualNodeEntityRepository.getCPIMetadataById(eq(em), eq(cpiId)))
-            .thenReturn(currentCpiMetadata)
+        getCpiMetadataReturnsCurrentCpi()
         whenever(
             virtualNodeRepository.upgradeVirtualNodeCpi(
                 eq(em),
@@ -695,8 +692,7 @@ class VirtualNodeUpgradeOperationHandlerTest {
 
         findReturnsVnode()
         getCpiMetadataReturnsTargetCpi()
-        whenever(oldVirtualNodeEntityRepository.getCPIMetadataById(eq(em), eq(cpiId)))
-            .thenReturn(currentCpiMetadata)
+        getCpiMetadataReturnsCurrentCpi()
         whenever(
             virtualNodeRepository.upgradeVirtualNodeCpi(
                 eq(em),
@@ -731,8 +727,7 @@ class VirtualNodeUpgradeOperationHandlerTest {
 
         findReturnsVnode()
         getCpiMetadataReturnsTargetCpi()
-        whenever(oldVirtualNodeEntityRepository.getCPIMetadataById(eq(em), eq(cpiId)))
-            .thenReturn(currentCpiMetadata)
+        getCpiMetadataReturnsCurrentCpi()
         whenever(
             virtualNodeRepository.upgradeVirtualNodeCpi(
                 eq(em),
@@ -778,8 +773,7 @@ class VirtualNodeUpgradeOperationHandlerTest {
 
         findReturnsVnode()
         getCpiMetadataReturnsTargetCpi()
-        whenever(oldVirtualNodeEntityRepository.getCPIMetadataById(eq(em), eq(cpiId)))
-            .thenReturn(currentCpiMetadata)
+        getCpiMetadataReturnsCurrentCpi()
         whenever(
             virtualNodeRepository.upgradeVirtualNodeCpi(
                 eq(em),
@@ -818,6 +812,11 @@ class VirtualNodeUpgradeOperationHandlerTest {
             requestId
         )
         assertUpgradedVnodeInfoIsPublished(vnodeInfoRecordsCapture.secondValue, null)
+    }
+
+    private fun getCpiMetadataReturnsCurrentCpi() {
+        whenever(oldVirtualNodeEntityRepository.getCPIMetadataById(eq(em), eq(cpiId)))
+            .thenReturn(currentCpiMetadata)
     }
 
     private fun getCpiMetadataReturnsTargetCpi() {
