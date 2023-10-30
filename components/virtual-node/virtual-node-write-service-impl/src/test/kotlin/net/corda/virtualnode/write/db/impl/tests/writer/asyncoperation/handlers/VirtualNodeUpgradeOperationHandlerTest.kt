@@ -313,7 +313,7 @@ class VirtualNodeUpgradeOperationHandlerTest {
             flowP2pOperationalStatus = ACTIVE,
             vaultDbOperationalStatus = ACTIVE
         )
-        whenever(virtualNodeRepository.find(em, ShortHash.of(vnodeId))).thenReturn(activeVnode)
+        findReturnsVnode(activeVnode)
 
         withRejectedOperation(VirtualNodeOperationStateDto.VALIDATION_FAILED, "Virtual node must be in maintenance") {
             handler.handle(
@@ -334,7 +334,7 @@ class VirtualNodeUpgradeOperationHandlerTest {
             vaultDbOperationalStatus = INACTIVE,
             operationInProgress = "some-op",
         )
-        whenever(virtualNodeRepository.find(em, ShortHash.of(vnodeId))).thenReturn(vNode)
+        findReturnsVnode(vNode)
         whenever(oldVirtualNodeEntityRepository.getCpiMetadataByChecksum(targetCpiChecksum)).thenReturn(null)
 
         withRejectedOperation(VirtualNodeOperationStateDto.VALIDATION_FAILED, "Operation some-op already in progress") {
@@ -357,7 +357,7 @@ class VirtualNodeUpgradeOperationHandlerTest {
             operationInProgress = "Upgrade vNode"
         )
 
-        whenever(virtualNodeRepository.find(em, ShortHash.of(vnodeId))).thenReturn(vNode)
+        findReturnsVnode(vNode)
         whenever(
             virtualNodeRepository.upgradeVirtualNodeCpi(
                 any(), any(), any(), any(), any(), any(), any(), any(), any(),
@@ -798,6 +798,10 @@ class VirtualNodeUpgradeOperationHandlerTest {
     }
 
     private fun findReturnsVnode() {
+        findReturnsVnode(vNode)
+    }
+
+    private fun findReturnsVnode(vNode: VirtualNodeInfo) {
         whenever(virtualNodeRepository.find(em, ShortHash.of(vnodeId))).thenReturn(vNode)
     }
 
