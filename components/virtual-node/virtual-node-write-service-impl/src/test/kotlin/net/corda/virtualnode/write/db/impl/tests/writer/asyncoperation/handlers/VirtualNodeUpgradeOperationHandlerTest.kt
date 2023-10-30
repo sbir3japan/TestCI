@@ -770,7 +770,7 @@ class VirtualNodeUpgradeOperationHandlerTest {
         )
     }
 
-    private fun upgradeReturnsInProgressVnode(requestTimestamp: Instant?) {
+    private fun upgradeReturnsInProgressVnode(requestTimestamp: Instant) {
         whenever(
             virtualNodeRepository.upgradeVirtualNodeCpi(
                 eq(em),
