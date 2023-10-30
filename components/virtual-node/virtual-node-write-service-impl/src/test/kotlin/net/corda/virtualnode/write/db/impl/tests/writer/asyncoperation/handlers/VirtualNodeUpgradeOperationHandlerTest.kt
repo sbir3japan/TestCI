@@ -650,19 +650,7 @@ class VirtualNodeUpgradeOperationHandlerTest {
         findReturnsVnode()
         getCpiMetadataReturnsTargetCpi()
         getCpiMetadataReturnsCurrentCpi()
-        whenever(
-            virtualNodeRepository.upgradeVirtualNodeCpi(
-                eq(em),
-                eq(vnodeId),
-                eq(cpiName),
-                eq("v2"),
-                eq(sshString),
-                eq(newExternalMessagingRouteConfig),
-                eq(requestId),
-                eq(requestTimestamp),
-                eq(request.toString())
-            )
-        ).thenReturn(inProgressOpVnodeInfo)
+        upgradeReturnsInProgressVnode(requestTimestamp)
         whenever(migrationUtility.runVaultMigrations(any(), any(), any()))
             .thenThrow(VirtualNodeWriteServiceException("Outer exception", Exception("Inner exception")))
 
@@ -693,19 +681,7 @@ class VirtualNodeUpgradeOperationHandlerTest {
         findReturnsVnode()
         getCpiMetadataReturnsTargetCpi()
         getCpiMetadataReturnsCurrentCpi()
-        whenever(
-            virtualNodeRepository.upgradeVirtualNodeCpi(
-                eq(em),
-                eq(vnodeId),
-                eq(cpiName),
-                eq("v2"),
-                eq(sshString),
-                eq(newExternalMessagingRouteConfig),
-                eq(requestId),
-                eq(requestTimestamp),
-                eq(request.toString())
-            )
-        ).thenReturn(inProgressOpVnodeInfo)
+        upgradeReturnsInProgressVnode(requestTimestamp)
 
         val vnodeInfoCapture =
             argumentCaptor<List<Record<net.corda.data.identity.HoldingIdentity, net.corda.data.virtualnode.VirtualNodeInfo>>>()
@@ -728,19 +704,7 @@ class VirtualNodeUpgradeOperationHandlerTest {
         findReturnsVnode()
         getCpiMetadataReturnsTargetCpi()
         getCpiMetadataReturnsCurrentCpi()
-        whenever(
-            virtualNodeRepository.upgradeVirtualNodeCpi(
-                eq(em),
-                eq(vnodeId),
-                eq(cpiName),
-                eq("v2"),
-                eq(sshString),
-                eq(newExternalMessagingRouteConfig),
-                eq(requestId),
-                eq(requestTimestamp),
-                eq(request.toString())
-            )
-        ).thenReturn(inProgressOpVnodeInfo)
+        upgradeReturnsInProgressVnode(requestTimestamp)
         whenever(virtualNodeRepository.completedOperation(em, request.virtualNodeShortHash)).thenReturn(
             noInProgressOpVnodeInfo
         )
@@ -774,19 +738,7 @@ class VirtualNodeUpgradeOperationHandlerTest {
         findReturnsVnode()
         getCpiMetadataReturnsTargetCpi()
         getCpiMetadataReturnsCurrentCpi()
-        whenever(
-            virtualNodeRepository.upgradeVirtualNodeCpi(
-                eq(em),
-                eq(vnodeId),
-                eq(cpiName),
-                eq("v2"),
-                eq(sshString),
-                eq(newExternalMessagingRouteConfig),
-                eq(requestId),
-                eq(requestTimestamp),
-                eq(request.toString())
-            )
-        ).thenReturn(inProgressOpVnodeInfo)
+        upgradeReturnsInProgressVnode(requestTimestamp)
         whenever(
             migrationUtility.areChangesetsDeployedOnVault(
                 request.virtualNodeShortHash,
@@ -812,6 +764,22 @@ class VirtualNodeUpgradeOperationHandlerTest {
             requestId
         )
         assertUpgradedVnodeInfoIsPublished(vnodeInfoRecordsCapture.secondValue, null)
+    }
+
+    private fun upgradeReturnsInProgressVnode(requestTimestamp: Instant?) {
+        whenever(
+            virtualNodeRepository.upgradeVirtualNodeCpi(
+                eq(em),
+                eq(vnodeId),
+                eq(cpiName),
+                eq("v2"),
+                eq(sshString),
+                eq(newExternalMessagingRouteConfig),
+                eq(requestId),
+                eq(requestTimestamp),
+                eq(request.toString())
+            )
+        ).thenReturn(inProgressOpVnodeInfo)
     }
 
     private fun getCpiMetadataReturnsCurrentCpi() {
