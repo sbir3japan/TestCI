@@ -221,48 +221,22 @@ class VirtualNodeUpgradeOperationHandlerTest {
     private val request = VirtualNodeUpgradeRequest(vnodeId, targetCpiChecksum, null, false)
     private val forceUpgradeRequest = VirtualNodeUpgradeRequest(vnodeId, targetCpiChecksum, null, true)
 
-    private val inProgressVnodeInfoWithoutVaultDdl = VirtualNodeInfo(
-        mockHoldingIdentity,
-        targetCpiId,
-        null,
-        vaultDmlConnectionId,
-        null,
-        UUID.randomUUID(),
-        null,
-        UUID.randomUUID(),
-        UUID.randomUUID(),
-        timestamp = Instant.now(),
-        operationInProgress = requestId,
-        externalMessagingRouteConfig = newExternalMessagingRouteConfig
-    )
-
     private val inProgressOpVnodeInfo = VirtualNodeInfo(
-        mockHoldingIdentity,
-        targetCpiId,
-        vaultDdlConnectionId,
-        vaultDmlConnectionId,
-        null,
-        UUID.randomUUID(),
-        null,
-        UUID.randomUUID(),
-        UUID.randomUUID(),
+        holdingIdentity = mockHoldingIdentity,
+        cpiIdentifier = targetCpiId,
+        vaultDdlConnectionId = vaultDdlConnectionId,
+        vaultDmlConnectionId = vaultDmlConnectionId,
+        cryptoDdlConnectionId = null,
+        cryptoDmlConnectionId = UUID.randomUUID(),
+        uniquenessDdlConnectionId = null,
+        uniquenessDmlConnectionId = UUID.randomUUID(),
+        hsmConnectionId = UUID.randomUUID(),
         operationInProgress = requestId,
         externalMessagingRouteConfig = newExternalMessagingRouteConfig,
         timestamp = Instant.now()
     )
-    private val noInProgressOpVnodeInfo = VirtualNodeInfo(
-        mockHoldingIdentity,
-        targetCpiId,
-        vaultDdlConnectionId,
-        vaultDmlConnectionId,
-        null,
-        UUID.randomUUID(),
-        null,
-        UUID.randomUUID(),
-        UUID.randomUUID(),
-        externalMessagingRouteConfig = newExternalMessagingRouteConfig,
-        timestamp = Instant.now()
-    )
+    private val inProgressVnodeInfoWithoutVaultDdl = inProgressOpVnodeInfo.copy(vaultDdlConnectionId = null)
+    private val noInProgressOpVnodeInfo = inProgressOpVnodeInfo.copy(operationInProgress = null)
 
     private fun withRejectedOperation(state: VirtualNodeOperationStateDto, reason: String, block: () -> Unit) {
         whenever(
