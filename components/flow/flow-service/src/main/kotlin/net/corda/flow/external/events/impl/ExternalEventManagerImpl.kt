@@ -180,6 +180,7 @@ class ExternalEventManagerImpl(
             (externalEventState.sendTimestamp + retryWindow) >= instant -> {
                 // Do nothing. This check ensures that subsequent branches are checking the case where the external
                 // event is outside the retry window.
+                Thread.sleep(100)
             }
             externalEventState.retries == 0 -> {
                 // Use the retries field to indicate how many times the event has been retried outside the window.
