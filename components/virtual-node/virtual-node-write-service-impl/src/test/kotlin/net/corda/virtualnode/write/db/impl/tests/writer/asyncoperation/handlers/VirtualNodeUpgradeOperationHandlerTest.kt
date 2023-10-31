@@ -271,26 +271,16 @@ class VirtualNodeUpgradeOperationHandlerTest {
     @Test
     fun `upgrade handler validates virtual node identifier is not null`() {
         assertThrows<IllegalArgumentException> {
-            handler.handle(
-                Instant.now(),
-                requestId,
-                VirtualNodeUpgradeRequest(
-                    null, "aaaa", null, false
-                )
-            )
+            val virtualNodeUpgradeRequest = VirtualNodeUpgradeRequest(null, "aaaa", null, false)
+            handler.handle(Instant.now(), requestId, virtualNodeUpgradeRequest)
         }
     }
 
     @Test
     fun `upgrade handler validates target cpiFileChecksum is not null`() {
         assertThrows<IllegalArgumentException> {
-            handler.handle(
-                Instant.now(),
-                requestId,
-                VirtualNodeUpgradeRequest(
-                    vnodeId, null, null, false
-                )
-            )
+            val virtualNodeUpgradeRequest = VirtualNodeUpgradeRequest(vnodeId, null, null, false)
+            handler.handle(Instant.now(), requestId, virtualNodeUpgradeRequest)
         }
     }
 
