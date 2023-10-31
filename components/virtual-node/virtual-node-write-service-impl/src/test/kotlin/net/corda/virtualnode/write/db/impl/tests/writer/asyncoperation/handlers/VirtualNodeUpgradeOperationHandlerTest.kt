@@ -296,8 +296,7 @@ class VirtualNodeUpgradeOperationHandlerTest {
 
     @Test
     fun `upgrade handler validates it can find virtual node`() {
-        whenever(virtualNodeRepository.find(em, ShortHash.of(vnodeId)))
-            .thenReturn(null)
+        findReturnsVnode(null)
 
         withRejectedOperation(VirtualNodeOperationStateDto.VALIDATION_FAILED, "Holding identity $vnodeId not found") {
             handler.handle(Instant.now(), requestId, request)
@@ -306,7 +305,7 @@ class VirtualNodeUpgradeOperationHandlerTest {
 
     @Test
     fun `upgrade handler validates vault_db_operational_status is INACTIVE`() {
-        val activeVnode = inProgressOpVnodeInfo.copy(
+        val activeVnode = noInProgressOpVnodeInfo.copy(
             cpiIdentifier = currentCpiId,
             flowOperationalStatus = ACTIVE,
             flowStartOperationalStatus = ACTIVE,
@@ -801,7 +800,7 @@ class VirtualNodeUpgradeOperationHandlerTest {
         findReturnsVnode(vNode)
     }
 
-    private fun findReturnsVnode(vNode: VirtualNodeInfo) {
+    private fun findReturnsVnode(vNode: VirtualNodeInfo?) {
         whenever(virtualNodeRepository.find(em, ShortHash.of(vnodeId))).thenReturn(vNode)
     }
 
