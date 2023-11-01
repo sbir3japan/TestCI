@@ -165,6 +165,8 @@ class VirtualNodeUpgradeOperationHandlerTest {
     private val cpiName = "someCpi"
     private val cpiId = CpiIdentifier(cpiName, "v1", ssh)
     private val currentCpiId = CpiIdentifier(cpiName, "v1", ssh)
+    private val now = Instant.now()
+
     private val vNode = VirtualNodeInfo(
         holdingIdentity,
         currentCpiId,
@@ -176,7 +178,7 @@ class VirtualNodeUpgradeOperationHandlerTest {
         flowP2pOperationalStatus = INACTIVE,
         vaultDbOperationalStatus = INACTIVE,
         externalMessagingRouteConfig = externalMessagingRouteConfig,
-        timestamp = Instant.now()
+        timestamp = now
     )
     private val staticGroupPolicy = genGroupPolicy(UUID.randomUUID().toString())
     private val dynamicGroupPolicy = genDynamicGroupPolicy(UUID.randomUUID().toString())
@@ -235,7 +237,7 @@ class VirtualNodeUpgradeOperationHandlerTest {
         hsmConnectionId = UUID.randomUUID(),
         operationInProgress = requestId,
         externalMessagingRouteConfig = newExternalMessagingRouteConfig,
-        timestamp = Instant.now()
+        timestamp = now
     )
     private val inProgressVnodeInfoWithoutVaultDdl = inProgressOpVnodeInfo.copy(vaultDdlConnectionId = null)
     private val noInProgressOpVnodeInfo = inProgressOpVnodeInfo.copy(operationInProgress = null)
@@ -272,7 +274,7 @@ class VirtualNodeUpgradeOperationHandlerTest {
     fun `upgrade handler validates virtual node identifier is not null`() {
         assertThrows<IllegalArgumentException> {
             val virtualNodeUpgradeRequest = VirtualNodeUpgradeRequest(null, "aaaa", null, false)
-            handler.handle(Instant.now(), requestId, virtualNodeUpgradeRequest)
+            handler.handle(now, requestId, virtualNodeUpgradeRequest)
         }
     }
 
@@ -280,7 +282,7 @@ class VirtualNodeUpgradeOperationHandlerTest {
     fun `upgrade handler validates target cpiFileChecksum is not null`() {
         assertThrows<IllegalArgumentException> {
             val virtualNodeUpgradeRequest = VirtualNodeUpgradeRequest(vnodeId, null, null, false)
-            handler.handle(Instant.now(), requestId, virtualNodeUpgradeRequest)
+            handler.handle(now, requestId, virtualNodeUpgradeRequest)
         }
     }
 
@@ -289,7 +291,7 @@ class VirtualNodeUpgradeOperationHandlerTest {
         findReturnsVnode(null)
 
         withRejectedOperation(VirtualNodeOperationStateDto.VALIDATION_FAILED, "Holding identity $vnodeId not found") {
-            handler.handle(Instant.now(), requestId, request)
+            handler.handle(now, requestId, request)
         }
     }
 
@@ -306,7 +308,7 @@ class VirtualNodeUpgradeOperationHandlerTest {
 
         withRejectedOperation(VirtualNodeOperationStateDto.VALIDATION_FAILED, "Virtual node must be in maintenance") {
             handler.handle(
-                Instant.now(),
+                now,
                 requestId,
                 request
             )
@@ -328,7 +330,7 @@ class VirtualNodeUpgradeOperationHandlerTest {
 
         withRejectedOperation(VirtualNodeOperationStateDto.VALIDATION_FAILED, "Operation some-op already in progress") {
             handler.handle(
-                Instant.now(),
+                now,
                 requestId,
                 request
             )
@@ -358,7 +360,7 @@ class VirtualNodeUpgradeOperationHandlerTest {
         whenever(virtualNodeInfoPublisher.publish(any())).thenReturn(emptyList())
 
         handler.handle(
-            Instant.now(),
+            now,
             requestId,
             forceUpgradeRequest
         )
@@ -386,7 +388,7 @@ class VirtualNodeUpgradeOperationHandlerTest {
             "CPI with file checksum $targetCpiChecksum was not found"
         ) {
             handler.handle(
-                Instant.now(),
+                now,
                 requestId,
                 request
             )
@@ -405,7 +407,7 @@ class VirtualNodeUpgradeOperationHandlerTest {
             "CPI with name ${targetCpiMetadata.cpiId.name}, version v1 was not found"
         ) {
             handler.handle(
-                Instant.now(),
+                now,
                 requestId,
                 request
             )
@@ -425,7 +427,7 @@ class VirtualNodeUpgradeOperationHandlerTest {
             "Expected MGM GroupId group-b but was $groupId in CPI"
         ) {
             handler.handle(
-                Instant.now(),
+                now,
                 requestId,
                 request
             )
@@ -456,7 +458,7 @@ class VirtualNodeUpgradeOperationHandlerTest {
 
         withRejectedOperation(VirtualNodeOperationStateDto.UNEXPECTED_FAILURE, "err" ) {
             handler.handle(
-                Instant.now(),
+                now,
                 requestId,
                 request
             )
@@ -467,7 +469,7 @@ class VirtualNodeUpgradeOperationHandlerTest {
 
     @Test
     fun `upgrade handler successfully persists and publishes a single vnode info when no vault DDL provided`() {
-        val requestTimestamp = Instant.now()
+        val requestTimestamp = now
 
         findReturnsVnode()
         getCpiMetadataReturnsTargetCpi()
@@ -502,7 +504,7 @@ class VirtualNodeUpgradeOperationHandlerTest {
 
     @Test
     fun `upgrade handler re-publishes updated mgm information when group policy changed`() {
-        val requestTimestamp = Instant.now()
+        val requestTimestamp = now
 
         findReturnsVnode()
         whenever(oldVirtualNodeEntityRepository.getCpiMetadataByChecksum(targetCpiChecksum)).thenReturn(
@@ -534,7 +536,7 @@ class VirtualNodeUpgradeOperationHandlerTest {
 
     @Test
     fun `serial from registration request is increased when not null for automated re-registration`() {
-        val requestTimestamp = Instant.now()
+        val requestTimestamp = now
 
         findReturnsVnode()
         whenever(oldVirtualNodeEntityRepository.getCpiMetadataByChecksum(targetCpiChecksum)).thenReturn(
@@ -585,7 +587,7 @@ class VirtualNodeUpgradeOperationHandlerTest {
 
     @Test
     fun `serial from registration request is not attached when null for automated re-registration`() {
-        val requestTimestamp = Instant.now()
+        val requestTimestamp = now
 
         findReturnsVnode()
         whenever(oldVirtualNodeEntityRepository.getCpiMetadataByChecksum(targetCpiChecksum)).thenReturn(
@@ -636,7 +638,7 @@ class VirtualNodeUpgradeOperationHandlerTest {
 
     @Test
     fun `migrations thrown an exception, operation is written with the details`() {
-        val requestTimestamp = Instant.now()
+        val requestTimestamp = now
 
         findReturnsVnode()
         getCpiMetadataReturnsTargetCpi()
@@ -660,7 +662,7 @@ class VirtualNodeUpgradeOperationHandlerTest {
 
     @Test
     fun `liquibase diff checker fails with exception, operation is written for this failure`() {
-        val requestTimestamp = Instant.now()
+        val requestTimestamp = now
         whenever(
             migrationUtility.areChangesetsDeployedOnVault(
                 any(),
@@ -690,7 +692,7 @@ class VirtualNodeUpgradeOperationHandlerTest {
 
     @Test
     fun `upgrade handler successfully persists, runs migrations with vault ddl, publishes vnode info and completes operation`() {
-        val requestTimestamp = Instant.now()
+        val requestTimestamp = now
 
         findReturnsVnode()
         getCpiMetadataReturnsTargetCpi()
@@ -719,7 +721,7 @@ class VirtualNodeUpgradeOperationHandlerTest {
 
     @Test
     fun `upgrade handler successfully persists, no migrations required`() {
-        val requestTimestamp = Instant.now()
+        val requestTimestamp = now
         val migrationUtility = mock<MigrationUtility> {
             whenever(it.areChangesetsDeployedOnVault(any(), any(), any())).thenReturn(false)
         }
