@@ -25,7 +25,10 @@ class TimeoutEventCleanupProcessor(
     }
 
     override fun onNext(events: List<Record<String, FlowTimeout>>): List<Record<*, *>> {
-        logger.debug { "Processing ${events.size} flows for timeout" }
+        if (events.isNotEmpty()) {
+            logger.info("Removing ${events.size} flows due to session timeout. " +
+                    "IDs affected: ${events.mapNotNull { it.value?.checkpointStateKey }.joinToString(",")}")
+        }
         val statesToRecords = stateManager.get(events.mapNotNull {
             it.value?.checkpointStateKey
         }).mapNotNull { (_, state) ->
