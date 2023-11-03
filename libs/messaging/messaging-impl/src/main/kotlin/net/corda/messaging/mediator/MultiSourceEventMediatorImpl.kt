@@ -9,9 +9,9 @@ import net.corda.lifecycle.LifecycleCoordinatorName
 import net.corda.lifecycle.LifecycleStatus
 import net.corda.messaging.api.exception.CordaMessageAPIIntermittentException
 import net.corda.messaging.api.mediator.MediatorConsumer
+import net.corda.messaging.api.mediator.MediatorMessage
 import net.corda.messaging.api.mediator.MessageRouter
 import net.corda.messaging.api.mediator.MessagingClient
-import net.corda.messaging.api.mediator.MediatorMessage
 import net.corda.messaging.api.mediator.MultiSourceEventMediator
 import net.corda.messaging.api.mediator.config.EventMediatorConfig
 import net.corda.messaging.api.mediator.config.MediatorConsumerConfig
@@ -164,6 +164,8 @@ class MultiSourceEventMediatorImpl<K : Any, S : Any, E : Any>(
         if (messages.isNotEmpty()) {
             var groups = allocateGroups(messages.map { it.toRecord() })
             var states = stateManager.get(messages.map { it.key.toString() }.distinct())
+            log.info("All States that have been read with values: [${states.values.filter { it.value.isNotEmpty() }.map { it.key }}]")
+            log.info("All States that have been read with null values: [${states.values.filter { it.value.isEmpty() }.map { it.key }}]")
             while (groups.isNotEmpty()) {
                 val newStates = ConcurrentHashMap<String, State?>()
                 val updateStates = ConcurrentHashMap<String, State?>()
@@ -186,12 +188,14 @@ class MultiSourceEventMediatorImpl<K : Any, S : Any, E : Any>(
                                 }
                             }
                             val state = states.getOrDefault(it.key.toString(), null)
+                            log.info("Read state. isEmpty: ${state?.value == null || state.value.isEmpty()}")
                             var processorState = stateManagerHelper.deserializeValue(state)?.let { stateValue ->
                                 StateAndEventProcessor.State(
                                     stateValue,
                                     state?.metadata
                                 )
                             }
+                            log.info("Read checkpoint. isNull: ${processorState?.value == null}")
                             val queue = ArrayDeque(it.value)
                             while (queue.isNotEmpty()) {
                                 val event = queue.removeFirst()
@@ -280,6 +284,8 @@ class MultiSourceEventMediatorImpl<K : Any, S : Any, E : Any>(
             val records = buckets[key]!!
             group[key] = records
         }
+
+        log.info("groups keys: ${groups.map { it.keys }}")
         return groups
     }
 }

@@ -96,6 +96,7 @@ class StateManagerImpl(
 
         try {
             val failedDeletes = dataSource.connection.transaction { connection ->
+                logger.info("About to try delete states ${states.map { it.key }}")
                 stateRepository.delete(connection, states.map { it.toPersistentEntity() })
             }
 
