@@ -161,6 +161,7 @@ class MultiSourceEventMediatorImpl<K : Any, S : Any, E : Any>(
     private fun pollAndProcessEvents(consumer: MediatorConsumer<K, E>) {
         val messages = consumer.poll(pollTimeout)
         val startTimestamp = System.nanoTime()
+        log.info("Polling consumer")
         if (messages.isNotEmpty()) {
             var groups = allocateGroups(messages.map { it.toRecord() })
             var states = stateManager.get(messages.map { it.key.toString() }.distinct())
@@ -256,6 +257,7 @@ class MultiSourceEventMediatorImpl<K : Any, S : Any, E : Any>(
                 val failedToDelete = stateManager.delete(deleteStates.values.mapNotNull { it })
                 val failedToUpdate = stateManager.update(updateStates.values.mapNotNull { it })
                 states = failedToCreate + failedToDelete + failedToUpdate
+                log.info("States after update ${states.keys}")
                 groups = if (states.isNotEmpty()) {
                     allocateGroups(flowEvents.filterKeys { states.containsKey(it) }.values.flatten())
                 } else {
