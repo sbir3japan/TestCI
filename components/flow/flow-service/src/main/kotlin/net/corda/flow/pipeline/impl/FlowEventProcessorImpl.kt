@@ -81,6 +81,11 @@ class FlowEventProcessorImpl(
             )
         }
 
+        if (flowEvent.payload !is StartFlow && state?.value == null) {
+            log.warn("Read a FlowEvent with payload [${flowEvent.payload::class.java}] with a checkpoint that was null. Something went " +
+                    "wrong!")
+        }
+
         val pipeline = try {
             log.trace { "Flow [${event.key}] Received event: ${flowEvent.payload::class.java} / ${flowEvent.payload}" }
             flowEventPipelineFactory.create(state, flowEvent, configs, mdcProperties, traceContext, event.timestamp)
@@ -143,8 +148,14 @@ class FlowEventProcessorImpl(
             }
         }
 
-        return flowEventContextConverter.convert(
+        val returnType = flowEventContextConverter.convert(
             result.copy(outputRecords = result.outputRecords + cleanupEvents)
         )
+        if (returnType.markForDLQ || returnType.updatedState == null) {
+            log.info("Flow engine wants to set the checkpoint to null. Reason[dlq:${returnType.markForDLQ}, updatedState: ${returnType
+                .updatedState}]")
+        }
+
+        return returnType
     }
 }

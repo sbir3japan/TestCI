@@ -39,6 +39,7 @@ class TimeoutEventCleanupProcessor(
                         "checkpoint did not deserialize cleanly."
             )
         }
+        logger.info("Deleting checkpoints for sessions which have timed out : ${statesToRecords.keys}")
         val undeletedStates = stateManager.delete(statesToRecords.keys)
         if (undeletedStates.isNotEmpty()) {
             logger.info("Failed to delete ${undeletedStates.size} checkpoints when handling flow session timeout.")
