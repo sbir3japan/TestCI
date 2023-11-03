@@ -9,7 +9,6 @@ import net.corda.libs.configuration.SmartConfig
 import net.corda.libs.statemanager.api.StateManager
 import net.corda.messaging.api.processor.DurableProcessor
 import net.corda.messaging.api.records.Record
-import net.corda.utilities.debug
 import org.slf4j.LoggerFactory
 
 class TimeoutEventCleanupProcessor(
@@ -27,7 +26,8 @@ class TimeoutEventCleanupProcessor(
     override fun onNext(events: List<Record<String, FlowTimeout>>): List<Record<*, *>> {
         if (events.isNotEmpty()) {
             logger.info("Removing ${events.size} flows due to session timeout. " +
-                    "IDs affected: ${events.mapNotNull { it.value?.checkpointStateKey }.joinToString(",")}")
+                    "IDs affected: ${events.mapNotNull { it.value?.checkpointStateKey }.joinToString(",")}"
+            )
         }
         val statesToRecords = stateManager.get(events.mapNotNull {
             it.value?.checkpointStateKey
@@ -46,10 +46,7 @@ class TimeoutEventCleanupProcessor(
         if (undeletedStates.isNotEmpty()) {
             logger.info("Failed to delete ${undeletedStates.size} checkpoints when handling flow session timeout.")
         }
-        val records = statesToRecords.filterKeys { !undeletedStates.containsKey(it.key) }.map {
-            it.value
-        }.flatten()
-        return records
+        return statesToRecords.filterKeys { !undeletedStates.containsKey(it.key) }.values.flatten()
     }
 
     private fun generateCleanupRecords(checkpoint: Checkpoint): List<Record<*, *>> {
