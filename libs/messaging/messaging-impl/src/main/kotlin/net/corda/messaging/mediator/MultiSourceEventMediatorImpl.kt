@@ -164,6 +164,7 @@ class MultiSourceEventMediatorImpl<K : Any, S : Any, E : Any>(
         log.info("Polling consumer")
         if (messages.isNotEmpty()) {
             var groups = allocateGroups(messages.map { it.toRecord() })
+            log.info("Trying to get states: [${messages.map { it.key }}]")
             var states = stateManager.get(messages.map { it.key.toString() }.distinct())
             log.info("All States that have been read with values: [${states.values.filter { it.value.isNotEmpty() }.map { it.key }}]")
             log.info("All States that have been read with null values: [${states.values.filter { it.value.isEmpty() }.map { it.key }}]")
