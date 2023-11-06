@@ -263,6 +263,7 @@ class MultiSourceEventMediatorImpl<K : Any, S : Any, E : Any>(
 
                 busEvents.forEach { message ->
                     with(messageRouter.getDestination(message)) {
+                        message.addProperty(MessagingClient.MSG_PROP_ENDPOINT, endpoint)
                         client.send(message)
                     }
                 }
