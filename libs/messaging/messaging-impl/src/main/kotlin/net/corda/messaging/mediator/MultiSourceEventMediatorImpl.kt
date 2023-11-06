@@ -13,6 +13,7 @@ import net.corda.messaging.api.mediator.MediatorMessage
 import net.corda.messaging.api.mediator.MessageRouter
 import net.corda.messaging.api.mediator.MessagingClient
 import net.corda.messaging.api.mediator.MultiSourceEventMediator
+import net.corda.messaging.api.mediator.RoutingDestination
 import net.corda.messaging.api.mediator.config.EventMediatorConfig
 import net.corda.messaging.api.mediator.config.MediatorConsumerConfig
 import net.corda.messaging.api.processor.StateAndEventProcessor
@@ -66,6 +67,7 @@ class MultiSourceEventMediatorImpl<K : Any, S : Any, E : Any>(
 
     private val stopped = AtomicBoolean(false)
     private val running = AtomicBoolean(false)
+
     // TODO This timeout was set with CORE-17768 (changing configuration value would affect other messaging patterns)
     //  This should be reverted to use configuration value once event mediator polling is refactored (planned for 5.2)
     private val pollTimeout = Duration.ofMillis(5)
@@ -118,9 +120,11 @@ class MultiSourceEventMediatorImpl<K : Any, S : Any, E : Any>(
                                 attempts++
                                 log.warn(
                                     "Multi-source event mediator ${config.name} failed to process records, " +
-                                            "Retrying poll and process. Attempts: $attempts.")
+                                            "Retrying poll and process. Attempts: $attempts."
+                                )
                                 consumer?.resetEventOffsetPosition()
                             }
+
                             else -> {
                                 log.error(
                                     "${exception.message} Attempts: $attempts. Fatal error occurred!",
@@ -161,7 +165,7 @@ class MultiSourceEventMediatorImpl<K : Any, S : Any, E : Any>(
     private fun pollAndProcessEvents(consumer: MediatorConsumer<K, E>) {
         val messages = consumer.poll(pollTimeout)
         val startTimestamp = System.nanoTime()
-        log.info("Polling consumer")
+        log.info("Polling consumer on thread: ${Thread.currentThread().name}")
         if (messages.isNotEmpty()) {
             var groups = allocateGroups(messages.map { it.toRecord() })
             log.info("Trying to get states: [${messages.map { it.key }}]")
@@ -169,6 +173,7 @@ class MultiSourceEventMediatorImpl<K : Any, S : Any, E : Any>(
             log.info("All States that have been read with values: [${states.values.filter { it.value.isNotEmpty() }.map { it.key }}]")
             log.info("All States that have been read with null values: [${states.values.filter { it.value.isEmpty() }.map { it.key }}]")
             while (groups.isNotEmpty()) {
+                val busEvents = mutableListOf<MediatorMessage<Any>>()
                 val newStates = ConcurrentHashMap<String, State?>()
                 val updateStates = ConcurrentHashMap<String, State?>()
                 val deleteStates = ConcurrentHashMap<String, State?>()
@@ -208,19 +213,23 @@ class MultiSourceEventMediatorImpl<K : Any, S : Any, E : Any>(
                                 output.forEach { message ->
                                     val destination = messageRouter.getDestination(message)
 
-                                    @Suppress("UNCHECKED_CAST")
-                                    val reply = with(destination) {
-                                        message.addProperty(MessagingClient.MSG_PROP_ENDPOINT, endpoint)
-                                        client.send(message) as MediatorMessage<E>?
-                                    }
-                                    if (reply != null) {
-                                        queue.addLast(
-                                            Record(
-                                                "",
-                                                event.key,
-                                                reply.payload,
+                                    if (destination.type == RoutingDestination.Type.ASYNCHRONOUS) {
+                                        busEvents.add(message)
+                                    } else {
+                                        @Suppress("UNCHECKED_CAST")
+                                        val reply = with(destination) {
+                                            message.addProperty(MessagingClient.MSG_PROP_ENDPOINT, endpoint)
+                                            client.send(message) as MediatorMessage<E>?
+                                        }
+                                        if (reply != null) {
+                                            queue.addLast(
+                                                Record(
+                                                    "",
+                                                    event.key,
+                                                    reply.payload,
+                                                )
                                             )
-                                        )
+                                        }
                                     }
                                 }
                             }
@@ -252,13 +261,19 @@ class MultiSourceEventMediatorImpl<K : Any, S : Any, E : Any>(
                     it.join()
                 }
 
+                busEvents.forEach { message ->
+                    with(messageRouter.getDestination(message)) {
+                        client.send(message)
+                    }
+                }
+
                 // Persist states changes
+                log.info("Saving states ${newStates.keys}")
                 val failedToCreateKeys = stateManager.create(newStates.values.mapNotNull { it })
                 val failedToCreate = stateManager.get(failedToCreateKeys.keys)
                 val failedToDelete = stateManager.delete(deleteStates.values.mapNotNull { it })
                 val failedToUpdate = stateManager.update(updateStates.values.mapNotNull { it })
                 states = failedToCreate + failedToDelete + failedToUpdate
-                log.info("States after update ${states.keys}")
                 groups = if (states.isNotEmpty()) {
                     allocateGroups(flowEvents.filterKeys { states.containsKey(it) }.values.flatten())
                 } else {
