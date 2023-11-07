@@ -69,6 +69,8 @@ class FlowMaintenanceImpl @Activate constructor(
                     messagingConfig,
                     null
                 )
+
+
             }.start()
 
             coordinator.createManagedResource("FLOW_TIMEOUT_SUBSCRIPTION") {

@@ -1,0 +1,12 @@
+plugins {
+    id 'corda.common-publishing'
+    id 'corda.common-library'
+}
+
+description "Flow messaging prototype"
+
+dependencies {
+    implementation platform("net.corda:corda-api:$cordaApiVersion")
+
+    implementation 'net.corda:corda-base'
+}
