@@ -9,4 +9,9 @@ dependencies {
     implementation platform("net.corda:corda-api:$cordaApiVersion")
 
     implementation 'net.corda:corda-base'
+    implementation 'net.corda:corda-topic-schema'
+    implementation 'net.corda:corda-avro-schema'
+
+    implementation project(":libs:state-manager:state-manager-api")
+    implementation project(":libs:messaging:messaging")
 }
