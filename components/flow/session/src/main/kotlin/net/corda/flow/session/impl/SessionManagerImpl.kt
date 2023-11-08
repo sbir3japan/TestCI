@@ -86,34 +86,6 @@ class SessionManagerImpl(
         return sessionID
     }
 
-    private fun createNewState(
-        sessionID: String,
-        createTime: Instant,
-        counterparty: HoldingIdentity,
-        requireClose: Boolean,
-        sessionProperties: KeyValuePairList): SessionState {
-        val receivedState = SessionProcessState.newBuilder()
-            .setLastProcessedSequenceNum(0)
-            .setUndeliveredMessages(mutableListOf())
-            .build()
-        val sendState = SessionProcessState.newBuilder()
-            .setUndeliveredMessages(mutableListOf())
-            .setLastProcessedSequenceNum(0)
-            .build()
-        return SessionState.newBuilder()
-            .setSessionId(sessionID)
-            .setSessionStartTime(createTime)
-            .setLastReceivedMessageTime(createTime)
-            .setCounterpartyIdentity(counterparty.toAvro())
-            .setRequireClose(requireClose)
-            .setReceivedEventsState(receivedState)
-            .setSendEventsState(sendState)
-            .setStatus(SessionStateType.CONFIRMED)
-            .setHasScheduledCleanup(false)
-            .setSessionProperties(sessionProperties)
-            .build()
-    }
-
     override fun sendMessage(sessionID: String, message: ByteArray) {
         val receivingID = toggleSessionID(sessionID)
         val requiredIDs = setOf(sessionID, receivingID)
@@ -160,6 +132,34 @@ class SessionManagerImpl(
 
     override fun deleteSession(sessionID: String) {
         TODO("Not yet implemented")
+    }
+
+    private fun createNewState(
+        sessionID: String,
+        createTime: Instant,
+        counterparty: HoldingIdentity,
+        requireClose: Boolean,
+        sessionProperties: KeyValuePairList): SessionState {
+        val receivedState = SessionProcessState.newBuilder()
+            .setLastProcessedSequenceNum(0)
+            .setUndeliveredMessages(mutableListOf())
+            .build()
+        val sendState = SessionProcessState.newBuilder()
+            .setUndeliveredMessages(mutableListOf())
+            .setLastProcessedSequenceNum(0)
+            .build()
+        return SessionState.newBuilder()
+            .setSessionId(sessionID)
+            .setSessionStartTime(createTime)
+            .setLastReceivedMessageTime(createTime)
+            .setCounterpartyIdentity(counterparty.toAvro())
+            .setRequireClose(requireClose)
+            .setReceivedEventsState(receivedState)
+            .setSendEventsState(sendState)
+            .setStatus(SessionStateType.CONFIRMED)
+            .setHasScheduledCleanup(false)
+            .setSessionProperties(sessionProperties)
+            .build()
     }
 
     private fun generateSessionEvent(
