@@ -19,6 +19,7 @@ import net.corda.messaging.api.records.Record
 import net.corda.schema.Schemas.Flow.FLOW_EVENT_TOPIC
 import net.corda.virtualnode.HoldingIdentity
 import net.corda.virtualnode.toAvro
+import net.corda.virtualnode.toCorda
 import org.slf4j.LoggerFactory
 import java.time.Instant
 import java.util.UUID
@@ -42,9 +43,20 @@ class SessionManagerImpl(
         val sessionID = UUID.randomUUID().toString()
         val counterpartySessionID = sessionID + INITIATED_SUFFIX
         val createdTime = Instant.now()
-        val initiatorState = createNewState(sessionID, createdTime, config.counterparty, config.requireClose)
-        val initiatedState = createNewState(counterpartySessionID, createdTime, config.party, config.requireClose)
-        initiatorState.sendEventsState.lastProcessedSequenceNum = 1
+        val initiatorState = createNewState(
+            sessionID,
+            createdTime,
+            config.counterparty,
+            config.requireClose,
+            config.contextSessionProperties
+        )
+        val initiatedState = createNewState(
+            counterpartySessionID,
+            createdTime,
+            config.party,
+            config.requireClose,
+            config.contextSessionProperties
+        )
         // Publish a record to start the counterparty flow.
         val initPayload = SessionInit.newBuilder()
             .setCpiId(config.cpiId)
@@ -52,20 +64,7 @@ class SessionManagerImpl(
             .setContextUserProperties(null)
             .setFlowId(null)
             .build()
-        val dummyData = SessionData.newBuilder()
-            .setPayload(byteArrayOf())
-            .setSessionInit(initPayload)
-            .build()
-        val initEvent = SessionEvent.newBuilder()
-            .setSessionId(counterpartySessionID)
-            .setMessageDirection(MessageDirection.INBOUND)
-            .setTimestamp(createdTime)
-            .setSequenceNum(1)
-            .setInitiatingIdentity(config.party.toAvro())
-            .setInitiatedIdentity(config.counterparty.toAvro())
-            .setContextSessionProperties(config.contextSessionProperties)
-            .setPayload(dummyData)
-            .build()
+        val initEvent = generateSessionEvent(byteArrayOf(), initiatorState, config.party, config.counterparty, initPayload)
         initiatedState.receivedEventsState.lastProcessedSequenceNum = 1
         // Set up sessions.
         val failedStates = stateManager.create(listOf(
@@ -91,7 +90,8 @@ class SessionManagerImpl(
         sessionID: String,
         createTime: Instant,
         counterparty: HoldingIdentity,
-        requireClose: Boolean): SessionState {
+        requireClose: Boolean,
+        sessionProperties: KeyValuePairList): SessionState {
         val receivedState = SessionProcessState.newBuilder()
             .setLastProcessedSequenceNum(0)
             .setUndeliveredMessages(mutableListOf())
@@ -110,12 +110,48 @@ class SessionManagerImpl(
             .setSendEventsState(sendState)
             .setStatus(SessionStateType.CONFIRMED)
             .setHasScheduledCleanup(false)
-            .setSessionProperties(KeyValuePairList())
+            .setSessionProperties(sessionProperties)
             .build()
     }
 
     override fun sendMessage(sessionID: String, message: ByteArray) {
-        TODO("Not yet implemented")
+        val receivingID = toggleSessionID(sessionID)
+        val requiredIDs = setOf(sessionID, receivingID)
+        val states = stateManager.get(requiredIDs)
+        if (requiredIDs.any { !states.containsKey(it) }) {
+            throw IllegalArgumentException("Could not find required session state. Ids: ${requiredIDs.joinToString(",")}")
+        }
+        val deserializedStates = states.map {
+            val sessionState = avroDeserializer.deserialize(it.value.value) as? SessionState
+                ?: throw IllegalArgumentException("Could not deserialize session state for ${it.key}")
+            it.key to sessionState
+        }.toMap()
+        val (initiatingIdentity, initiatedIdentity) = calculateInitiatingAndInitiated(deserializedStates)
+        val sessionEvent = generateSessionEvent(
+            message,
+            deserializedStates[sessionID]!!,
+            initiatingIdentity,
+            initiatedIdentity
+        )
+        val receivedState = deserializedStates[receivingID]!!.receivedEventsState
+        receivedState.apply {
+            undeliveredMessages = undeliveredMessages + sessionEvent
+        }
+        deserializedStates[receivingID]!!.receivedEventsState = receivedState
+        val statesToWrite = states.map {
+            val updatedSessionState = deserializedStates[it.key]!!
+            val serializedState = avroSerializer.serialize(updatedSessionState)!!
+            State(
+                it.value.key,
+                serializedState,
+                version = it.value.version + 1,
+                metadata = it.value.metadata
+            )
+        }
+        val failed = stateManager.update(statesToWrite)
+        if (failed.isNotEmpty()) {
+            throw IllegalArgumentException("Failed to write some states after send: ${failed.keys}")
+        }
     }
 
     override fun receiveMessage(sessionID: String): ByteArray {
@@ -124,5 +160,55 @@ class SessionManagerImpl(
 
     override fun deleteSession(sessionID: String) {
         TODO("Not yet implemented")
+    }
+
+    private fun generateSessionEvent(
+        payload: ByteArray,
+        sendSessionState: SessionState,
+        initiatingIdentity: HoldingIdentity,
+        initiatedIdentity: HoldingIdentity,
+        init: SessionInit? = null
+    ) : SessionEvent {
+        val time = Instant.now()
+        val sessionID = toggleSessionID(sendSessionState.sessionId)
+        val sequenceNumber = sendSessionState.sendEventsState.lastProcessedSequenceNum + 1
+        sendSessionState.sendEventsState.lastProcessedSequenceNum = sequenceNumber
+        val data = SessionData.newBuilder()
+            .setPayload(payload)
+            .setSessionInit(init)
+            .build()
+        return SessionEvent.newBuilder()
+            .setSessionId(sessionID)
+            .setMessageDirection(MessageDirection.INBOUND)
+            .setTimestamp(time)
+            .setSequenceNum(sequenceNumber)
+            .setInitiatingIdentity(initiatingIdentity.toAvro())
+            .setInitiatedIdentity(initiatedIdentity.toAvro())
+            .setContextSessionProperties(sendSessionState.sessionProperties)
+            .setPayload(data)
+            .build()
+    }
+
+    private fun calculateInitiatingAndInitiated(
+        sessionMap: Map<String, SessionState>
+    ): Pair<HoldingIdentity, HoldingIdentity> {
+        if (sessionMap.size != 2) {
+            throw IllegalArgumentException("Require two sessions to calculate initiating and initiated")
+        }
+        val (initiating, initiated) = sessionMap.keys.partition { !it.endsWith(INITIATED_SUFFIX) }
+        if (initiating.size != 1 || initiated.size != 1) {
+            throw IllegalArgumentException("Could not partition into an initiating and initiated session")
+        }
+        val initiatingIdentity = sessionMap[initiated.first()]!!.counterpartyIdentity
+        val initiatedIdentity = sessionMap[initiating.first()]!!.counterpartyIdentity
+        return Pair(initiatingIdentity.toCorda(), initiatedIdentity.toCorda())
+    }
+
+    private fun toggleSessionID(sessionID: String) : String {
+        return if (sessionID.endsWith(INITIATED_SUFFIX)) {
+            sessionID.substringBefore(INITIATED_SUFFIX)
+        } else {
+            sessionID + INITIATED_SUFFIX
+        }
     }
 }
