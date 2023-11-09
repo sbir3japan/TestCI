@@ -11,6 +11,7 @@ import net.corda.data.ledger.utxo.token.selection.event.TokenPoolCacheEvent
 import net.corda.data.persistence.EntityRequest
 import net.corda.data.uniqueness.UniquenessCheckRequestAvro
 import net.corda.flow.pipeline.factory.FlowEventProcessorFactory
+import net.corda.flow.session.SessionManager
 import net.corda.ledger.utxo.verification.TransactionVerificationRequest
 import net.corda.libs.configuration.SmartConfig
 import net.corda.libs.configuration.helper.getConfig
@@ -77,11 +78,12 @@ class FlowEventMediatorFactoryImpl @Activate constructor(
         configs: Map<String, SmartConfig>,
         messagingConfig: SmartConfig,
         stateManager: StateManager,
+        sessionManager: SessionManager
     ) = eventMediatorFactory.create(
         createEventMediatorConfig(
             configs,
             messagingConfig,
-            flowEventProcessorFactory.create(configs),
+            flowEventProcessorFactory.create(configs, sessionManager),
             stateManager,
         )
     )

@@ -16,6 +16,7 @@ import net.corda.flow.pipeline.handlers.waiting.FlowWaitingForHandler
 import net.corda.flow.pipeline.impl.FlowEventPipelineImpl
 import net.corda.flow.pipeline.impl.FlowExecutionPipelineStage
 import net.corda.flow.pipeline.runner.FlowRunner
+import net.corda.flow.session.SessionManager
 import net.corda.flow.state.impl.FlowCheckpointFactory
 import net.corda.libs.configuration.SmartConfig
 import net.corda.libs.configuration.helper.getConfig
@@ -103,7 +104,8 @@ class FlowEventPipelineFactoryImpl(
         configs: Map<String, SmartConfig>,
         mdcProperties: Map<String, String>,
         traceContext:TraceContext,
-        eventRecordTimestamp: Long
+        eventRecordTimestamp: Long,
+        sessionManager: SessionManager
     ): FlowEventPipeline {
         val flowCheckpoint = flowCheckpointFactory.create(
             event.flowId,
@@ -139,7 +141,8 @@ class FlowEventPipelineFactoryImpl(
             flowExecutionPipelineStage,
             flowGlobalPostProcessor,
             context,
-            virtualNodeInfoReadService
+            virtualNodeInfoReadService,
+            sessionManager
         )
     }
 }

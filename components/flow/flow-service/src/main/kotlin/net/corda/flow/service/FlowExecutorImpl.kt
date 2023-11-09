@@ -4,6 +4,8 @@ import com.typesafe.config.ConfigValueFactory
 import net.corda.data.flow.event.FlowEvent
 import net.corda.data.flow.state.checkpoint.Checkpoint
 import net.corda.flow.messaging.mediator.FlowEventMediatorFactory
+import net.corda.flow.session.SessionManager
+import net.corda.flow.session.SessionManagerFactory
 import net.corda.libs.configuration.SmartConfig
 import net.corda.libs.configuration.helper.getConfig
 import net.corda.libs.statemanager.api.StateManager
@@ -40,6 +42,7 @@ class FlowExecutorImpl constructor(
     private val flowEventMediatorFactory: FlowEventMediatorFactory,
     private val stateManagerFactory: StateManagerFactory,
     private val toMessagingConfig: (Map<String, SmartConfig>) -> SmartConfig,
+    private val sessionManagerFactory: SessionManagerFactory
 ) : FlowExecutor {
 
     @Activate
@@ -50,11 +53,14 @@ class FlowExecutorImpl constructor(
         flowEventMediatorFactory: FlowEventMediatorFactory,
         @Reference(service = StateManagerFactory::class)
         stateManagerFactory: StateManagerFactory,
+        @Reference(service = SessionManagerFactory::class)
+        sessionManagerFactory: SessionManagerFactory
     ) : this(
         coordinatorFactory,
         flowEventMediatorFactory,
         stateManagerFactory,
-        { cfg -> cfg.getConfig(MESSAGING_CONFIG) }
+        { cfg -> cfg.getConfig(MESSAGING_CONFIG) },
+        sessionManagerFactory
     )
 
     companion object {
@@ -65,6 +71,7 @@ class FlowExecutorImpl constructor(
     private var stateManager: StateManager? = null
     private var subscriptionRegistrationHandle: RegistrationHandle? = null
     private var multiSourceEventMediator: MultiSourceEventMediator<String, Checkpoint, FlowEvent>? = null
+    private var sessionManager: SessionManager? = null
 
     override fun onConfigChange(config: Map<String, SmartConfig>) {
         try {
@@ -76,9 +83,11 @@ class FlowExecutorImpl constructor(
             subscriptionRegistrationHandle?.close()
             multiSourceEventMediator?.close()
             stateManager?.stop()
+            sessionManager?.close()
 
             stateManager = stateManagerFactory.create(stateManagerConfig)
-            multiSourceEventMediator = flowEventMediatorFactory.create(updatedConfigs, messagingConfig, stateManager!!)
+            sessionManager = sessionManagerFactory.create(stateManagerConfig, messagingConfig)
+            multiSourceEventMediator = flowEventMediatorFactory.create(updatedConfigs, messagingConfig, stateManager!!, sessionManager!!)
             subscriptionRegistrationHandle = coordinator.followStatusChangesByName(
                 setOf(multiSourceEventMediator!!.subscriptionName, stateManager!!.name)
             )

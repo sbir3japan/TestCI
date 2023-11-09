@@ -3,7 +3,7 @@ package net.corda.flow.session
 import net.corda.data.KeyValuePairList
 import net.corda.virtualnode.HoldingIdentity
 
-interface SessionManager {
+interface SessionManager : AutoCloseable {
 
     fun createSession(flowID: String, config: SessionConfig): String
 

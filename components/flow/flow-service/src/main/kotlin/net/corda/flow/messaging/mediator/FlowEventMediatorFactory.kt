@@ -2,6 +2,7 @@ package net.corda.flow.messaging.mediator
 
 import net.corda.data.flow.event.FlowEvent
 import net.corda.data.flow.state.checkpoint.Checkpoint
+import net.corda.flow.session.SessionManager
 import net.corda.libs.configuration.SmartConfig
 import net.corda.libs.statemanager.api.StateManager
 import net.corda.messaging.api.mediator.MultiSourceEventMediator
@@ -22,6 +23,7 @@ interface FlowEventMediatorFactory {
         configs: Map<String, SmartConfig>,
         messagingConfig: SmartConfig,
         stateManager: StateManager,
+        sessionManager: SessionManager
     ): MultiSourceEventMediator<String, Checkpoint, FlowEvent>
 
 }
