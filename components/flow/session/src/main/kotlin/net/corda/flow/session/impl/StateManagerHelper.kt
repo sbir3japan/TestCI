@@ -13,7 +13,7 @@ class StateManagerHelper(
     private val stateManager: StateManager,
     private val avroSerializer: CordaAvroSerializer<Any>,
     private val avroDeserializer: CordaAvroDeserializer<Any>
-) {
+) : AutoCloseable {
     private companion object {
         private val logger = LoggerFactory.getLogger(this::class.java.enclosingClass)
     }
@@ -99,5 +99,9 @@ class StateManagerHelper(
         if (failed.isNotEmpty()) {
             throw IllegalArgumentException("Failed to delete states: ${failed.keys}")
         }
+    }
+
+    override fun close() {
+        stateManager.stop()
     }
 }

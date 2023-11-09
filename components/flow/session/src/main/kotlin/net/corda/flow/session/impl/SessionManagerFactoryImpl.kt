@@ -27,11 +27,15 @@ class SessionManagerFactoryImpl(
     override fun create(stateManagerConfig: SmartConfig, messagingConfig: SmartConfig): SessionManager {
         val serializer = serializationFactory.createAvroSerializer<Any>()
         val deserializer = serializationFactory.createAvroDeserializer({}, Any::class.java)
-        val stateManager = stateManagerFactory.create(stateManagerConfig)
+        val stateManager = stateManagerFactory.create(stateManagerConfig).apply {
+            start()
+        }
         val publisher = publisherFactory.createPublisher(
             PublisherConfig(CLIENT_ID, transactional = false),
             messagingConfig
-        )
+        ).apply {
+            start()
+        }
         val stateManagerHelper = StateManagerHelper(stateManager, serializer, deserializer)
         return SessionManagerImpl(stateManagerHelper, publisher)
     }
