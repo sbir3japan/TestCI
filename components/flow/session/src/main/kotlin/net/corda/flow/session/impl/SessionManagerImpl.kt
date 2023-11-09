@@ -98,6 +98,7 @@ class SessionManagerImpl(
         stateManagerHelper.updateSessionStates(mapOf(sessionID to sendTransform, receivingID to receiveTransform))
     }
 
+    // This version blocks
     override fun receiveMessage(sessionID: String): ByteArray {
         var message: ByteArray? = null
         val transform = { state: SessionState ->
@@ -109,11 +110,11 @@ class SessionManagerImpl(
             state
         }
         stateManagerHelper.updateSessionStates(mapOf(sessionID to transform))
-        return message ?: throw IllegalArgumentException("Failed to get message in 5s")
+        return message ?: throw IllegalArgumentException("Failed to get message in timeout")
     }
 
     override fun deleteSession(sessionID: String) {
-
+        
     }
 
     private fun createNewState(
