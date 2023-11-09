@@ -2,7 +2,6 @@ package net.corda.flow.pipeline.factory
 
 import net.corda.data.flow.event.FlowEvent
 import net.corda.data.flow.state.checkpoint.Checkpoint
-import net.corda.flow.session.SessionManager
 import net.corda.libs.configuration.SmartConfig
 import net.corda.messaging.api.processor.StateAndEventProcessor
 
@@ -18,6 +17,6 @@ interface FlowEventProcessorFactory {
      *
      * @return A [StateAndEventProcessor] instance.
      */
-    fun create(configs: Map<String, SmartConfig>, sessionManager: SessionManager): StateAndEventProcessor<String, Checkpoint, FlowEvent>
+    fun create(configs: Map<String, SmartConfig>): StateAndEventProcessor<String, Checkpoint, FlowEvent>
 }
 

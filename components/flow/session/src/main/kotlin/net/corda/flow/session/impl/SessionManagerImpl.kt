@@ -236,9 +236,4 @@ class SessionManagerImpl(
     private fun isInitiating(sessionID: String) : Boolean {
         return !sessionID.endsWith(INITIATED_SUFFIX)
     }
-
-    override fun close() {
-        publisher.close()
-        stateManagerHelper.close()
-    }
 }

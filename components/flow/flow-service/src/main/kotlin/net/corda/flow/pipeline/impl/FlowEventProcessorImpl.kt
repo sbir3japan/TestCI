@@ -13,7 +13,6 @@ import net.corda.flow.pipeline.exceptions.FlowPlatformException
 import net.corda.flow.pipeline.exceptions.FlowTransientException
 import net.corda.flow.pipeline.factory.FlowEventPipelineFactory
 import net.corda.flow.pipeline.handlers.FlowPostProcessingHandler
-import net.corda.flow.session.SessionManager
 import net.corda.libs.configuration.SmartConfig
 import net.corda.messaging.api.processor.StateAndEventProcessor
 import net.corda.messaging.api.processor.StateAndEventProcessor.State
@@ -34,8 +33,7 @@ class FlowEventProcessorImpl(
     private val flowEventContextConverter: FlowEventContextConverter,
     private val configs: Map<String, SmartConfig>,
     private val flowMDCService: FlowMDCService,
-    private val postProcessingHandlers: List<FlowPostProcessingHandler>,
-    private val sessionManager: SessionManager
+    private val postProcessingHandlers: List<FlowPostProcessingHandler>
 ) : StateAndEventProcessor<String, Checkpoint, FlowEvent> {
 
     private companion object {
@@ -85,7 +83,7 @@ class FlowEventProcessorImpl(
 
         val pipeline = try {
             log.trace { "Flow [${event.key}] Received event: ${flowEvent.payload::class.java} / ${flowEvent.payload}" }
-            flowEventPipelineFactory.create(state, flowEvent, configs, mdcProperties, traceContext, event.timestamp, sessionManager)
+            flowEventPipelineFactory.create(state, flowEvent, configs, mdcProperties, traceContext, event.timestamp)
         } catch (t: Throwable) {
             traceContext.error(CordaRuntimeException(t.message, t))
             // Without a pipeline there's a limit to what can be processed.

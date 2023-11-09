@@ -9,7 +9,6 @@ import net.corda.flow.pipeline.factory.FlowEventPipelineFactory
 import net.corda.flow.pipeline.factory.FlowEventProcessorFactory
 import net.corda.flow.pipeline.handlers.FlowPostProcessingHandler
 import net.corda.flow.pipeline.impl.FlowEventProcessorImpl
-import net.corda.flow.session.SessionManager
 import net.corda.libs.configuration.SmartConfig
 import net.corda.messaging.api.processor.StateAndEventProcessor
 import org.osgi.service.component.annotations.Activate
@@ -53,15 +52,14 @@ class FlowEventProcessorFactoryImpl (
         mutableListOf()
     )
 
-    override fun create(configs: Map<String, SmartConfig>, sessionManager: SessionManager): StateAndEventProcessor<String, Checkpoint, FlowEvent> {
+    override fun create(configs: Map<String, SmartConfig>): StateAndEventProcessor<String, Checkpoint, FlowEvent> {
         return FlowEventProcessorImpl(
             flowEventPipelineFactory,
             flowEventExceptionProcessor,
             flowEventContextConverter,
             configs,
             flowMDCService,
-            postProcessingHandlers,
-            sessionManager
+            postProcessingHandlers
         )
     }
 }

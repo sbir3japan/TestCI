@@ -3,7 +3,6 @@ package net.corda.flow.pipeline.factory
 import net.corda.data.flow.event.FlowEvent
 import net.corda.data.flow.state.checkpoint.Checkpoint
 import net.corda.flow.pipeline.FlowEventPipeline
-import net.corda.flow.session.SessionManager
 import net.corda.libs.configuration.SmartConfig
 import net.corda.messaging.api.processor.StateAndEventProcessor.State
 import net.corda.tracing.TraceContext
@@ -32,7 +31,6 @@ interface FlowEventPipelineFactory {
         configs: Map<String, SmartConfig>,
         mdcProperties: Map<String, String>,
         traceContext: TraceContext,
-        eventRecordTimestamp: Long,
-        sessionManager: SessionManager
+        eventRecordTimestamp: Long
     ): FlowEventPipeline
 }

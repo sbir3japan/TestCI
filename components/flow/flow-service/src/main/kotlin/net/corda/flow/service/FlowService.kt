@@ -98,6 +98,7 @@ class FlowService @Activate constructor(
                  * state events and scheduler creating a publisher.
                  */
                 flowMaintenance.onConfigChange(config)
+                flowExecutor.onConfigChange(config)
                 externalMessagingRoutingService.onConfigChange(config)
                 coordinator.updateStatus(LifecycleStatus.UP)
             }

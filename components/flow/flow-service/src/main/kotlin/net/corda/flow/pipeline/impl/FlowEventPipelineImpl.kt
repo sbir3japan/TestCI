@@ -8,7 +8,6 @@ import net.corda.flow.pipeline.exceptions.FlowFatalException
 import net.corda.flow.pipeline.exceptions.FlowMarkedForKillException
 import net.corda.flow.pipeline.exceptions.FlowTransientException
 import net.corda.flow.pipeline.handlers.events.FlowEventHandler
-import net.corda.flow.session.SessionManager
 import net.corda.tracing.TraceTag
 import net.corda.utilities.trace
 import net.corda.virtualnode.OperationalStatus
@@ -31,8 +30,7 @@ internal class FlowEventPipelineImpl(
     private val flowExecutionPipelineStage: FlowExecutionPipelineStage,
     private val flowGlobalPostProcessor: FlowGlobalPostProcessor,
     override var context: FlowEventContext<Any>,
-    private val virtualNodeInfoReadService: VirtualNodeInfoReadService,
-    private val sessionManager: SessionManager
+    private val virtualNodeInfoReadService: VirtualNodeInfoReadService
 ) : FlowEventPipeline {
 
     private companion object {
