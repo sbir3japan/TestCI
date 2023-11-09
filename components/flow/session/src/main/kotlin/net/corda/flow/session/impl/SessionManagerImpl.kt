@@ -41,6 +41,7 @@ class SessionManagerImpl(
     // Only handles local counterparties.
     override fun createSession(flowID: String, config: SessionManager.SessionConfig): String {
         // TODO: Need to cope with replays
+        logger.info("Creating new sessions")
         val sessionID = UUID.randomUUID().toString()
         val counterpartySessionID = sessionID + INITIATED_SUFFIX
         val createdTime = Instant.now()
@@ -77,11 +78,13 @@ class SessionManagerImpl(
         // Set up sessions.
         stateManagerHelper.createSessionStates(setOf(initiatorState, initiatedState))
         publisher.publish(listOf(Record(FLOW_EVENT_TOPIC, counterpartySessionID, FlowEvent(counterpartySessionID, initEvent))))
+        logger.info("Created sessions $sessionID and $counterpartySessionID")
         return sessionID
     }
 
     // TODO: deduplication of outbound session messages.
     override fun sendMessage(sessionID: String, message: ByteArray) {
+        logger.info("Sending message from session $sessionID")
         val receivingID = toggleSessionID(sessionID)
         val sessionEvent = generateSessionEvent(
             message,
@@ -101,6 +104,7 @@ class SessionManagerImpl(
 
     // This version blocks
     override fun receiveMessage(sessionID: String): ByteArray {
+        logger.info("Receiving message on session $sessionID")
         var message: ByteArray? = null
         val transform = { state: SessionState ->
             val undelivered = state.receivedEventsState.undeliveredMessages
@@ -115,6 +119,7 @@ class SessionManagerImpl(
     }
 
     override fun deleteSession(sessionID: String) {
+        logger.info("Deleting session with ID $sessionID")
         val counterpartyId = toggleSessionID(sessionID)
         val states = stateManagerHelper.getStates(setOf(sessionID, counterpartyId))
         val requireClose = states[sessionID]!!.requireClose
