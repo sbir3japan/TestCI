@@ -21,6 +21,7 @@ import net.corda.v5.base.types.MemberX500Name
 import net.corda.virtualnode.HoldingIdentity
 import net.corda.virtualnode.toAvro
 import org.slf4j.LoggerFactory
+import java.time.Duration
 import java.time.Instant
 import java.util.UUID
 
@@ -98,7 +99,19 @@ class SessionManagerImpl(
     }
 
     override fun receiveMessage(sessionID: String): ByteArray {
-        return byteArrayOf()
+        var message: ByteArray? = null
+        val time = Instant.now()
+        val transform = { state: SessionState ->
+            val undelivered = state.receivedEventsState.undeliveredMessages
+            val data = undelivered.removeFirstOrNull()?.payload as? SessionData
+            message = data?.payload as? ByteArray
+            state.receivedEventsState.undeliveredMessages = undelivered
+            state
+        }
+        do {
+            stateManagerHelper.updateSessionStates(mapOf(sessionID to transform))
+        } while (message == null && time + Duration.ofMillis(5000L) < Instant.now())
+        return message ?: throw IllegalArgumentException("Failed to get message in 5s")
     }
 
     override fun deleteSession(sessionID: String) {
