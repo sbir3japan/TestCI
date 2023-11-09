@@ -6,6 +6,7 @@ import net.corda.data.KeyValuePairList
 import net.corda.data.flow.event.FlowEvent
 import net.corda.data.flow.event.MessageDirection
 import net.corda.data.flow.event.SessionEvent
+import net.corda.data.flow.event.session.SessionClose
 import net.corda.data.flow.event.session.SessionData
 import net.corda.data.flow.event.session.SessionInit
 import net.corda.data.flow.state.session.SessionProcessState
@@ -114,7 +115,38 @@ class SessionManagerImpl(
     }
 
     override fun deleteSession(sessionID: String) {
-        
+        val counterpartyId = toggleSessionID(sessionID)
+        val states = stateManagerHelper.getStates(setOf(sessionID, counterpartyId))
+        val requireClose = states[sessionID]!!.requireClose
+        val isInitiating = isInitiating(sessionID)
+
+        when {
+            !requireClose -> {
+                // No updates to perform
+            }
+            isInitiating -> {
+                val transform = { state: SessionState ->
+                    val undelivered = state.receivedEventsState.undeliveredMessages
+                    val possibleClose = undelivered.removeFirstOrNull()
+                    if (possibleClose?.payload !is SessionClose) {
+                        throw RetryException("No close received")
+                    }
+                    state
+                }
+                stateManagerHelper.updateSessionStates(mapOf(sessionID to transform))
+            }
+            else -> {
+                val close = generateSessionClose(sessionID)
+                val transform = { state: SessionState ->
+                    val undelivered = state.receivedEventsState.undeliveredMessages
+                    val newUndelivered = undelivered + close
+                    state.receivedEventsState.undeliveredMessages = newUndelivered
+                    state
+                }
+                stateManagerHelper.updateSessionStates(mapOf(counterpartyId to transform))
+            }
+        }
+        stateManagerHelper.deleteStates(setOf(sessionID))
     }
 
     private fun createNewState(
@@ -168,6 +200,23 @@ class SessionManagerImpl(
             .setInitiatedIdentity(initatedIdentity.toAvro())
             .setContextSessionProperties(sessionProperties)
             .setPayload(data)
+            .build()
+    }
+
+    private fun generateSessionClose(sessionID: String): SessionEvent {
+        val time = Instant.now()
+        val sequenceNumber = 1
+        val close = SessionClose.newBuilder()
+            .build()
+        return SessionEvent.newBuilder()
+            .setSessionId(sessionID)
+            .setMessageDirection(MessageDirection.INBOUND)
+            .setTimestamp(time)
+            .setSequenceNum(sequenceNumber)
+            .setInitiatingIdentity(dummyHoldingIdentity.toAvro())
+            .setInitiatedIdentity(dummyHoldingIdentity.toAvro())
+            .setContextSessionProperties(KeyValuePairList())
+            .setPayload(close)
             .build()
     }
 

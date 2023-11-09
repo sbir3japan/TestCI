@@ -69,6 +69,7 @@ class StateManagerHelper(
             states = failedStates + retryingStates
         } while (states.isNotEmpty() && time + Duration.ofMillis(10000) < Instant.now())
         if (states.isNotEmpty()) {
+            logger.warn("Failed to update some states in time limit: ${states.keys}")
             throw IllegalStateException("Failed to update some states in time limit: ${states.keys}")
         }
     }
@@ -82,6 +83,21 @@ class StateManagerHelper(
             }
         } else {
             emptyMap()
+        }
+    }
+
+    fun getStates(ids: Collection<String>) : Map<String, SessionState> {
+        return retrieveStates(ids).mapValues {
+            avroDeserializer.deserialize(it.value.value) as? SessionState
+                ?: throw IllegalArgumentException("Failed to deserialize state")
+        }
+    }
+
+    fun deleteStates(ids: Collection<String>) {
+        val states = retrieveStates(ids)
+        val failed = stateManager.delete(states.values)
+        if (failed.isNotEmpty()) {
+            throw IllegalArgumentException("Failed to delete states: ${failed.keys}")
         }
     }
 }
