@@ -6,6 +6,8 @@ import net.corda.data.flow.state.session.SessionState
 import net.corda.libs.statemanager.api.State
 import net.corda.libs.statemanager.api.StateManager
 import org.slf4j.LoggerFactory
+import java.time.Duration
+import java.time.Instant
 
 class StateManagerHelper(
     private val stateManager: StateManager,
@@ -17,6 +19,7 @@ class StateManagerHelper(
     }
 
     fun createSessionStates(states: Collection<SessionState>) {
+        logger.info("Creating session states with ids: ${states.joinToString { it.sessionId }}")
         val stateManagerStates = states.map {
             val serialized = avroSerializer.serialize(it)
                 ?: throw IllegalArgumentException("Could not serialize session state")
@@ -35,27 +38,50 @@ class StateManagerHelper(
 
     fun updateSessionStates(updateFns: Map<String, (SessionState) -> SessionState>) {
         val ids = updateFns.keys
-        var states = stateManager.get(ids).also {
-            if (it.size != ids.size) {
-                throw IllegalArgumentException("Failed to find all required states. Missing: ${ids.toSet() - it.keys}")
-            }
-        }
+        val time = Instant.now()
+        logger.info("Updating sessions with IDs $ids")
+        var states = retrieveStates(ids)
         do {
-            val newStates = states.mapValues {
+            val newStates = states.mapNotNull {
                 val state = avroDeserializer.deserialize(it.value.value) as? SessionState
                     ?: throw IllegalArgumentException("Failed to deserialize state")
-                val newSession =
+                val newSession = try {
                     updateFns[it.key]?.invoke(state) ?: throw IllegalArgumentException("Missing update function")
+                } catch (e: RetryException) {
+                    return@mapNotNull null
+                }
                 val serialized =
                     avroSerializer.serialize(newSession) ?: throw IllegalArgumentException("Could not serialize state")
-                State(
+                it.key to State(
                     it.value.key,
                     serialized,
                     version = it.value.version + 1,
                     metadata = it.value.metadata
                 )
+            }.toMap()
+            val failedStates = if (newStates.isNotEmpty()) {
+                stateManager.update(newStates.values)
+            } else {
+                emptyMap()
             }
-            states = stateManager.update(newStates.values)
-        } while (states.isNotEmpty())
+            val retryingStateKeys = states.keys - newStates.keys
+            val retryingStates = retrieveStates(retryingStateKeys)
+            states = failedStates + retryingStates
+        } while (states.isNotEmpty() && time + Duration.ofMillis(10000) < Instant.now())
+        if (states.isNotEmpty()) {
+            throw IllegalStateException("Failed to update some states in time limit: ${states.keys}")
+        }
+    }
+
+    private fun retrieveStates(ids: Collection<String>) : Map<String, State> {
+        return if (ids.isNotEmpty()) {
+            stateManager.get(ids).also {
+                if (it.size != ids.size) {
+                    throw IllegalArgumentException("Failed to find all required states. Missing: ${ids.toSet() - it.keys}")
+                }
+            }
+        } else {
+            emptyMap()
+        }
     }
 }

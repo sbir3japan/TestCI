@@ -100,22 +100,20 @@ class SessionManagerImpl(
 
     override fun receiveMessage(sessionID: String): ByteArray {
         var message: ByteArray? = null
-        val time = Instant.now()
         val transform = { state: SessionState ->
             val undelivered = state.receivedEventsState.undeliveredMessages
             val data = undelivered.removeFirstOrNull()?.payload as? SessionData
             message = data?.payload as? ByteArray
+            if (message == null) throw RetryException("Failed to retrieve message")
             state.receivedEventsState.undeliveredMessages = undelivered
             state
         }
-        do {
-            stateManagerHelper.updateSessionStates(mapOf(sessionID to transform))
-        } while (message == null && time + Duration.ofMillis(5000L) < Instant.now())
+        stateManagerHelper.updateSessionStates(mapOf(sessionID to transform))
         return message ?: throw IllegalArgumentException("Failed to get message in 5s")
     }
 
     override fun deleteSession(sessionID: String) {
-        TODO("Not yet implemented")
+
     }
 
     private fun createNewState(
@@ -173,10 +171,14 @@ class SessionManagerImpl(
     }
 
     private fun toggleSessionID(sessionID: String) : String {
-        return if (sessionID.endsWith(INITIATED_SUFFIX)) {
-            sessionID.substringBefore(INITIATED_SUFFIX)
-        } else {
+        return if (isInitiating(sessionID)) {
             sessionID + INITIATED_SUFFIX
+        } else {
+            sessionID.substringBefore(INITIATED_SUFFIX)
         }
+    }
+
+    private fun isInitiating(sessionID: String) : Boolean {
+        return !sessionID.endsWith(INITIATED_SUFFIX)
     }
 }
