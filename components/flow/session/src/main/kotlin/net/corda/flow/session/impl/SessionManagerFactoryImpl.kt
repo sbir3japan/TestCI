@@ -7,11 +7,12 @@ import net.corda.libs.configuration.SmartConfig
 import net.corda.libs.statemanager.api.StateManagerFactory
 import net.corda.messaging.api.publisher.config.PublisherConfig
 import net.corda.messaging.api.publisher.factory.PublisherFactory
+import org.osgi.service.component.annotations.Activate
 import org.osgi.service.component.annotations.Component
 import org.osgi.service.component.annotations.Reference
 
 @Component(service = [SessionManagerFactory::class])
-class SessionManagerFactoryImpl(
+class SessionManagerFactoryImpl @Activate constructor(
     @Reference(service = StateManagerFactory::class)
     private val stateManagerFactory: StateManagerFactory,
     @Reference(service = CordaAvroSerializationFactory::class)
