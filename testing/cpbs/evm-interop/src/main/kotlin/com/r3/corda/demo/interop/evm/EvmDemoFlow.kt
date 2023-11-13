@@ -1,5 +1,8 @@
 package com.r3.corda.demo.interop.evm
 
+import com.r3.corda.lib.tokens.contracts.types.IssuedTokenType
+import com.r3.corda.lib.tokens.contracts.types.TokenType
+import com.r3.corda.lib.tokens.contracts.utilities.issuedBy
 import java.math.BigInteger
 import net.corda.v5.application.flows.ClientRequestBody
 import net.corda.v5.application.flows.ClientStartableFlow
@@ -11,6 +14,8 @@ import net.corda.v5.application.interop.evm.options.TransactionOptions
 import net.corda.v5.application.marshalling.JsonMarshallingService
 import net.corda.v5.base.annotations.Suspendable
 import org.slf4j.LoggerFactory
+import com.r3.corda.lib.tokens.workflows.flows.rpc.IssueTokens
+
 
 /**
  * The Evm Demo Flow is solely for demoing access to the EVM from Corda.
