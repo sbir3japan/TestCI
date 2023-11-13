@@ -64,7 +64,7 @@ class FlowExecutorImpl constructor(
     private val coordinator = coordinatorFactory.createCoordinator<FlowExecutor> { event, _ -> eventHandler(event) }
     private var stateManager: StateManager? = null
     private var subscriptionRegistrationHandle: RegistrationHandle? = null
-    private var multiSourceEventMediator: MultiSourceEventMediator<String, Checkpoint, FlowEvent>? = null
+    private var multiSourceEventMediators: List<MultiSourceEventMediator<String, Checkpoint, FlowEvent>>? = null
 
     override fun onConfigChange(config: Map<String, SmartConfig>) {
         try {
@@ -74,16 +74,16 @@ class FlowExecutorImpl constructor(
 
             // close the lifecycle registration first to prevent down being signaled
             subscriptionRegistrationHandle?.close()
-            multiSourceEventMediator?.close()
+            multiSourceEventMediators?.forEach { it.close() }
             stateManager?.stop()
 
             stateManager = stateManagerFactory.create(stateManagerConfig)
-            multiSourceEventMediator = flowEventMediatorFactory.create(updatedConfigs, messagingConfig, stateManager!!)
+            multiSourceEventMediators = flowEventMediatorFactory.create(updatedConfigs, messagingConfig, stateManager!!)
             subscriptionRegistrationHandle = coordinator.followStatusChangesByName(
-                setOf(multiSourceEventMediator!!.subscriptionName, stateManager!!.name)
+                (multiSourceEventMediators?.map { it.subscriptionName }?.toSet() ?: setOf() ) + stateManager!!.name
             )
             stateManager?.start()
-            multiSourceEventMediator?.start()
+            multiSourceEventMediators?.forEach { it.start() }
         } catch (ex: Exception) {
             val reason = "Failed to configure the flow executor using '${config}'"
             log.error(reason, ex)
@@ -129,7 +129,7 @@ class FlowExecutorImpl constructor(
             is StopEvent -> {
                 log.trace { "Flow executor is stopping..." }
                 subscriptionRegistrationHandle?.close()
-                multiSourceEventMediator?.close()
+                multiSourceEventMediators?.forEach { it.close() }
                 stateManager?.stop()
                 log.trace { "Flow executor stopped" }
             }

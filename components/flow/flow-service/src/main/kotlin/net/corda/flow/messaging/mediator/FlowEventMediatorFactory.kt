@@ -22,6 +22,6 @@ interface FlowEventMediatorFactory {
         configs: Map<String, SmartConfig>,
         messagingConfig: SmartConfig,
         stateManager: StateManager,
-    ): MultiSourceEventMediator<String, Checkpoint, FlowEvent>
+    ): List<MultiSourceEventMediator<String, Checkpoint, FlowEvent>>
 
 }

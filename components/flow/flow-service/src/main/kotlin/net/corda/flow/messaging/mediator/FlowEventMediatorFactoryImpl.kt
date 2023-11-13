@@ -77,14 +77,52 @@ class FlowEventMediatorFactoryImpl @Activate constructor(
         configs: Map<String, SmartConfig>,
         messagingConfig: SmartConfig,
         stateManager: StateManager,
-    ) = eventMediatorFactory.create(
-        createEventMediatorConfig(
-            configs,
-            messagingConfig,
-            flowEventProcessorFactory.create(configs),
-            stateManager,
-        )
+    ) = listOf(
+        eventMediatorFactory.create(
+            createEventMediatorConfig(
+                configs,
+                messagingConfig,
+                flowEventProcessorFactory.create(configs),
+                stateManager,
+            )
+        ),
+        eventMediatorFactory.create(
+            createSessionEventMediatorConfig(
+                configs,
+                messagingConfig,
+                flowEventProcessorFactory.create(configs),
+                stateManager,
+            )
+        ),
     )
+
+    private fun createSessionEventMediatorConfig(
+        configs: Map<String, SmartConfig>,
+        messagingConfig: SmartConfig,
+        messageProcessor: StateAndEventProcessor<String, Checkpoint, FlowEvent>,
+        stateManager: StateManager,
+    ) = EventMediatorConfigBuilder<String, Checkpoint, FlowEvent>()
+        .name("FlowEventMediator")
+        .messagingConfig(messagingConfig)
+        .consumerFactories(
+            mediatorConsumerFactoryFactory.createMessageBusConsumerFactory(
+                FLOW_SESSION, CONSUMER_GROUP, messagingConfig
+            ),
+        )
+        .clientFactories(
+            messagingClientFactoryFactory.createMessageBusClientFactory(
+                MESSAGE_BUS_CLIENT, messagingConfig
+            ),
+            messagingClientFactoryFactory.createRPCClientFactory(
+                RPC_CLIENT
+            )
+        )
+        .messageProcessor(messageProcessor)
+        .messageRouterFactory(createMessageRouterFactory(messagingConfig))
+        .threads(configs.getConfig(ConfigKeys.FLOW_CONFIG).getInt(FlowConfig.PROCESSING_THREAD_POOL_SIZE))
+        .threadName("flow-session-event-mediator")
+        .stateManager(stateManager)
+        .build()
 
     private fun createEventMediatorConfig(
         configs: Map<String, SmartConfig>,
@@ -97,9 +135,6 @@ class FlowEventMediatorFactoryImpl @Activate constructor(
         .consumerFactories(
             mediatorConsumerFactoryFactory.createMessageBusConsumerFactory(
                 FLOW_START, CONSUMER_GROUP, messagingConfig
-            ),
-            mediatorConsumerFactoryFactory.createMessageBusConsumerFactory(
-                FLOW_SESSION, CONSUMER_GROUP, messagingConfig
             ),
             mediatorConsumerFactoryFactory.createMessageBusConsumerFactory(
                 FLOW_EVENT_TOPIC, CONSUMER_GROUP, messagingConfig
