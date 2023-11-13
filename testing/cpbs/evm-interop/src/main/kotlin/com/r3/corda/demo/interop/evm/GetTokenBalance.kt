@@ -46,9 +46,7 @@ class GetTokenBalance : ClientStartableFlow {
             val inputs = requestBody.getRequestBodyAs(jsonMarshallingService, GetTokenBalanceInput::class.java)
 
             val states = ledgerService.findUnconsumedStatesByExactType(FungibleTokenState::class.java,100, Instant.ofEpochSecond(0))
-
             // filter states by linearId
-
             val filteredState = states.results.filter { it.state.contractState.linearId == inputs.id }
             val ownerPubKey = memberLookup.lookup(MemberX500Name.parse(inputs.owner!!))?.ledgerKeys?.first()
             return filteredState[0].state.contractState.balances[ownerPubKey].toString()

@@ -1,5 +1,7 @@
 package com.r3.corda.demo.interop.evm
 
+import java.util.UUID
+
 
 class EvmDemoInput {
     var rpcUrl: String? = null
@@ -8,6 +10,8 @@ class EvmDemoInput {
     var fractionPurchased: Int? = null
     var purchasePrice: Int? = null
     var contractAddress: String? = null
+    var id: UUID? = null
+
 }
 
 class EvmDemoTxnReceiptInput {

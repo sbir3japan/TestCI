@@ -1,5 +1,6 @@
 package com.r3.corda.demo.interop.evm
 
+import com.r3.corda.demo.interop.evm.state.FungibleTokenState
 import com.r3.corda.lib.tokens.contracts.types.IssuedTokenType
 import com.r3.corda.lib.tokens.contracts.types.TokenType
 import com.r3.corda.lib.tokens.contracts.utilities.issuedBy
@@ -15,6 +16,8 @@ import net.corda.v5.application.marshalling.JsonMarshallingService
 import net.corda.v5.base.annotations.Suspendable
 import org.slf4j.LoggerFactory
 import com.r3.corda.lib.tokens.workflows.flows.rpc.IssueTokens
+import net.corda.v5.ledger.utxo.UtxoLedgerService
+import java.time.Instant
 
 
 /**
@@ -33,6 +36,9 @@ class EvmDemoFlow : ClientStartableFlow {
 
     @CordaInject
     lateinit var evmService: EvmService
+
+    @CordaInject
+    lateinit var ledgerService: UtxoLedgerService
 
     @Suspendable
     override fun call(requestBody: ClientRequestBody): String {
@@ -61,6 +67,7 @@ class EvmDemoFlow : ClientStartableFlow {
                 Parameter.of("data", Type.BYTES, ""),
             )
 
+
             val hash = this.evmService.transaction(
                 "safeTransferFrom",
                 inputs.contractAddress,
@@ -69,6 +76,10 @@ class EvmDemoFlow : ClientStartableFlow {
             )
             // Step 2.  Call to the Evm to do the asset transfer
 
+            // fetch the contract state using linear id
+            val states = ledgerService.findUnconsumedStatesByExactType(FungibleTokenState::class.java,100, Instant.ofEpochSecond(0))
+            // filter states by linearId
+            val filteredState = states.results.filter { it.state.contractState.linearId == inputs.id }
 
             val response = EvmDemoOutput(hash)
             return jsonMarshallingService.format(response)
