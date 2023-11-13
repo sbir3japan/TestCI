@@ -62,6 +62,34 @@ class GenerateSessionService @Activate constructor(
         }
     }
 
+    fun createSessionProperties(context: FlowEventContext<Any>) : KeyValueStore {
+        val checkpoint = context.checkpoint
+        val protocolStore = try {
+            flowSandboxService.get(checkpoint.holdingIdentity, checkpoint.cpkFileHashes).protocolStore
+        } catch (e: Exception) {
+            throw FlowTransientException(
+                "Failed to get the flow sandbox for identity ${checkpoint.holdingIdentity}: " +
+                        (e.message?: "No exception message provided."), e
+            )
+        }
+
+        val flowStack = checkpoint.flowStack
+        if (flowStack.isEmpty()) {
+            throw FlowFatalException("Flow stack is empty while trying to initiate a flow")
+        }
+
+        val initiatingFlowStackItem = flowStack.nearestFirst { it.isInitiatingFlow }
+        val initiator = initiatingFlowStackItem?.flowName
+            ?: throw FlowPlatformException("Flow stack did not contain an initiating flow in the stack")
+
+        val (protocolName, protocolVersions) = protocolStore.protocolsForInitiator(initiator, context)
+
+        return KeyValueStore().apply {
+            put(FLOW_PROTOCOL, protocolName)
+            put(FLOW_PROTOCOL_VERSIONS_SUPPORTED, protocolVersions.joinToString())
+        }
+    }
+
     @Suppress("ThrowsCount")
     private fun generateSessionStates(
         context: FlowEventContext<Any>,

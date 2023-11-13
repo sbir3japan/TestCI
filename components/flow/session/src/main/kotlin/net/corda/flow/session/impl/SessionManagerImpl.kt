@@ -1,7 +1,5 @@
 package net.corda.flow.session.impl
 
-import net.corda.avro.serialization.CordaAvroDeserializer
-import net.corda.avro.serialization.CordaAvroSerializer
 import net.corda.data.KeyValuePairList
 import net.corda.data.flow.event.FlowEvent
 import net.corda.data.flow.event.MessageDirection
@@ -13,8 +11,6 @@ import net.corda.data.flow.state.session.SessionProcessState
 import net.corda.data.flow.state.session.SessionState
 import net.corda.data.flow.state.session.SessionStateType
 import net.corda.flow.session.SessionManager
-import net.corda.libs.statemanager.api.State
-import net.corda.libs.statemanager.api.StateManager
 import net.corda.messaging.api.publisher.Publisher
 import net.corda.messaging.api.records.Record
 import net.corda.schema.Schemas.Flow.FLOW_EVENT_TOPIC
@@ -22,9 +18,7 @@ import net.corda.v5.base.types.MemberX500Name
 import net.corda.virtualnode.HoldingIdentity
 import net.corda.virtualnode.toAvro
 import org.slf4j.LoggerFactory
-import java.time.Duration
 import java.time.Instant
-import java.util.UUID
 
 // For this prototype, assume all virtual nodes are local.
 class SessionManagerImpl(
@@ -39,10 +33,13 @@ class SessionManagerImpl(
     }
 
     // Only handles local counterparties.
-    override fun createSession(flowID: String, config: SessionManager.SessionConfig): String {
-        // TODO: Need to cope with replays
-        logger.info("Creating new sessions")
-        val sessionID = UUID.randomUUID().toString()
+    override fun createSession(sessionID: String, config: SessionManager.SessionConfig) {
+        if (stateManagerHelper.getStates(setOf(sessionID)).containsKey(sessionID)) {
+            logger.info("$sessionID already exists")
+            return
+        } else {
+            logger.info("Creating session with ID $sessionID")
+        }
         val counterpartySessionID = sessionID + INITIATED_SUFFIX
         val createdTime = Instant.now()
         val initiatorState = createNewState(
@@ -79,7 +76,6 @@ class SessionManagerImpl(
         stateManagerHelper.createSessionStates(setOf(initiatorState, initiatedState))
         publisher.publish(listOf(Record(FLOW_EVENT_TOPIC, counterpartySessionID, FlowEvent(counterpartySessionID, initEvent))))
         logger.info("Created sessions $sessionID and $counterpartySessionID")
-        return sessionID
     }
 
     // TODO: deduplication of outbound session messages.
