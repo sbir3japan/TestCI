@@ -86,8 +86,16 @@ class StateManagerHelper(
         }
     }
 
+    private fun maybeGetStates(ids: Collection<String>) : Map<String, State> {
+        return if (ids.isNotEmpty()) {
+            stateManager.get(ids)
+        } else {
+            emptyMap()
+        }
+    }
+
     fun getStates(ids: Collection<String>) : Map<String, SessionState> {
-        return retrieveStates(ids).mapValues {
+        return maybeGetStates(ids).mapValues {
             avroDeserializer.deserialize(it.value.value) as? SessionState
                 ?: throw IllegalArgumentException("Failed to deserialize state")
         }

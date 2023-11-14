@@ -18,7 +18,9 @@ import net.corda.v5.base.types.MemberX500Name
 import net.corda.virtualnode.HoldingIdentity
 import net.corda.virtualnode.toAvro
 import org.slf4j.LoggerFactory
+import java.nio.ByteBuffer
 import java.time.Instant
+import java.util.UUID
 
 // For this prototype, assume all virtual nodes are local.
 class SessionManagerImpl(
@@ -59,8 +61,8 @@ class SessionManagerImpl(
         // Publish a record to start the counterparty flow.
         val initPayload = SessionInit.newBuilder()
             .setCpiId(config.cpiId)
-            .setContextPlatformProperties(null)
-            .setContextUserProperties(null)
+            .setContextPlatformProperties(KeyValuePairList(listOf()))
+            .setContextUserProperties(KeyValuePairList(listOf()))
             .setFlowId(null)
             .build()
         val initEvent = generateSessionEvent(
@@ -74,7 +76,12 @@ class SessionManagerImpl(
         initiatedState.receivedEventsState.lastProcessedSequenceNum = 1
         // Set up sessions.
         stateManagerHelper.createSessionStates(setOf(initiatorState, initiatedState))
-        publisher.publish(listOf(Record(FLOW_EVENT_TOPIC, counterpartySessionID, FlowEvent(counterpartySessionID, initEvent))))
+        val flowID = UUID.randomUUID().toString()
+        publisher.publish(listOf(Record(
+            FLOW_EVENT_TOPIC,
+            flowID,
+            FlowEvent(flowID, initEvent)))
+        )
         logger.info("Created sessions $sessionID and $counterpartySessionID")
     }
 
@@ -118,6 +125,7 @@ class SessionManagerImpl(
         logger.info("Deleting session with ID $sessionID")
         val counterpartyId = toggleSessionID(sessionID)
         val states = stateManagerHelper.getStates(setOf(sessionID, counterpartyId))
+        if (!states.containsKey(sessionID)) return
         val requireClose = states[sessionID]!!.requireClose
         val isInitiating = isInitiating(sessionID)
 
@@ -184,12 +192,12 @@ class SessionManagerImpl(
         init: SessionInit? = null,
         initiatingIdentity: HoldingIdentity = dummyHoldingIdentity,
         initatedIdentity: HoldingIdentity = dummyHoldingIdentity,
-        sessionProperties: KeyValuePairList = KeyValuePairList()
+        sessionProperties: KeyValuePairList = KeyValuePairList(listOf())
     ) : SessionEvent {
         val time = Instant.now()
         val sequenceNumber = 1
         val data = SessionData.newBuilder()
-            .setPayload(payload)
+            .setPayload(ByteBuffer.wrap(payload))
             .setSessionInit(init)
             .build()
         return SessionEvent.newBuilder()
@@ -216,7 +224,7 @@ class SessionManagerImpl(
             .setSequenceNum(sequenceNumber)
             .setInitiatingIdentity(dummyHoldingIdentity.toAvro())
             .setInitiatedIdentity(dummyHoldingIdentity.toAvro())
-            .setContextSessionProperties(KeyValuePairList())
+            .setContextSessionProperties(KeyValuePairList(listOf()))
             .setPayload(close)
             .build()
     }

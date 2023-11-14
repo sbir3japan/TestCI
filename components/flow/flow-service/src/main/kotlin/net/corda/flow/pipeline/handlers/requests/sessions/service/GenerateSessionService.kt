@@ -62,7 +62,7 @@ class GenerateSessionService @Activate constructor(
         }
     }
 
-    fun createSessionProperties(context: FlowEventContext<Any>) : KeyValueStore {
+    fun createSessionProperties(context: FlowEventContext<Any>, sessionInfo: SessionInfo) : KeyValueStore {
         val checkpoint = context.checkpoint
         val protocolStore = try {
             flowSandboxService.get(checkpoint.holdingIdentity, checkpoint.cpkFileHashes).protocolStore
@@ -87,6 +87,7 @@ class GenerateSessionService @Activate constructor(
         return KeyValueStore().apply {
             put(FLOW_PROTOCOL, protocolName)
             put(FLOW_PROTOCOL_VERSIONS_SUPPORTED, protocolVersions.joinToString())
+            put(FLOW_SESSION_REQUIRE_CLOSE, sessionInfo.requireClose.toString())
         }
     }
 
