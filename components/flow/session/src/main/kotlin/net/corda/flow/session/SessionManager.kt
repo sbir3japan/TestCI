@@ -5,6 +5,8 @@ import net.corda.virtualnode.HoldingIdentity
 
 interface SessionManager : AutoCloseable {
 
+    fun checkSessionExists(sessionID: String) : Boolean
+
     fun createSession(sessionID: String, config: SessionConfig)
 
     fun sendMessage(sessionID: String, message: ByteArray)

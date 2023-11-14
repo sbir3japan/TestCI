@@ -51,10 +51,13 @@ class FlowGlobalPostProcessorImpl @Activate constructor(
         val now = Instant.now()
 
         postProcessPendingPlatformError(context)
+//
+//        val outputRecords = getSessionEvents(context, now) +
+//                getFlowMapperSessionCleanupEvents(context, now) +
+//                getExternalEvent(context, now) +
+//                postProcessRetries(context)
 
-        val outputRecords = getSessionEvents(context, now) +
-                getFlowMapperSessionCleanupEvents(context, now) +
-                getExternalEvent(context, now) +
+        val outputRecords = getExternalEvent(context, now) +
                 postProcessRetries(context)
 
         context.flowMetrics.flowEventCompleted(context.inputEvent.payload::class.java.name)

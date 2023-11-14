@@ -39,7 +39,8 @@ class SendAndReceiveRequestHandler @Activate constructor(
             context.configs.getConfig(ConfigKeys.STATE_MANAGER_CONFIG),
             context.configs.getConfig(ConfigKeys.MESSAGING_CONFIG)
         )
-        val configs = request.sessionToInfo.keys.associate {
+        val missingSessions = request.sessionToInfo.filter { sessionManager.checkSessionExists(it.key.sessionId) }
+        val configs = missingSessions.keys.associate {
             val sessionProperties = generateSessionService.createSessionProperties(context, it)
             it.sessionId to SessionManager.SessionConfig(
                 cpiId = context.checkpoint.flowStartContext.cpiId,

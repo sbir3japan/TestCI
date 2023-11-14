@@ -34,6 +34,10 @@ class SessionManagerImpl(
         private val dummyHoldingIdentity = HoldingIdentity(MemberX500Name.parse("O=Alice, L=London, C=GB"), "foo")
     }
 
+    override fun checkSessionExists(sessionID: String): Boolean {
+        return stateManagerHelper.getStates(setOf(sessionID)).containsKey(sessionID)
+    }
+
     // Only handles local counterparties.
     override fun createSession(sessionID: String, config: SessionManager.SessionConfig) {
         if (stateManagerHelper.getStates(setOf(sessionID)).containsKey(sessionID)) {
