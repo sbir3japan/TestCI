@@ -32,13 +32,10 @@ dependencies {
     cordaProvided 'net.corda:corda-application'
     cordaProvided 'net.corda:corda-ledger-utxo'
     cordaProvided 'net.corda:corda-notary-plugin'
-    cordaProvided 'net.corda:corda-core'
 
     cordapp "$tokens_release_group:tokens-contracts:$tokens_release_version"
     cordapp "$tokens_release_group:tokens-workflows:$tokens_release_version"
     cordapp "$tokens_release_group:tokens-selection:$tokens_release_version"
-//    cordapp "$tokens_release_group:tokens-builder:$tokens_release_version"
-    // Common and API packages pulled in as transitive dependencies through client
     cordapp project(':notary-plugins:notary-plugin-non-validating:notary-plugin-non-validating-client')
     cordapp project(':testing:cpbs:ledger-utxo-demo-contract')
 

@@ -18,7 +18,7 @@ class IssueCurrencyInputs {
     val symbol: String? = null
     val amount: Int? = null
 }
-
+@Suppress("unused")
 class IssueCurrency : ClientStartableFlow {
 
     private companion object {
