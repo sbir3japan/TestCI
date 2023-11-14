@@ -14,6 +14,7 @@ import net.corda.flow.session.SessionManager
 import net.corda.messaging.api.publisher.Publisher
 import net.corda.messaging.api.records.Record
 import net.corda.schema.Schemas.Flow.FLOW_EVENT_TOPIC
+import net.corda.schema.Schemas.Flow.FLOW_SESSION
 import net.corda.v5.base.types.MemberX500Name
 import net.corda.virtualnode.HoldingIdentity
 import net.corda.virtualnode.toAvro
@@ -82,7 +83,7 @@ class SessionManagerImpl(
         stateManagerHelper.createSessionStates(setOf(initiatorState, initiatedState))
         val flowID = UUID.randomUUID().toString()
         publisher.publish(listOf(Record(
-            FLOW_EVENT_TOPIC,
+            FLOW_SESSION,
             flowID,
             FlowEvent(flowID, initEvent)))
         )

@@ -35,7 +35,7 @@ class SendRequestHandler @Activate constructor(
             context.configs.getConfig(ConfigKeys.STATE_MANAGER_CONFIG),
             context.configs.getConfig(ConfigKeys.MESSAGING_CONFIG)
         )
-        val missingSessions = request.sessionPayloads.filter { sessionManager.checkSessionExists(it.key.sessionId) }
+        val missingSessions = request.sessionPayloads.filter { !sessionManager.checkSessionExists(it.key.sessionId) }
         val configs = missingSessions.keys.associate {
             val sessionProperties = generateSessionService.createSessionProperties(context, it)
             it.sessionId to SessionManager.SessionConfig(

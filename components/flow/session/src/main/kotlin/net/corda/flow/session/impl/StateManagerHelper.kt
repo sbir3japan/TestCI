@@ -55,7 +55,7 @@ class StateManagerHelper(
                 it.key to State(
                     it.value.key,
                     serialized,
-                    version = it.value.version + 1,
+                    version = it.value.version,
                     metadata = it.value.metadata
                 )
             }.toMap()
@@ -67,7 +67,7 @@ class StateManagerHelper(
             val retryingStateKeys = states.keys - newStates.keys
             val retryingStates = retrieveStates(retryingStateKeys)
             states = failedStates + retryingStates
-        } while (states.isNotEmpty() && time + Duration.ofMillis(10000) < Instant.now())
+        } while (states.isNotEmpty() && time + Duration.ofMillis(10000) > Instant.now())
         if (states.isNotEmpty()) {
             logger.warn("Failed to update some states in time limit: ${states.keys}")
             throw IllegalStateException("Failed to update some states in time limit: ${states.keys}")
