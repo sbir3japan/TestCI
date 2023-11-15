@@ -16,6 +16,7 @@ import net.corda.v5.base.annotations.Suspendable
 import net.corda.v5.ledger.common.NotaryLookup
 import org.slf4j.LoggerFactory
 import net.corda.v5.ledger.utxo.UtxoLedgerService
+import net.corda.v5.ledger.utxo.transaction.UtxoSignedTransaction
 import java.time.Instant
 
 
@@ -50,91 +51,99 @@ class EvmDemoFlow : ClientStartableFlow {
 
 
     @Suspendable
+    private fun sendEthereumTransaction(inputs: EvmDemoInput) {
+        // Step 1 Build the ethereum transaction
+        val dummyGasNumber = BigInteger("a41c5", 16)
+        val transactionOptions = TransactionOptions(
+            dummyGasNumber,                 // gasLimit
+            0.toBigInteger(),               // value
+            20000000000.toBigInteger(),     // maxFeePerGas
+            20000000000.toBigInteger(),     // maxPriorityFeePerGas
+            inputs.rpcUrl!!,                // rpcUrl
+            inputs.buyerAddress,          // from
+        )
+
+        val parameters = listOf(
+            Parameter.of("from", Type.ADDRESS, inputs.buyerAddress!!),
+            Parameter.of("to", Type.ADDRESS, inputs.sellerAddress!!),
+            Parameter.of("id", Type.UINT256, 1.toBigInteger()),
+            Parameter.of("amount", Type.UINT256, inputs.fractionPurchased!!.toBigInteger()),
+            Parameter.of("data", Type.BYTES, ""),
+        )
+
+        // Step 2.  Call to the Evm to do the asset transfer
+
+        this.evmService.transaction(
+            "safeTransferFrom",
+            inputs.contractAddress,
+            transactionOptions,
+            parameters
+        )
+
+
+    }
+
+    @Suspendable
+    private fun buildPaymentTransaction(inputs: EvmDemoInput): UtxoSignedTransaction {
+        val states = ledgerService.findUnconsumedStatesByExactType(
+            FungibleTokenState::class.java,
+            100,
+            Instant.ofEpochSecond(0)
+        )
+
+        val myInfo = memberLookup.myInfo()
+
+        val key = myInfo.ledgerKeys.first()
+        val filteredState = states.results.filter { it.state.contractState.linearId == inputs.id }
+        // update balances in the state
+        val initialBalances = filteredState[0].state.contractState.balances
+        val updatedBalances = initialBalances.toMutableMap()
+        updatedBalances[key] = updatedBalances[key]!! - inputs.purchasePrice!!.toLong()
+        // new state
+        val state = FungibleTokenState(
+            valuation = filteredState[0].state.contractState.valuation,
+            maintainer = filteredState[0].state.contractState.maintainer,
+            fractionDigits = filteredState[0].state.contractState.fractionDigits,
+            symbol = filteredState[0].state.contractState.symbol,
+            balances = updatedBalances,
+            participants = filteredState[0].state.contractState.participants
+        )
+
+//        val notary = notaryLookup.notaryServices.single()
+
+        val txBuilder = ledgerService.createTransactionBuilder()
+//            .setNotary(notary.name)
+            .addInputState(filteredState[0].ref)
+            .addOutputState(state)
+
+        return txBuilder.toSignedTransaction()
+    }
+
+
+    @Suspendable
     override fun call(requestBody: ClientRequestBody): String {
         log.info("Starting Evm Demo Flow...")
         try {
             // Get any of the relevant details from the request here
             val inputs = requestBody.getRequestBodyAs(jsonMarshallingService, EvmDemoInput::class.java)
 
+            // * Step 1 Build and Send the Ethereum Transaction
+            sendEthereumTransaction(inputs)
+            // Fetch the state from the ledger
+            val signedTransaction = buildPaymentTransaction(inputs)
 
-            val dummyGasNumber = BigInteger("a41c5", 16)
-            val transactionOptions = TransactionOptions(
-                dummyGasNumber,                 // gasLimit
-                0.toBigInteger(),               // value
-                20000000000.toBigInteger(),     // maxFeePerGas
-                20000000000.toBigInteger(),     // maxPriorityFeePerGas
-                inputs.rpcUrl!!,                // rpcUrl
-                inputs.buyerAddress,          // from
-            )
-
-            val parameters = listOf(
-                Parameter.of("from", Type.ADDRESS, inputs.buyerAddress!!),
-                Parameter.of("to", Type.ADDRESS, inputs.sellerAddress!!),
-                Parameter.of("id", Type.UINT256, 1.toBigInteger()),
-                Parameter.of("amount", Type.UINT256, inputs.fractionPurchased!!.toBigInteger()),
-                Parameter.of("data", Type.BYTES, ""),
-            )
-
-
-            this.evmService.transaction(
-                "safeTransferFrom",
-                inputs.contractAddress,
-                transactionOptions,
-                parameters
-            )
-            // Step 2.  Call to the Evm to do the asset transfer
-
-            // fetch the contract state using linear id
-            val states = ledgerService.findUnconsumedStatesByExactType(
-                FungibleTokenState::class.java,
-                100,
-                Instant.ofEpochSecond(0)
-            )
-
-            val myInfo = memberLookup.myInfo()
-
-            val key = myInfo.ledgerKeys.first()
             // filter states by linearId
-            val filteredState = states.results.filter { it.state.contractState.linearId == inputs.id }
-
-            // update balances in the state
-            val initialBalances = filteredState[0].state.contractState.balances
-            val updatedBalances = initialBalances.toMutableMap()
-            updatedBalances[key] = updatedBalances[key]!! - inputs.purchasePrice!!.toLong()
-
-            // new state
-            val state = FungibleTokenState(
-                valuation = filteredState[0].state.contractState.valuation,
-                maintainer = filteredState[0].state.contractState.maintainer,
-                fractionDigits = filteredState[0].state.contractState.fractionDigits,
-                symbol = filteredState[0].state.contractState.symbol,
-                balances = updatedBalances,
-                participants = filteredState[0].state.contractState.participants
-            )
-
             val notary = notaryLookup.notaryServices.single()
-
-            val txBuilder = ledgerService.createTransactionBuilder()
-                .setNotary(notary.name)
-                .addInputState(filteredState[0].ref)
-                .addOutputState(state)
-
-            val signedTransaction = txBuilder.toSignedTransaction()
-
 
             val names = memberLookup.lookup().filter {
                 it.memberProvidedContext["corda.notary.service.name"] != notary.name.toString()
             }.map {
                 it.name
             }
-
             // Broadcast to everyone
             val sessions = names.map { flowMessaging.initiateFlow(it) }
             val finalizedSignedTransaction = ledgerService.finalize(signedTransaction, sessions)
-
-
             return finalizedSignedTransaction.transaction.id.toString()
-
         } catch (e: Exception) {
             log.error("Unexpected error while processing the flow", e)
             throw e

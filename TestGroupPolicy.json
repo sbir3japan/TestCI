@@ -18,41 +18,13 @@
 
         {
 
-          "name" : "C=GB, L=London, O=Alice",
+          "name" : "CN=Testing, OU=Application, O=R3, L=London, C=GB",
 
           "memberStatus" : "ACTIVE",
 
           "endpointUrl-1" : "https://alice.corda5.r3.com:10000",
 
           "endpointProtocol-1" : 1
-
-        },
-
-        {
-
-          "name" : "C=GB, L=London, O=Bob",
-
-          "memberStatus" : "ACTIVE",
-
-          "endpointUrl-1" : "https://bob.corda5.r3.com:10000",
-
-          "endpointProtocol-1" : 1
-
-        },
-
-        {
-
-          "name" : "C=GB, L=London, O=Charlie",
-
-          "memberStatus" : "SUSPENDED",
-
-          "endpointUrl-1" : "https://charlie.corda5.r3.com:10000",
-
-          "endpointProtocol-1" : 1,
-
-          "endpointUrl-2" : "https://charlie-dr.corda5.r3.com:10001",
-
-          "endpointProtocol-2" : 1
 
         }
 

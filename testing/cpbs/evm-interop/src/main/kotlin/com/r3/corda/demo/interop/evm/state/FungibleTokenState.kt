@@ -1,11 +1,9 @@
 package com.r3.corda.demo.interop.evm.state
 
 
-import net.corda.v5.ledger.contracts.BelongsToContract
 import net.corda.v5.ledger.utxo.ContractState
 import java.security.PublicKey
 import java.util.*
-import com.r3.corda.demo.interop.evm.contracts.FungibleTokenContract
 
 // *********
 // * State *

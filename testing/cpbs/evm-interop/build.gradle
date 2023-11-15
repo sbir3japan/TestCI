@@ -1,9 +1,3 @@
-buildscript {
-    ext {
-        tokens_release_version = '2.0.0-DevPreview-RC07'
-        tokens_release_group = 'com.r3.corda.lib.tokens'
-    }
-}
 
 
 plugins {
@@ -33,9 +27,7 @@ dependencies {
     cordaProvided 'net.corda:corda-ledger-utxo'
     cordaProvided 'net.corda:corda-notary-plugin'
 
-    cordapp "$tokens_release_group:tokens-contracts:$tokens_release_version"
-    cordapp "$tokens_release_group:tokens-workflows:$tokens_release_version"
-    cordapp "$tokens_release_group:tokens-selection:$tokens_release_version"
+
     cordapp project(':notary-plugins:notary-plugin-non-validating:notary-plugin-non-validating-client')
     cordapp project(':testing:cpbs:ledger-utxo-demo-contract')
 
