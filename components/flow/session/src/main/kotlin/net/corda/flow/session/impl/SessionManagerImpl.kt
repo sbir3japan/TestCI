@@ -113,17 +113,17 @@ class SessionManagerImpl(
     // This version blocks
     override fun receiveMessage(sessionID: String): ByteArray {
         logger.info("Receiving message on session $sessionID")
-        var message: ByteArray? = null
+        var message: ByteBuffer? = null
         val transform = { state: SessionState ->
             val undelivered = state.receivedEventsState.undeliveredMessages
             val data = undelivered.removeFirstOrNull()?.payload as? SessionData
-            message = data?.payload as? ByteArray
+            message = data?.payload as? ByteBuffer
             if (message == null) throw RetryException("Failed to retrieve message")
             state.receivedEventsState.undeliveredMessages = undelivered
             state
         }
         stateManagerHelper.updateSessionStates(mapOf(sessionID to transform))
-        return message ?: throw IllegalArgumentException("Failed to get message in timeout")
+        return message?.array() ?: throw IllegalArgumentException("Failed to get message in timeout")
     }
 
     override fun deleteSession(sessionID: String) {
