@@ -163,6 +163,13 @@ class SessionManagerImpl(
         stateManagerHelper.deleteStates(setOf(sessionID))
     }
 
+    override fun getCounterpartyProperties(sessionID: String): KeyValuePairList {
+        val counterpartySessionID = toggleSessionID(sessionID)
+        val states = stateManagerHelper.getStates(setOf(counterpartySessionID))
+        return states[counterpartySessionID]?.sessionProperties
+            ?: throw IllegalArgumentException("Counterparty session does not exist for get counterparty info")
+    }
+
     private fun createNewState(
         sessionID: String,
         createTime: Instant,

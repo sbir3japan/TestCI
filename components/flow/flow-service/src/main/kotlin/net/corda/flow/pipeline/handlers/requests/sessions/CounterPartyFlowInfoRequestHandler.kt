@@ -9,6 +9,11 @@ import net.corda.flow.pipeline.handlers.requests.FlowRequestHandler
 import net.corda.flow.pipeline.handlers.requests.sessions.service.GenerateSessionService
 import net.corda.flow.pipeline.handlers.waiting.sessions.PROTOCOL_MISMATCH_HINT
 import net.corda.flow.pipeline.sessions.FlowSessionStateException
+import net.corda.flow.session.SessionManager
+import net.corda.flow.session.SessionManagerFactory
+import net.corda.libs.configuration.helper.getConfig
+import net.corda.schema.configuration.ConfigKeys
+import net.corda.virtualnode.HoldingIdentity
 import org.osgi.service.component.annotations.Activate
 import org.osgi.service.component.annotations.Component
 import org.osgi.service.component.annotations.Reference
@@ -27,6 +32,8 @@ import org.osgi.service.component.annotations.Reference
 class CounterPartyFlowInfoRequestHandler @Activate constructor(
     @Reference(service = GenerateSessionService::class)
     private val generateSessionService: GenerateSessionService,
+    @Reference(service = SessionManagerFactory::class)
+    private val sessionManagerFactory: SessionManagerFactory
 ) : FlowRequestHandler<FlowIORequest.CounterPartyFlowInfo> {
 
     override val type = FlowIORequest.CounterPartyFlowInfo::class.java
@@ -37,8 +44,24 @@ class CounterPartyFlowInfoRequestHandler @Activate constructor(
 
     override fun postProcess(context: FlowEventContext<Any>, request: FlowIORequest.CounterPartyFlowInfo): FlowEventContext<Any> {
         try {
-            val sessionInfo = request.sessionInfo
-            generateSessionService.generateSessions(context, setOf(sessionInfo), true)
+            val sessionManager = sessionManagerFactory.create(
+                context.configs.getConfig(ConfigKeys.STATE_MANAGER_CONFIG),
+                context.configs.getConfig(ConfigKeys.MESSAGING_CONFIG)
+            )
+            if (!sessionManager.checkSessionExists(request.sessionInfo.sessionId)) {
+                val sessionProperties = generateSessionService.createSessionProperties(context, request.sessionInfo)
+                val config = SessionManager.SessionConfig(
+                    cpiId = context.checkpoint.flowStartContext.cpiId,
+                    party = context.checkpoint.holdingIdentity,
+                    counterparty = HoldingIdentity(request.sessionInfo.counterparty, context.checkpoint.holdingIdentity.groupId),
+                    requireClose = request.sessionInfo.requireClose,
+                    contextSessionProperties = sessionProperties.avro
+                )
+                sessionManager.createSession(request.sessionInfo.sessionId, config)
+            }
+            sessionManager.close()
+//            val sessionInfo = request.sessionInfo
+//            generateSessionService.generateSessions(context, setOf(sessionInfo), true)
         } catch (e: FlowSessionStateException) {
             throw FlowPlatformException("Failed to send: ${e.message}. $PROTOCOL_MISMATCH_HINT", e)
         }

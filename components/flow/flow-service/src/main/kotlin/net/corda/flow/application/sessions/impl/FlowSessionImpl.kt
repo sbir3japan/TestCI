@@ -40,19 +40,23 @@ class FlowSessionImpl(
 
     @Suspendable
     override fun getCounterpartyFlowInfo(): FlowInfo {
-        val counterPartyFlowInfo = getFlowInfoFromSessionContext()
-        return if (counterPartyFlowInfo != null) {
-            counterPartyFlowInfo
-        } else {
-            val request = FlowIORequest.CounterPartyFlowInfo(getSessionInfo())
-            fiber.suspend(request)
-            //If we are able to receive counterparty info this means the session initiation has been completed.
-            setSessionConfirmed()
-            getFlowInfoFromSessionContext() ?: throw CordaRuntimeException(
-                "Failed to get counterparties flow info. Session is in an " +
-                        "invalid state"
-            )
-        }
+        val request = FlowIORequest.CounterPartyFlowInfo(getSessionInfo())
+        val properties = KeyValueStore(fiber.suspend(request))
+        return FlowInfoImpl(properties[Constants.FLOW_PROTOCOL]!!, properties[Constants.FLOW_PROTOCOL_VERSION_USED]?.toInt()!!)
+
+//        val counterPartyFlowInfo = getFlowInfoFromSessionContext()
+//        return if (counterPartyFlowInfo != null) {
+//            counterPartyFlowInfo
+//        } else {
+//            val request = FlowIORequest.CounterPartyFlowInfo(getSessionInfo())
+//            fiber.suspend(request)
+//            //If we are able to receive counterparty info this means the session initiation has been completed.
+//            setSessionConfirmed()
+//            getFlowInfoFromSessionContext() ?: throw CordaRuntimeException(
+//                "Failed to get counterparties flow info. Session is in an " +
+//                        "invalid state"
+//            )
+//        }
     }
 
     private fun getFlowInfoFromSessionContext(): FlowInfo? {

@@ -1,5 +1,6 @@
 package net.corda.flow.fiber
 
+import net.corda.data.KeyValuePairList
 import java.nio.ByteBuffer
 import java.time.Instant
 import net.corda.flow.application.sessions.SessionInfo
@@ -46,7 +47,7 @@ interface FlowIORequest<out R> {
      *
      * @property sessionInfo the session to get flow info for.
      */
-    data class CounterPartyFlowInfo(val sessionInfo: SessionInfo) : FlowIORequest<Unit>
+    data class CounterPartyFlowInfo(val sessionInfo: SessionInfo) : FlowIORequest<KeyValuePairList>
 
     /**
      * Closes the specified sessions.

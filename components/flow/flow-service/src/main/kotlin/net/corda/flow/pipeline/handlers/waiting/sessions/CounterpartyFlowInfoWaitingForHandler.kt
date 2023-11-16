@@ -6,8 +6,13 @@ import net.corda.data.flow.state.waiting.CounterPartyFlowInfo
 import net.corda.flow.fiber.FlowContinuation
 import net.corda.flow.pipeline.events.FlowEventContext
 import net.corda.flow.pipeline.handlers.waiting.FlowWaitingForHandler
+import net.corda.flow.session.SessionManagerFactory
+import net.corda.libs.configuration.helper.getConfig
+import net.corda.schema.configuration.ConfigKeys
 import net.corda.v5.base.exceptions.CordaRuntimeException
+import org.osgi.service.component.annotations.Activate
 import org.osgi.service.component.annotations.Component
+import org.osgi.service.component.annotations.Reference
 
  /**
   * This handler decides whether the flow fiber is allowed to resume after requesting counterparty flow info.
@@ -18,29 +23,39 @@ import org.osgi.service.component.annotations.Component
   * [SessionState]
   */
 @Component(service = [FlowWaitingForHandler::class])
-class CounterpartyFlowInfoWaitingForHandler : FlowWaitingForHandler<CounterPartyFlowInfo> {
+class CounterpartyFlowInfoWaitingForHandler @Activate constructor(
+    @Reference(service = SessionManagerFactory::class)
+    private val sessionManagerFactory: SessionManagerFactory
+) : FlowWaitingForHandler<CounterPartyFlowInfo> {
 
     override val type = CounterPartyFlowInfo::class.java
 
     override fun runOrContinue(context: FlowEventContext<*>, waitingFor: CounterPartyFlowInfo): FlowContinuation {
-        val checkpoint = context.checkpoint
-
-        val sessionId = waitingFor.sessionId
-        val sessionState = checkpoint.getSessionState(sessionId)
-
-        return when(sessionState?.status) {
-            null -> FlowContinuation.Error(
-                CordaRuntimeException(
-                    "Failed to get counterparty info as the session does not exist."
-                )
-            )
-            SessionStateType.CREATED -> FlowContinuation.Continue
-            SessionStateType.ERROR -> FlowContinuation.Error(
-                CordaRuntimeException(
-                    "Failed to get counterparty info due to sessions with errorred status."
-                )
-            )
-            else -> FlowContinuation.Run(Unit)
-        }
+        val sessionManager = sessionManagerFactory.create(
+            context.configs.getConfig(ConfigKeys.STATE_MANAGER_CONFIG),
+            context.configs.getConfig(ConfigKeys.MESSAGING_CONFIG)
+        )
+        val properties = sessionManager.getCounterpartyProperties(waitingFor.sessionId)
+        sessionManager.close()
+        return FlowContinuation.Run(properties)
+//        val checkpoint = context.checkpoint
+//
+//        val sessionId = waitingFor.sessionId
+//        val sessionState = checkpoint.getSessionState(sessionId)
+//
+//        return when(sessionState?.status) {
+//            null -> FlowContinuation.Error(
+//                CordaRuntimeException(
+//                    "Failed to get counterparty info as the session does not exist."
+//                )
+//            )
+//            SessionStateType.CREATED -> FlowContinuation.Continue
+//            SessionStateType.ERROR -> FlowContinuation.Error(
+//                CordaRuntimeException(
+//                    "Failed to get counterparty info due to sessions with errorred status."
+//                )
+//            )
+//            else -> FlowContinuation.Run(Unit)
+//        }
     }
  }

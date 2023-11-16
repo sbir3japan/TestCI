@@ -15,6 +15,8 @@ interface SessionManager : AutoCloseable {
 
     fun deleteSession(sessionID: String)
 
+    fun getCounterpartyProperties(sessionID: String) : KeyValuePairList
+
     data class SessionConfig(
         val cpiId: String,
         val party: HoldingIdentity,

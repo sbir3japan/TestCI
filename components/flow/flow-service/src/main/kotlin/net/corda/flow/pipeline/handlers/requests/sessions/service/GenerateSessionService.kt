@@ -9,8 +9,10 @@ import net.corda.flow.pipeline.sandbox.FlowSandboxService
 import net.corda.flow.pipeline.sessions.FlowSessionManager
 import net.corda.flow.utils.KeyValueStore
 import net.corda.flow.utils.keyValuePairListOf
+import net.corda.session.manager.Constants
 import net.corda.session.manager.Constants.Companion.FLOW_PROTOCOL
 import net.corda.session.manager.Constants.Companion.FLOW_PROTOCOL_VERSIONS_SUPPORTED
+import net.corda.session.manager.Constants.Companion.FLOW_PROTOCOL_VERSION_USED
 import net.corda.session.manager.Constants.Companion.FLOW_SESSION_REQUIRE_CLOSE
 import net.corda.utilities.trace
 import org.osgi.service.component.annotations.Activate
@@ -88,6 +90,7 @@ class GenerateSessionService @Activate constructor(
             put(FLOW_PROTOCOL, protocolName)
             put(FLOW_PROTOCOL_VERSIONS_SUPPORTED, protocolVersions.joinToString())
             put(FLOW_SESSION_REQUIRE_CLOSE, sessionInfo.requireClose.toString())
+            put(FLOW_PROTOCOL_VERSION_USED, 1.toString()) // Hack for the prototype to implement counterparty flow info
         }
     }
 

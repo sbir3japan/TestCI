@@ -21,8 +21,8 @@ import org.osgi.service.component.annotations.Reference
 
 @Component(service = [FlowWaitingForHandler::class])
 class SessionDataWaitingForHandler @Activate constructor(
-    @Reference(service = FlowSessionManager::class)
-    private val flowSessionManager: FlowSessionManager,
+//    @Reference(service = FlowSessionManager::class)
+//    private val flowSessionManager: FlowSessionManager,
     @Reference(service = SessionManagerFactory::class)
     private val sessionManagerFactory: SessionManagerFactory
 ) : FlowWaitingForHandler<SessionData> {
