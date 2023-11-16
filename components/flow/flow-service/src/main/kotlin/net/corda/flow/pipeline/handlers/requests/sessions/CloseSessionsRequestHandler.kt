@@ -63,8 +63,6 @@ class CloseSessionsRequestHandler @Activate constructor(
             }
         } catch (e: Exception) {
             throw FlowFatalException("Failed to delete sessions with IDs ${request.sessions}", e)
-        } finally {
-            sessionManager.close()
         }
         return context
 //        val checkpoint = context.checkpoint

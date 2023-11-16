@@ -56,7 +56,6 @@ class SendAndReceiveRequestHandler @Activate constructor(
         request.sessionToInfo.forEach {
             sessionManager.sendMessage(it.key.sessionId, it.value)
         }
-        sessionManager.close()
 //        val checkpoint = context.checkpoint
 //
 //        //generate init messages for sessions which do not exist yet

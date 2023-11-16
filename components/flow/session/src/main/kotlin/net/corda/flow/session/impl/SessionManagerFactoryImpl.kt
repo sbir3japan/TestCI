@@ -25,7 +25,17 @@ class SessionManagerFactoryImpl @Activate constructor(
         private const val CLIENT_ID = "session-manager-publisher"
     }
 
+    private var sessionManager: SessionManager? = null
+
     override fun create(stateManagerConfig: SmartConfig, messagingConfig: SmartConfig): SessionManager {
+        return sessionManager ?: let {
+            val newManager = createNew(stateManagerConfig, messagingConfig)
+            sessionManager = newManager
+            newManager
+        }
+    }
+
+    private fun createNew(stateManagerConfig: SmartConfig, messagingConfig: SmartConfig) : SessionManager {
         val serializer = serializationFactory.createAvroSerializer<Any>()
         val deserializer = serializationFactory.createAvroDeserializer({}, Any::class.java)
         val stateManager = stateManagerFactory.create(stateManagerConfig).apply {

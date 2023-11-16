@@ -52,7 +52,6 @@ class SendRequestHandler @Activate constructor(
         request.sessionPayloads.forEach {
             sessionManager.sendMessage(it.key.sessionId, it.value)
         }
-        sessionManager.close()
 //        val checkpoint = context.checkpoint
 //        try {
 //            generate session states for sessions which do not exist yet

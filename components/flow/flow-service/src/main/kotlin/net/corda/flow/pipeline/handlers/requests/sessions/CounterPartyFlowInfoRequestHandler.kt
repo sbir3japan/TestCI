@@ -59,7 +59,6 @@ class CounterPartyFlowInfoRequestHandler @Activate constructor(
                 )
                 sessionManager.createSession(request.sessionInfo.sessionId, config)
             }
-            sessionManager.close()
 //            val sessionInfo = request.sessionInfo
 //            generateSessionService.generateSessions(context, setOf(sessionInfo), true)
         } catch (e: FlowSessionStateException) {

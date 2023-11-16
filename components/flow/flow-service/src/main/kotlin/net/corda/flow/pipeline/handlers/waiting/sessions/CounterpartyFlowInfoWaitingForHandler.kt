@@ -36,7 +36,6 @@ class CounterpartyFlowInfoWaitingForHandler @Activate constructor(
             context.configs.getConfig(ConfigKeys.MESSAGING_CONFIG)
         )
         val properties = sessionManager.getCounterpartyProperties(waitingFor.sessionId)
-        sessionManager.close()
         return FlowContinuation.Run(properties)
 //        val checkpoint = context.checkpoint
 //

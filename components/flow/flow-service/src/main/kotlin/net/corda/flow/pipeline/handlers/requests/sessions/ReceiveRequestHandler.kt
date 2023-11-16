@@ -51,7 +51,6 @@ class ReceiveRequestHandler @Activate constructor(
         configs.forEach {
             sessionManager.createSession(it.key, it.value)
         }
-        sessionManager.close()
 
         //generate init messages for sessions which do not exist yet
 //        generateSessionService.generateSessions(context, request.sessions, true)

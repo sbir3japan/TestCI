@@ -64,7 +64,6 @@ class SubFlowFinishedRequestHandler @Activate constructor(
         initiatingSessions.forEach {
             sessionManager.deleteSession(it)
         }
-        sessionManager.close()
 //        val checkpoint = context.checkpoint
 //        try {
 //            closeSessionService.handleCloseForSessions(checkpoint, getSessionsToClose(request))

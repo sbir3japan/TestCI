@@ -35,7 +35,6 @@ class SessionDataWaitingForHandler @Activate constructor(
             context.configs.getConfig(ConfigKeys.MESSAGING_CONFIG)
         )
         val messages = waitingFor.sessionIds.associateWith { sessionManager.receiveMessage(it) }
-        sessionManager.close()
         return FlowContinuation.Run(messages)
 //        val checkpoint = context.checkpoint
 //
