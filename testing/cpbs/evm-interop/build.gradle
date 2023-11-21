@@ -22,6 +22,8 @@ cordapp {
 }
 
 dependencies {
+    cordapp project(':testing:cpbs:evm-interop-contract')
+
     cordaProvided platform("net.corda:corda-api:$cordaApiVersion")
     cordaProvided 'net.corda:corda-application'
     cordaProvided 'net.corda:corda-ledger-utxo'

@@ -547,4 +547,8 @@ include 'libs:kotlin-coroutines'
 findProject(':libs:kotlin-coroutines')?.name = 'kotlin-coroutines'
 include 'testing:cpbs:evm-swaps'
 findProject(':testing:cpbs:evm-swaps')?.name = 'evm-swaps'
+include 'testing:cpbs:evm-swaps-contract'
+findProject(':testing:cpbs:evm-swaps-contract')?.name = 'evm-swaps-contract'
+include 'testing:cpbs:evm-interop-contract'
+findProject(':testing:cpbs:evm-interop-contract')?.name = 'evm-interop-contract'
 

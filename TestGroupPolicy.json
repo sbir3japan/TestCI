@@ -15,7 +15,6 @@
     "staticNetwork" : {
 
       "members" : [
-
         {
 
           "name" : "CN=Testing, OU=Application, O=R3, L=London, C=GB",
@@ -26,8 +25,18 @@
 
           "endpointProtocol-1" : 1
 
-        }
+        },
+        {
+          "name" : "C=GB, L=London, O=Notary",
 
+          "memberStatus" : "ACTIVE",
+
+          "endpointUrl-1" : "http://localhost:1080",
+
+          "endpointProtocol-1" : 1,
+
+          "role": "notary"
+        }
       ]
 
     }

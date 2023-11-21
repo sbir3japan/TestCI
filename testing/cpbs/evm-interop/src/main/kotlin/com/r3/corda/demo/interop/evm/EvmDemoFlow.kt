@@ -1,6 +1,6 @@
 package com.r3.corda.demo.interop.evm
 
-import com.r3.corda.demo.interop.evm.state.FungibleTokenState
+import com.corda.evm.states.FungibleTokenState
 import java.math.BigInteger
 import net.corda.v5.application.flows.ClientRequestBody
 import net.corda.v5.application.flows.ClientStartableFlow
@@ -91,21 +91,21 @@ class EvmDemoFlow : ClientStartableFlow {
             Instant.ofEpochSecond(0)
         )
 
-        val myInfo = memberLookup.myInfo()
+//        val myInfo = memberLookup.myInfo()
 
-        val key = myInfo.ledgerKeys.first()
+//        val key = myInfo.ledgerKeys.first()
         val filteredState = states.results.filter { it.state.contractState.linearId == inputs.id }
         // update balances in the state
         val initialBalances = filteredState[0].state.contractState.balances
-        val updatedBalances = initialBalances.toMutableMap()
-        updatedBalances[key] = updatedBalances[key]!! - inputs.purchasePrice!!.toLong()
+//        val updatedBalances = initialBalances.toMutableMap()
+//        updatedBalances[key] = updatedBalances[key]!! - inputs.purchasePrice!!.toLong()
         // new state
         val state = FungibleTokenState(
             valuation = filteredState[0].state.contractState.valuation,
             maintainer = filteredState[0].state.contractState.maintainer,
             fractionDigits = filteredState[0].state.contractState.fractionDigits,
             symbol = filteredState[0].state.contractState.symbol,
-            balances = updatedBalances,
+            balances = initialBalances- inputs.purchasePrice!!.toLong(),
             participants = filteredState[0].state.contractState.participants
         )
 
