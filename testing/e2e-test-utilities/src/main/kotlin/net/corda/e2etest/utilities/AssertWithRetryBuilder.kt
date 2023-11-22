@@ -44,8 +44,8 @@ class AssertWithRetryBuilder(private val args: AssertWithRetryArgs) {
 
 private data class Attempt(val attemptNumber: Int, val timeTried: Duration, val response: String)
 
-private fun printAttempt(attempt: Iterable<Attempt>): String =
-    attempt.joinToString("\n") { "${it.attemptNumber} (${it.timeTried}): ${it.response}" }
+private fun printAttempt(attempts: Iterable<Attempt>): String =
+    attempts.joinToString("\n") { "${it.attemptNumber} (${it.timeTried}): ${it.response}" }
 
 /**
  * Sort-of-DSL.  Asserts a command and retries if it doesn't initially succeed.
