@@ -42,10 +42,10 @@ class AssertWithRetryBuilder(private val args: AssertWithRetryArgs) {
     }
 }
 
-private data class Attempt(val attemptNumber: Int, val response: SimpleResponse)
+private data class Attempt(val attemptNumber: Int, val timeTried: Duration, val response: SimpleResponse)
 
 private fun printAttempt(attempt: Iterable<Attempt>): String =
-    attempt.joinToString("\n") { "${it.attemptNumber}: ${it.response}" }
+    attempt.joinToString("\n") { "${it.attemptNumber} (${it.timeTried}): ${it.response}" }
 
 /**
  * Sort-of-DSL.  Asserts a command and retries if it doesn't initially succeed.
@@ -83,7 +83,7 @@ fun assertWithRetry(initialize: AssertWithRetryBuilder.() -> Unit): SimpleRespon
             if (args.condition!!.invoke(response)) break
             retry++
             timeTried = args.interval.toMillis() * retry
-            attempts.add(Attempt(retry, response))
+            attempts.add(Attempt(retry, Duration.ofMillis(timeTried), response))
             Thread.sleep(args.interval.toMillis())
         } while (timeTried < args.timeout.toMillis())
         println()
@@ -146,7 +146,7 @@ fun assertWithRetryIgnoringExceptions(initialize: AssertWithRetryBuilder.() -> U
                 }
 
                 if (args.condition!!.invoke(result)) break
-                attempts.add(Attempt(retry, result))
+                attempts.add(Attempt(retry, Duration.ofMillis(timeTried), result))
             }
             Thread.sleep(args.interval.toMillis())
         } while (timeTried < args.timeout.toMillis())
