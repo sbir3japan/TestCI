@@ -42,7 +42,7 @@ class AssertWithRetryBuilder(private val args: AssertWithRetryArgs) {
     }
 }
 
-private data class Attempt(val attemptNumber: Int, val timeTried: Duration, val response: SimpleResponse)
+private data class Attempt(val attemptNumber: Int, val timeTried: Duration, val response: String)
 
 private fun printAttempt(attempt: Iterable<Attempt>): String =
     attempt.joinToString("\n") { "${it.attemptNumber} (${it.timeTried}): ${it.response}" }
@@ -83,7 +83,7 @@ fun assertWithRetry(initialize: AssertWithRetryBuilder.() -> Unit): SimpleRespon
             if (args.condition!!.invoke(response)) break
             retry++
             timeTried = args.interval.toMillis() * retry
-            attempts.add(Attempt(retry, Duration.ofMillis(timeTried), response))
+            attempts.add(Attempt(retry, Duration.ofMillis(timeTried), response.toString()))
             Thread.sleep(args.interval.toMillis())
         } while (timeTried < args.timeout.toMillis())
         println()
@@ -139,14 +139,14 @@ fun assertWithRetryIgnoringExceptions(initialize: AssertWithRetryBuilder.() -> U
 
             retry++
             timeTried = args.interval.toMillis() * retry
+            attempts.add(Attempt(retry, Duration.ofMillis(timeTried),
+                if (result is Exception) result.stackTraceToString() else result.toString() ))
 
             if (result is SimpleResponse) {
                 if (null != args.immediateFailCondition && args.immediateFailCondition!!.invoke(result)) {
                     fail("Failed without retry with status code = ${result.code} and body =\n${result.body}")
                 }
-
                 if (args.condition!!.invoke(result)) break
-                attempts.add(Attempt(retry, Duration.ofMillis(timeTried), result))
             }
             Thread.sleep(args.interval.toMillis())
         } while (timeTried < args.timeout.toMillis())
