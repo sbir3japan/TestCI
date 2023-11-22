@@ -42,6 +42,11 @@ class AssertWithRetryBuilder(private val args: AssertWithRetryArgs) {
     }
 }
 
+private data class Attempt(val attemptNumber: Int, val response: SimpleResponse)
+
+private fun printAttempt(attempt: Iterable<Attempt>): String =
+    attempt.joinToString("\n") { "${it.attemptNumber}: ${it.response}" }
+
 /**
  * Sort-of-DSL.  Asserts a command and retries if it doesn't initially succeed.
  *
@@ -58,6 +63,7 @@ class AssertWithRetryBuilder(private val args: AssertWithRetryArgs) {
  */
 fun assertWithRetry(initialize: AssertWithRetryBuilder.() -> Unit): SimpleResponse {
     val args = AssertWithRetryArgs()
+    val attempts = mutableListOf<Attempt>()
 
     AssertWithRetryBuilder(args).apply(initialize).run {
         var response: SimpleResponse?
@@ -67,20 +73,25 @@ fun assertWithRetry(initialize: AssertWithRetryBuilder.() -> Unit): SimpleRespon
         Thread.sleep(args.startDelay.toMillis())
         do {
             response = args.command!!.invoke()
+            if (retry == 0) {
+                println(response.url)
+            }
+            unbufferedPrint('.')
             if(null != args.immediateFailCondition && args.immediateFailCondition!!.invoke(response)) {
                 fail("Failed without retry with status code = ${response.code} and body =\n${response.body}")
             }
             if (args.condition!!.invoke(response)) break
             retry++
             timeTried = args.interval.toMillis() * retry
-            println("Failed after $retry retry ($timeTried ms): $response")
+            attempts.add(Attempt(retry, response))
             Thread.sleep(args.interval.toMillis())
         } while (timeTried < args.timeout.toMillis())
+        println()
 
         assertThat(args.condition!!.invoke(response!!))
             .withFailMessage(
                 "${args.failMessage}Retried ${response.url} and " +
-                        "failed with status code = ${response.code} and body =\n${response.body}"
+                        "failed with status code = ${response.code} and body =\n${response.body}.\nAttempts:\n${printAttempt(attempts)}"
             )
             .isTrue
 
@@ -106,6 +117,7 @@ fun assertWithRetry(initialize: AssertWithRetryBuilder.() -> Unit): SimpleRespon
 @Suppress("ComplexMethod", "NestedBlockDepth")
 fun assertWithRetryIgnoringExceptions(initialize: AssertWithRetryBuilder.() -> Unit): SimpleResponse {
     val args = AssertWithRetryArgs()
+    val attempts = mutableListOf<Attempt>()
 
     AssertWithRetryBuilder(args).apply(initialize).run {
         var retry = 0
@@ -120,33 +132,44 @@ fun assertWithRetryIgnoringExceptions(initialize: AssertWithRetryBuilder.() -> U
                 exception
             }
 
+            if (retry == 0 && result is SimpleResponse) {
+                println(result.url)
+            }
+            unbufferedPrint('.')
+
+            retry++
+            timeTried = args.interval.toMillis() * retry
+
             if (result is SimpleResponse) {
                 if (null != args.immediateFailCondition && args.immediateFailCondition!!.invoke(result)) {
                     fail("Failed without retry with status code = ${result.code} and body =\n${result.body}")
                 }
 
                 if (args.condition!!.invoke(result)) break
+                attempts.add(Attempt(retry, result))
             }
-
-            retry++
-            timeTried = args.interval.toMillis() * retry
-            println("Failed after $retry retry ($timeTried ms): $result")
             Thread.sleep(args.interval.toMillis())
         } while (timeTried < args.timeout.toMillis())
+        println()
 
         when (result) {
             is SimpleResponse -> {
                 assertThat(args.condition!!.invoke(result))
                     .withFailMessage(
                         "${args.failMessage}Retried ${result.url} and " +
-                                "failed with status code = ${result.code} and body =\n${result.body}"
+                                "failed with status code = ${result.code} and body =\n${result.body}.\nAttempts:\n${printAttempt(attempts)}"
                     )
                     .isTrue
 
                 return result
             }
 
-            else -> fail("${args.failMessage} Retried $retry times and failed with $result")
+            else -> fail("${args.failMessage} Retried $retry times and failed with $result.\nAttempts:\n${printAttempt(attempts)}")
         }
     }
+}
+
+private fun unbufferedPrint(c: Char) {
+    print(c)
+    System.out.flush()
 }
