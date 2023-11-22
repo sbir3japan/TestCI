@@ -66,36 +66,41 @@ fun assertWithRetry(initialize: AssertWithRetryBuilder.() -> Unit): SimpleRespon
     val attempts = mutableListOf<Attempt>()
 
     AssertWithRetryBuilder(args).apply(initialize).run {
-        var response: SimpleResponse?
+        try {
+            var response: SimpleResponse?
 
-        var retry = 0
-        var timeTried: Long
-        Thread.sleep(args.startDelay.toMillis())
-        do {
-            response = args.command!!.invoke()
-            if (retry == 0) {
-                println(response.url)
-            }
-            unbufferedPrint('.')
-            if(null != args.immediateFailCondition && args.immediateFailCondition!!.invoke(response)) {
-                fail("Failed without retry with status code = ${response.code} and body =\n${response.body}")
-            }
-            if (args.condition!!.invoke(response)) break
-            retry++
-            timeTried = args.interval.toMillis() * retry
-            attempts.add(Attempt(retry, Duration.ofMillis(timeTried), response.toString()))
-            Thread.sleep(args.interval.toMillis())
-        } while (timeTried < args.timeout.toMillis())
-        println()
+            var retry = 0
+            var timeTried: Long
+            Thread.sleep(args.startDelay.toMillis())
+            do {
+                response = args.command!!.invoke()
+                if (retry == 0) {
+                    println(response.url)
+                }
+                unbufferedPrint('.')
+                if (null != args.immediateFailCondition && args.immediateFailCondition!!.invoke(response)) {
+                    fail("Failed without retry with status code = ${response.code} and body =\n${response.body}")
+                }
+                if (args.condition!!.invoke(response)) break
+                retry++
+                timeTried = args.interval.toMillis() * retry
+                attempts.add(Attempt(retry, Duration.ofMillis(timeTried), response.toString()))
+                Thread.sleep(args.interval.toMillis())
+            } while (timeTried < args.timeout.toMillis())
+            println()
 
-        assertThat(args.condition!!.invoke(response!!))
-            .withFailMessage(
-                "${args.failMessage}Retried ${response.url} and " +
-                        "failed with status code = ${response.code} and body =\n${response.body}.\nAttempts:\n${printAttempt(attempts)}"
-            )
-            .isTrue
+            assertThat(args.condition!!.invoke(response!!))
+                .withFailMessage(
+                    "${args.failMessage}Retried ${response.url} and " +
+                            "failed with status code = ${response.code} and body =\n${response.body}.\nAttempts:\n${printAttempt(attempts)}"
+                )
+                .isTrue
 
-        return response
+            return response
+        } catch (e: Exception) {
+            println("\nAttempts:\n${printAttempt(attempts)}")
+            throw e
+        }
     }
 }
 
@@ -120,51 +125,56 @@ fun assertWithRetryIgnoringExceptions(initialize: AssertWithRetryBuilder.() -> U
     val attempts = mutableListOf<Attempt>()
 
     AssertWithRetryBuilder(args).apply(initialize).run {
-        var retry = 0
-        var result: Any?
-        var timeTried: Long
+        try {
+            var retry = 0
+            var result: Any?
+            var timeTried: Long
 
-        Thread.sleep(args.startDelay.toMillis())
-        do {
-            result = try {
-                args.command!!.invoke()
-            } catch (exception: Exception) {
-                exception
-            }
-
-            if (retry == 0 && result is SimpleResponse) {
-                println(result.url)
-            }
-            unbufferedPrint('.')
-
-            retry++
-            timeTried = args.interval.toMillis() * retry
-            attempts.add(Attempt(retry, Duration.ofMillis(timeTried),
-                if (result is Exception) result.stackTraceToString() else result.toString() ))
-
-            if (result is SimpleResponse) {
-                if (null != args.immediateFailCondition && args.immediateFailCondition!!.invoke(result)) {
-                    fail("Failed without retry with status code = ${result.code} and body =\n${result.body}")
+            Thread.sleep(args.startDelay.toMillis())
+            do {
+                result = try {
+                    args.command!!.invoke()
+                } catch (exception: Exception) {
+                    exception
                 }
-                if (args.condition!!.invoke(result)) break
+
+                if (retry == 0 && result is SimpleResponse) {
+                    println(result.url)
+                }
+                unbufferedPrint('.')
+
+                retry++
+                timeTried = args.interval.toMillis() * retry
+                attempts.add(Attempt(retry, Duration.ofMillis(timeTried),
+                    if (result is Exception) result.stackTraceToString() else result.toString()))
+
+                if (result is SimpleResponse) {
+                    if (null != args.immediateFailCondition && args.immediateFailCondition!!.invoke(result)) {
+                        fail("Failed without retry with status code = ${result.code} and body =\n${result.body}")
+                    }
+                    if (args.condition!!.invoke(result)) break
+                }
+                Thread.sleep(args.interval.toMillis())
+            } while (timeTried < args.timeout.toMillis())
+            println()
+
+            when (result) {
+                is SimpleResponse -> {
+                    assertThat(args.condition!!.invoke(result))
+                        .withFailMessage(
+                            "${args.failMessage}Retried ${result.url} and " +
+                                    "failed with status code = ${result.code} and body =\n${result.body}.\nAttempts:\n${printAttempt(attempts)}"
+                        )
+                        .isTrue
+
+                    return result
+                }
+
+                else -> fail("${args.failMessage} Retried $retry times and failed with $result.\nAttempts:\n${printAttempt(attempts)}")
             }
-            Thread.sleep(args.interval.toMillis())
-        } while (timeTried < args.timeout.toMillis())
-        println()
-
-        when (result) {
-            is SimpleResponse -> {
-                assertThat(args.condition!!.invoke(result))
-                    .withFailMessage(
-                        "${args.failMessage}Retried ${result.url} and " +
-                                "failed with status code = ${result.code} and body =\n${result.body}.\nAttempts:\n${printAttempt(attempts)}"
-                    )
-                    .isTrue
-
-                return result
-            }
-
-            else -> fail("${args.failMessage} Retried $retry times and failed with $result.\nAttempts:\n${printAttempt(attempts)}")
+        } catch (e: Exception) {
+            println("\nAttempts:\n${printAttempt(attempts)}")
+            throw e
         }
     }
 }
