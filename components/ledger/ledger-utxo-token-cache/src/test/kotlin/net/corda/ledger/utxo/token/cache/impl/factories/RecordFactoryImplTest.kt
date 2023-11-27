@@ -10,7 +10,6 @@ import net.corda.data.ledger.utxo.token.selection.data.TokenClaimQueryResult
 import net.corda.data.ledger.utxo.token.selection.data.TokenClaimResultStatus
 import net.corda.flow.external.events.responses.factory.ExternalEventResponseFactory
 import net.corda.ledger.utxo.token.cache.entities.CachedToken
-import net.corda.ledger.utxo.token.cache.entities.TokenBalance
 import net.corda.ledger.utxo.token.cache.factories.RecordFactoryImpl
 import net.corda.ledger.utxo.token.cache.impl.POOL_CACHE_KEY
 import net.corda.ledger.utxo.token.cache.impl.POOL_KEY
