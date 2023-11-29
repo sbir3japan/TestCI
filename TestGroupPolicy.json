@@ -36,6 +36,15 @@
           "endpointProtocol-1" : 1,
 
           "role": "notary"
+        },
+        {
+          "name" : "CN=EVM, OU=Application, O=Ethereum, L=Brussels, C=BE",
+
+          "memberStatus" : "ACTIVE",
+
+          "endpointUrl-1" : "https://bob.corda5.r3.com:10000",
+
+          "endpointProtocol-1" : 1
         }
       ]
 

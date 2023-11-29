@@ -21,7 +21,7 @@ data class FungibleTokenState(
     val linearId: UUID = UUID.randomUUID(),
     val fractionDigits: Int,
     val symbol: String,
-    val balances: Long,
+    val balances: Map<PublicKey,Long>,
     private val participants : List<PublicKey>): ContractState {
         override fun getParticipants(): List<PublicKey> = participants
     }

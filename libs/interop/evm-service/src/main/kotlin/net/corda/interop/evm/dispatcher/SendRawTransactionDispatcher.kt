@@ -40,14 +40,12 @@ class SendRawTransactionDispatcher(private val evmConnector: EthereumConnector) 
 
 
         val transaction = RawTransaction.createTransaction(
-            parsedChainId,
             nonce,
+            BigInteger.valueOf(20000000000),
             Numeric.toBigInt(request.options.gasLimit),
             evmRequest.to,
             BigInteger.valueOf(request.options.value.toLong()),
-            data,
-            Numeric.toBigInt(request.options.maxPriorityFeePerGas),
-            Numeric.toBigInt(request.options.maxFeePerGas)
+            data
         )
 
         val signer = Credentials.create(temporaryPrivateKey)

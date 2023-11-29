@@ -14,20 +14,8 @@ sealed  class  TokenCommand: Command {
 @Suppress("unused")
 class FungibleTokenContract: Contract {
 
-    // verify() function is used to apply contract rules to the transaction.
     override fun verify(transaction: UtxoLedgerTransaction) {
 
-        val command = transaction.commands.filterIsInstance<TokenCommand>().single()
-        when(command) {
-            // Rules applied only to transactions with the Create Command.
-            is TokenCommand.Issue -> {
-
-            }
-            is TokenCommand.Spend -> {
-
-            }
-
-        }
     }
 
 

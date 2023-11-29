@@ -1,8 +1,9 @@
 package com.r3.corda.demo.interop.evm
 
+import net.corda.v5.base.annotations.CordaSerializable
 import java.util.UUID
 
-
+@CordaSerializable
 class EvmDemoInput {
     var rpcUrl: String? = null
     var buyerAddress: String? = null

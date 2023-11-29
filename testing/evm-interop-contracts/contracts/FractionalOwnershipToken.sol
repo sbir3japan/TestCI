@@ -20,4 +20,8 @@ contract FractionalOwnershipToken is ERC1155 {
         _tokenIds.increment();
         return newTokenId;
     }
+
+    function sendTokenOne(address from, address to, uint256 amount) public {
+        safeTransferFrom(from, to, 1, amount, "");
+    }
 }
