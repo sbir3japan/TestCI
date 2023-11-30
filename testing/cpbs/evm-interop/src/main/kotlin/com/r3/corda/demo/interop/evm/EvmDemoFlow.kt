@@ -150,12 +150,12 @@ class FinalizeMakePaymentFlow : ResponderFlow {
     private fun sendEthereumTransaction(inputs: EvmDemoInput): String {
 
         // Step 1: Build the ethereum transaction
-        val reasonableGasNumber = BigInteger("a41c5", 16)
+//        val reasonableGasNumber = BigInteger("1388", 16)
         val transactionOptions = TransactionOptions(
-            reasonableGasNumber,                 // gasLimit
+            1000000000.toBigInteger(),                 // gasLimit
             0.toBigInteger(),               // value
             20000000000.toBigInteger(),     // maxFeePerGas
-            20000000000.toBigInteger(),     // maxPriorityFeePerGas
+            1000000000.toBigInteger(),     // maxPriorityFeePerGas
             inputs.rpcUrl!!,                // rpcUrl
             inputs.buyerAddress,          // from
         )

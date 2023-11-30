@@ -1,0 +1,23 @@
+@import url("https://fonts.googleapis.com/css2?family=Roboto&display=swap");
+
+@font-face {
+  font-family: "Roboto";
+  src: url("https://fonts.googleapis.com/css2?family=Roboto&display=swap");
+}
+
+body {
+  background: rgb(231, 148, 160);
+  background: linear-gradient(
+    to bottom right,
+    rgba(244, 240, 241, 0.09849877450980393) 0%,
+    rgba(231, 148, 160, 1) 100%
+  );
+}
+
+.donutchart-innertext {
+  font-family: Roboto;
+}
+
+.donutchart-legend {
+  font-family: Roboto;
+}

@@ -27,7 +27,7 @@ class SendRawTransactionDispatcher(private val evmConnector: EthereumConnector) 
     private val temporaryPrivateKey = TEMPORARY_PRIVATE_KEY
 
     override fun dispatch(evmRequest: EvmRequest): EvmResponse {
-        val request = evmRequest.payload as Transaction
+         val request = evmRequest.payload as Transaction
         val data = TransactionEncoder.encode(request.function, request.parameters)
 
 
@@ -41,13 +41,12 @@ class SendRawTransactionDispatcher(private val evmConnector: EthereumConnector) 
 
         val transaction = RawTransaction.createTransaction(
             nonce,
-            BigInteger.valueOf(20000000000),
-            Numeric.toBigInt(request.options.gasLimit),
+            20000000000.toBigInteger(),
+            6721975.toBigInteger(),
             evmRequest.to,
             BigInteger.valueOf(request.options.value.toLong()),
             data
         )
-
         val signer = Credentials.create(temporaryPrivateKey)
         val signed = TxSignServiceImpl(signer).sign(transaction, parsedChainId)
         val tReceipt = evmConnector.send<GenericResponse>(
