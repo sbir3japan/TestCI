@@ -1,19 +1,15 @@
 package net.corda.flow.application.interop
 
 import co.paralleluniverse.fibers.Suspendable
-import net.corda.flow.application.interop.external.events.EvmCallExternalEventFactory
-import net.corda.flow.application.interop.external.events.EvmCallExternalEventParams
-import net.corda.flow.application.interop.external.events.EvmTransactionExternalEventFactory
-import net.corda.flow.application.interop.external.events.EvmTransactionExternalEventParams
-import net.corda.flow.application.interop.external.events.EvmTransactionReceiptExternalEventFactory
-import net.corda.flow.application.interop.external.events.EvmTransactionReceiptExternalEventParams
 import net.corda.flow.external.events.executor.ExternalEventExecutor
 import net.corda.sandbox.type.SandboxConstants.CORDA_SYSTEM_SERVICE
 import net.corda.sandbox.type.UsedByFlow
+import net.corda.v5.application.interop.evm.Type
 import net.corda.v5.application.interop.evm.EvmService
 import net.corda.v5.application.interop.evm.Parameter
 import net.corda.v5.application.interop.evm.TransactionReceipt
-import net.corda.v5.application.interop.evm.Type
+import net.corda.v5.application.interop.evm.Block
+
 import net.corda.v5.application.interop.evm.options.CallOptions
 import net.corda.v5.application.interop.evm.options.EvmOptions
 import net.corda.v5.application.interop.evm.options.TransactionOptions
@@ -24,6 +20,15 @@ import org.osgi.service.component.annotations.Activate
 import org.osgi.service.component.annotations.Component
 import org.osgi.service.component.annotations.Reference
 import org.osgi.service.component.annotations.ServiceScope.PROTOTYPE
+import net.corda.flow.application.interop.external.events.EvmCallExternalEventFactory
+import net.corda.flow.application.interop.external.events.EvmCallExternalEventParams
+import net.corda.flow.application.interop.external.events.EvmTransactionExternalEventFactory
+import net.corda.flow.application.interop.external.events.EvmTransactionExternalEventParams
+import net.corda.flow.application.interop.external.events.EvmTransactionReceiptExternalEventFactory
+import net.corda.flow.application.interop.external.events.EvmTransactionReceiptExternalEventParams
+import net.corda.flow.application.interop.external.events.EvmGetBalanceExternalEventFactory
+import net.corda.flow.application.interop.external.events.EvmGetBalanceExternalEventParamaters
+import java.math.BigInteger
 
 @Component(
     service = [EvmService::class, UsedByFlow::class],
@@ -129,4 +134,29 @@ class EvmServiceImpl @Activate constructor(
             throw CordaRuntimeException("Wrong type returned for call to TransactionReceipt.", e)
         }
     }
+
+    override fun getBlockByNumber(number: BigInteger, fullTransactionObject: Boolean, options: EvmOptions?): Block {
+        TODO("Not yet implemented")
+    }
+
+    override fun getBlockByHash(hash: String, fullTransactionObject: Boolean, options: EvmOptions?): Block {
+        TODO("Not yet implemented")
+    }
+
+    override fun getBalance(address: String, blockNumber: String, options: EvmOptions): BigInteger {
+        return try {
+            externalEventExecutor.execute(
+                EvmGetBalanceExternalEventFactory::class.java,
+                EvmGetBalanceExternalEventParamaters(
+                    options = options,
+                    address = address,
+                    blockNumber = blockNumber,
+            ))
+
+        }catch (e: ClassCastException) {
+            throw CordaRuntimeException("Wrong type returned for call to TransactionReceipt.", e)
+        }
+
+    }
+
 }

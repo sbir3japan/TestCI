@@ -30,4 +30,13 @@ interface DispatcherFactory {
      */
     fun sendRawTransactionDispatcher(evmConnector: EthereumConnector): EvmDispatcher
 
+    /**
+     * Dispatcher used to get the balance of an account on an EVM Node
+     *
+     * @param evmConnector The evmConnector class used to make rpc calls to the node
+     */
+
+    fun getBalanceDispatcher(evmConnector: EthereumConnector): EvmDispatcher
+
+
 }

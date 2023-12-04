@@ -1,10 +1,7 @@
 package net.corda.interop.evm.dispatcher.factory
 
-import net.corda.interop.evm.dispatcher.EvmDispatcher
 import net.corda.interop.evm.EthereumConnector
-import net.corda.interop.evm.dispatcher.CallDispatcher
-import net.corda.interop.evm.dispatcher.GetTransactionReceiptDispatcher
-import net.corda.interop.evm.dispatcher.SendRawTransactionDispatcher
+import net.corda.interop.evm.dispatcher.*
 
 object GenericDispatcherFactory : DispatcherFactory {
 
@@ -23,4 +20,7 @@ object GenericDispatcherFactory : DispatcherFactory {
         return SendRawTransactionDispatcher(evmConnector)
     }
 
+    override fun getBalanceDispatcher(evmConnector: EthereumConnector): EvmDispatcher {
+        return GetBalanceDispatcher(evmConnector)
+    }
 }

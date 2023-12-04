@@ -72,6 +72,23 @@ npm run dev
 
 `
 
+java -jar ./applications/workers/release/combined-worker/build/bin/corda-combined-worker-5.1.0-EVMINTEROP.0-SNAPSHOT.jar \
+--instance-id=0 \
+-mbus.busType=DATABASE \
+-spassphrase=password \
+-ssalt=salt \
+-ddatabase.user=user \
+-ddatabase.pass=password \
+-ddatabase.jdbc.url=jdbc:postgresql://localhost:5432/cordacluster \
+-ddatabase.jdbc.directory=./applications/workers/release/combined-worker/drivers \
+-rtls.crt.path=./applications/workers/release/combined-worker/tls/rest/server.crt \
+-rtls.key.path=./applications/workers/release/combined-worker/tls/rest/server.key \
+-rtls.ca.crt.path=./applications/workers/release/combined-worker/tls/rest/ca-chain-bundle.crt \
+--serviceEndpoint=endpoints.crypto=localhost:7004 \
+--serviceEndpoint=endpoints.verification=localhost:7004 \
+--serviceEndpoint=endpoints.uniqueness=localhost:7004 \
+--serviceEndpoint=endpoints.persistence=localhost:7004 \
+--serviceEndpoint=endpoints.tokenSelection=localhost:7004
 
 
 

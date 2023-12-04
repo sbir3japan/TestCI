@@ -7,6 +7,7 @@ import net.corda.data.interop.evm.EvmRequest
 import net.corda.data.interop.evm.request.Call
 import net.corda.data.interop.evm.request.GetTransactionReceipt
 import net.corda.data.interop.evm.request.Transaction
+import net.corda.data.interop.evm.request.GetBalance
 import net.corda.flow.external.events.responses.factory.ExternalEventResponseFactory
 import net.corda.interop.evm.EVMErrorException
 import net.corda.interop.evm.EthereumConnector
@@ -55,7 +56,8 @@ class EVMOpsProcessor(
         dispatcher = mapOf(
             Call::class to factory.callDispatcher(evmConnector),
             GetTransactionReceipt::class to factory.getTransactionByReceiptDispatcher(evmConnector),
-            Transaction::class to factory.sendRawTransactionDispatcher(evmConnector)
+            Transaction::class to factory.sendRawTransactionDispatcher(evmConnector),
+            GetBalance::class to factory.getBalanceDispatcher(evmConnector)
         )
     }
 
