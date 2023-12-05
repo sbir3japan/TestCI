@@ -7,20 +7,19 @@ import net.corda.v5.crypto.merkle.MerkleProofType
 import net.corda.v5.crypto.merkle.MerkleTree
 
 /**
- *  leaves:         [L0, L1, L2, L3, L4]
- *                    |   |   |   |   |
- *  leafHashes:     [H0, H1, H2, H3, H4]
+ *    leaves:         [L0, L1, L2, L3, L4]
+ *                      |   |   |   |   |
+ *    leafHashes:     [H0, H1, H2, H3, H4]
  *
- *  nodeHashes:    [[H0, H1, H2, H3, H4]
- *                     \ /     \ /    |
- *                  [ H01  ,  H23  , H4]
- *                      \    /       |
- *                  [    H03       , H4]
- *                          \      /
- *                  [         H04      ]
- *                  ]
- *                             |
- *  root:                     H04
+ *    nodeHashes:     [H0, H1, H2, H3, H4]
+ *                       \ /     \ /    |
+ *                    [ H01  ,  H23  , H4]
+ *                        \    /       |
+ *                    [    H03       , H4]
+ *                            \      /
+ *                    [         H04      ]
+ *                               |
+ *    root:                     H04
  *
  *  Proof calculation example for one leaf:
  *  createAuditProof([2])
@@ -41,31 +40,34 @@ import net.corda.v5.crypto.merkle.MerkleTree
  *
  * The right section after the tree shows the proof calculation's steps.
  *
- *  The proof:
- *  (
- *  5 (leaves.size),
- *  [IndexedMerkleLeaf(2, leafNonce(2), L2)]
- *  [H3, H01, H4]
- *  )
+ * The proof:
  *
- *  Proof calculation example for two leaves:
- *  createAuditProof([1,2])
- *                                      inPath          level       outputHashes
- *                              init:
- *    H0  {H1}{H2} H3  H4               [0, 1, 1, 0, 0] 0           []
- *      \ /     \ /    |        1st iter:
- *     {H01}   {H23}   H4               [1, 1, 0]       1           [H0, H3 ]
- *       \    /        |        2nd iter:
- *        {H03}        H4               [1, 0]          2           [H0, H3]
- *           \       /          3rd iter:
- *             {H04}                    [1]             3           [H0, H3, H4]
+ *    (
+ *    5 (leaves.size),
+ *    [IndexedMerkleLeaf(2, leafNonce(2), L2)]
+ *    [H3, H01, H4]
+ *    )
+ *
+ * Proof calculation example for two leaves:
+ *
+ *    createAuditProof([1,2])
+ *                                        inPath          level       outputHashes
+ *                                init:
+ *      H0  {H1}{H2} H3  H4               [0, 1, 1, 0, 0] 0           []
+ *        \ /     \ /    |        1st iter:
+ *       {H01}   {H23}   H4               [1, 1, 0]       1           [H0, H3 ]
+ *         \    /        |        2nd iter:
+ *          {H03}        H4               [1, 0]          2           [H0, H3]
+ *             \       /          3rd iter:
+ *               {H04}                    [1]             3           [H0, H3, H4]
  *
  *  The proof:
- *  (
- *  5 (leaves.size),
- *  [IndexedMerkleLeaf(1, leafNonce(1), L1), IndexedMerkleLeaf(2, leafNonce(2), L2)]
- *  [H0, H3, H4]
- *  )
+ *
+ *    (
+ *    5 (leaves.size),
+ *    [IndexedMerkleLeaf(1, leafNonce(1), L1), IndexedMerkleLeaf(2, leafNonce(2), L2)]
+ *    [H0, H3, H4]
+ *    )
  *
  */
 
@@ -124,7 +126,7 @@ class MerkleTreeImpl(
      * more hashing.
      */
 
-    private val nodeHashes: List<List<SecureHash>> by lazy(LazyThreadSafetyMode.PUBLICATION) {
+    val nodeHashes: List<List<SecureHash>> by lazy(LazyThreadSafetyMode.PUBLICATION) {
         val hashSet = mutableListOf<List<SecureHash>>()
         var hashes = leafHashes
         hashSet += hashes
