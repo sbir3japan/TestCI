@@ -1,14 +1,11 @@
 package net.corda.flow.application.interop
 
 import co.paralleluniverse.fibers.Suspendable
+import net.corda.flow.application.interop.external.events.*
 import net.corda.flow.external.events.executor.ExternalEventExecutor
 import net.corda.sandbox.type.SandboxConstants.CORDA_SYSTEM_SERVICE
 import net.corda.sandbox.type.UsedByFlow
-import net.corda.v5.application.interop.evm.Type
-import net.corda.v5.application.interop.evm.EvmService
-import net.corda.v5.application.interop.evm.Parameter
-import net.corda.v5.application.interop.evm.TransactionReceipt
-import net.corda.v5.application.interop.evm.Block
+import net.corda.v5.application.interop.evm.*
 
 import net.corda.v5.application.interop.evm.options.CallOptions
 import net.corda.v5.application.interop.evm.options.EvmOptions
@@ -20,14 +17,7 @@ import org.osgi.service.component.annotations.Activate
 import org.osgi.service.component.annotations.Component
 import org.osgi.service.component.annotations.Reference
 import org.osgi.service.component.annotations.ServiceScope.PROTOTYPE
-import net.corda.flow.application.interop.external.events.EvmCallExternalEventFactory
-import net.corda.flow.application.interop.external.events.EvmCallExternalEventParams
-import net.corda.flow.application.interop.external.events.EvmTransactionExternalEventFactory
-import net.corda.flow.application.interop.external.events.EvmTransactionExternalEventParams
-import net.corda.flow.application.interop.external.events.EvmTransactionReceiptExternalEventFactory
-import net.corda.flow.application.interop.external.events.EvmTransactionReceiptExternalEventParams
-import net.corda.flow.application.interop.external.events.EvmGetBalanceExternalEventFactory
-import net.corda.flow.application.interop.external.events.EvmGetBalanceExternalEventParamaters
+
 import java.math.BigInteger
 
 @Component(
@@ -136,11 +126,33 @@ class EvmServiceImpl @Activate constructor(
     }
 
     override fun getBlockByNumber(number: BigInteger, fullTransactionObject: Boolean, options: EvmOptions?): Block {
-        TODO("Not yet implemented")
+        return try {
+            externalEventExecutor.execute(
+                EvmGetBlockByNumberExternalEventFactory::class.java,
+                EvmGetBlockByNumberParams(
+                    options = options!!,
+                    blockNumber = number.toString(),
+                    fullTransactionObjects = fullTransactionObject,
+                )
+            )
+        } catch (e: ClassCastException) {
+            throw CordaRuntimeException("Wrong type returned for call to getBlockByNumber.", e)
+        }
     }
 
     override fun getBlockByHash(hash: String, fullTransactionObject: Boolean, options: EvmOptions?): Block {
-        TODO("Not yet implemented")
+        return try {
+            externalEventExecutor.execute(
+                EvmGetBlockByHashExternalEventFactory::class.java,
+                EvmGetBlockByHashParams(
+                    options = options!!,
+                    hash = hash,
+                    fullTransactionObjects = fullTransactionObject,
+                )
+            )
+        } catch (e: ClassCastException) {
+            throw CordaRuntimeException("Wrong type returned for call to getBlockByNumber.", e)
+        }
     }
 
     override fun getBalance(address: String, blockNumber: String, options: EvmOptions): BigInteger {
@@ -154,9 +166,37 @@ class EvmServiceImpl @Activate constructor(
             ))
 
         }catch (e: ClassCastException) {
-            throw CordaRuntimeException("Wrong type returned for call to TransactionReceipt.", e)
+            throw CordaRuntimeException("Wrong type returned for call to getBalance.", e)
         }
 
+    }
+
+    override fun getTransactionByHash(hash: String, options: EvmOptions): TransactionObject {
+        return try {
+            externalEventExecutor.execute(
+                EvmGetTransactionByHashExternalEventFactory::class.java,
+                EvmGetTransactionByHashEventFactoryParams(
+                    options = options,
+                    hash = hash,
+                )
+            )
+        } catch (e: ClassCastException) {
+            throw CordaRuntimeException("Wrong type returned for call to getTransactionByHash.", e)
+        }
+    }
+
+    override fun waitForTransaction(transactionHash: String, options: EvmOptions): TransactionReceipt {
+        return try {
+            externalEventExecutor.execute(
+                EvmWaitForTransactionExternalEventFactory::class.java,
+                EvmWaitForTransactionExternalEventFactoryParams(
+                    options = options,
+                    hash = transactionHash,
+                )
+            )
+        }catch (e: ClassCastException) {
+            throw CordaRuntimeException("Wrong type returned for call to waitForTransaction.", e)
+        }
     }
 
 }

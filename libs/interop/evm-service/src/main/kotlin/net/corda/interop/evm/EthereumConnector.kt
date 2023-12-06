@@ -36,6 +36,7 @@ class EthereumConnector(
     ): T {
         val response = evmRpc.rpcCall(rpcUrl, method, params)
         return try {
+//            println("Response: $response")
             objectMapper.readValue(response, clazz)
         } catch (e: DatabindException) {
             val error = objectMapper.readValue(response, JsonRpcError::class.java)

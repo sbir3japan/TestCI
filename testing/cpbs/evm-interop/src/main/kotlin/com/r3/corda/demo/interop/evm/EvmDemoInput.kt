@@ -20,6 +20,13 @@ class EvmDemoTxnReceiptInput {
     var hash: String? = null
 }
 
+class TransactionHashInput {
+    var rpcUrl: String? = null
+    var hash: String? = null
+}
+
+
+
 class EvmDemoCallInput {
     var rpcUrl: String? = null
     var contractAddress: String? = null

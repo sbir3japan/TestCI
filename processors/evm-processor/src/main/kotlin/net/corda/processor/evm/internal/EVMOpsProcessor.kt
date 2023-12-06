@@ -4,10 +4,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import net.corda.data.flow.event.FlowEvent
 import net.corda.data.interop.evm.EvmRequest
-import net.corda.data.interop.evm.request.Call
-import net.corda.data.interop.evm.request.GetTransactionReceipt
-import net.corda.data.interop.evm.request.Transaction
-import net.corda.data.interop.evm.request.GetBalance
+import net.corda.data.interop.evm.request.*
 import net.corda.flow.external.events.responses.factory.ExternalEventResponseFactory
 import net.corda.interop.evm.EVMErrorException
 import net.corda.interop.evm.EthereumConnector
@@ -57,12 +54,15 @@ class EVMOpsProcessor(
             Call::class to factory.callDispatcher(evmConnector),
             GetTransactionReceipt::class to factory.getTransactionByReceiptDispatcher(evmConnector),
             Transaction::class to factory.sendRawTransactionDispatcher(evmConnector),
-            GetBalance::class to factory.getBalanceDispatcher(evmConnector)
+            GetBalance::class to factory.getBalanceDispatcher(evmConnector),
+            GetBlockByNumber::class to factory.getBlockByNumber(evmConnector),
+            GetBlockByHash::class to factory.getBlockByHash(evmConnector),
+            GetTransactionByHash::class to factory.getTransactionByHash(evmConnector),
+            WaitForTransaction::class to factory.waitForTransactionDispatcher(evmConnector)
         )
     }
 
-    // This is blocking
-    // Make this asynchronous
+
     private fun handleRequest(request: EvmRequest): Record<String, FlowEvent> {
         val response = dispatcher[request.payload::class]?.dispatch(request)
         return if (response != null) {

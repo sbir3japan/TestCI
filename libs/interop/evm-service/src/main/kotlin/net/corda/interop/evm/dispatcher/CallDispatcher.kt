@@ -13,7 +13,7 @@ import net.corda.interop.evm.encoder.TransactionEncoder
 
 
 /**
- * Dispatcher used to make call methods to a Generic EVM Node
+ * Dispatcher used to make get the balance of an address
  *
  * @param evmConnector The evmConnector class used to make rpc calls to the node
  */

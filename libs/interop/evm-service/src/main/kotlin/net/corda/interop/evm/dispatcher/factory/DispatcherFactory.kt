@@ -39,4 +39,35 @@ interface DispatcherFactory {
     fun getBalanceDispatcher(evmConnector: EthereumConnector): EvmDispatcher
 
 
+    /**
+     * Dispatcher used to get the block by number
+     *
+     * @param evmConnector The evmConnector class used to make rpc calls to the node
+     */
+
+    fun getBlockByNumber(evmConnector: EthereumConnector): EvmDispatcher
+
+
+    /**
+     * Dispatcher used to get block by hash
+     *
+     * @param evmConnector the evmConnector class used to make rpc calls to the node
+     */
+
+    fun getBlockByHash(evmConnector: EthereumConnector): EvmDispatcher
+
+    /**
+     * Dispatcher user to get a transaction by hash
+     */
+
+    fun getTransactionByHash(evmConnector: EthereumConnector): EvmDispatcher
+
+    /**
+     * Dispatcher used to wait for a transaction to finish
+     */
+
+    fun waitForTransactionDispatcher(evmConnector: EthereumConnector): EvmDispatcher
+
+
+
 }

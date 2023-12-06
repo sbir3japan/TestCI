@@ -4,20 +4,25 @@ import net.corda.v5.application.flows.ClientRequestBody
 import net.corda.v5.application.flows.ClientStartableFlow
 import net.corda.v5.application.flows.CordaInject
 import net.corda.v5.application.interop.evm.EvmService
-import net.corda.v5.application.interop.evm.Parameter
-import net.corda.v5.application.interop.evm.Type
-import net.corda.v5.application.interop.evm.options.CallOptions
 import net.corda.v5.application.interop.evm.options.EvmOptions
 import net.corda.v5.application.marshalling.JsonMarshallingService
 import net.corda.v5.application.membership.MemberLookup
 import net.corda.v5.base.annotations.Suspendable
 import org.slf4j.LoggerFactory
 
+
+data class EvmGetBlockByHashInput(
+    val hash: String,
+    val includeTransactions: Boolean,
+    val rpcUrl: String?
+)
+
+
 /**
  * The Evm Demo Flow is solely for demoing access to the EVM from Corda.
  */
 @Suppress("unused")
-class EvmDemoCall : ClientStartableFlow {
+class EvmGetBlockByHash: ClientStartableFlow {
 
     private companion object {
         private val log = LoggerFactory.getLogger(this::class.java.enclosingClass)
@@ -35,23 +40,13 @@ class EvmDemoCall : ClientStartableFlow {
 
     @Suspendable
     override fun call(requestBody: ClientRequestBody): String {
-        log.info("Starting Evm Demo Txn Receipt Flow...")
+        log.info("Starting Evm Get Block By Number Flow...")
         try {
             // Get any of the relevant details from te request here
-            val inputs = requestBody.getRequestBodyAs(jsonMarshallingService, EvmDemoCallInput::class.java)
-            val options = CallOptions(EvmOptions(inputs.rpcUrl!!, ""))
+            val inputs = requestBody.getRequestBodyAs(jsonMarshallingService, EvmGetBlockByHashInput::class.java)
 
-            log.info("Querying Transaction Receipt for ${inputs.address} ...")
-            val receipt = evmService.call(
-                "balanceOf", inputs.contractAddress!!, options, Type.UINT256, listOf(
-                    Parameter.of("from", Type.ADDRESS, inputs.address!!),
-                    Parameter.of("id", Type.UINT256, 1.toBigInteger())
-                )
-            )
-            println(receipt)
-
-
-            return receipt.toString()
+            val receipt = evmService.getBlockByHash(inputs.hash, inputs.includeTransactions, EvmOptions(inputs.rpcUrl!!, ""))
+            return jsonMarshallingService.format(receipt)
         } catch (e: Exception) {
             log.error("Unexpected error while processing the flow", e)
             throw e

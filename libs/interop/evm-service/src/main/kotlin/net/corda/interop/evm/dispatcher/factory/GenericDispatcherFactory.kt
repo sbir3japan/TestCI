@@ -23,4 +23,20 @@ object GenericDispatcherFactory : DispatcherFactory {
     override fun getBalanceDispatcher(evmConnector: EthereumConnector): EvmDispatcher {
         return GetBalanceDispatcher(evmConnector)
     }
+
+    override fun getBlockByHash(evmConnector: EthereumConnector): EvmDispatcher {
+        return GetBlockByHash(evmConnector)
+    }
+
+    override fun getBlockByNumber(evmConnector: EthereumConnector): EvmDispatcher {
+        return GetBlockByNumber(evmConnector)
+    }
+
+    override fun getTransactionByHash(evmConnector: EthereumConnector): EvmDispatcher {
+        return GetTransactionByHash(evmConnector)
+    }
+
+    override fun waitForTransactionDispatcher(evmConnector: EthereumConnector): EvmDispatcher {
+       return WaitForTransactionDispatcher(evmConnector)
+    }
 }

@@ -117,13 +117,14 @@ class EvmDemoFlow : ClientStartableFlow {
 
             // Send a message containing the input details so that the counterparty can transfer the asset
             session.send(inputs)
-            val hash = session.receive(String::class.java)
+            val receipt = session.receive(String::class.java)
 
             // on receiving of a hash we finalize the transaction
+
             ledgerService.finalize(signedTransaction, listOf(session))
 
-            // Return the hash to the client
-            return jsonMarshallingService.format(EvmDemoOutput(hash))
+            return receipt
+
 
 
         } catch (e: Exception) {
@@ -142,6 +143,9 @@ class FinalizeMakePaymentFlow : ResponderFlow {
 
     @CordaInject
     lateinit var evmService: EvmService
+
+    @CordaInject
+    lateinit var jsonMarshallingService: JsonMarshallingService
 
     /**
      * This function sends the transaction to the EVM for transferring the fractionalized asset
@@ -170,12 +174,14 @@ class FinalizeMakePaymentFlow : ResponderFlow {
         )
 
         // Step 3  Call to the Evm to do the asset transfer
-        return this.evmService.transaction(
+        val hash =  this.evmService.transaction(
             "safeTransferFrom",
             inputs.contractAddress,
             transactionOptions,
             parameters
         )
+
+        return jsonMarshallingService.format(evmService.waitForTransaction(hash,transactionOptions))
     }
 
     @Suspendable

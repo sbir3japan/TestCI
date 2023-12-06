@@ -24,6 +24,11 @@ const val TEMPORARY_PRIVATE_KEY = "0x8f2a55949038a9610f50fb23b5883af3b4ecb3c3bb7
 const val GET_TRANSACTION_RECEIPT = "eth_getTransactionReceipt"
 
 /**
+ * JSON-RPC method for retrieving a transaction by hash.
+ */
+const val GET_TRANSACTION_BY_HASH = "eth_getTransactionByHash"
+
+/**
  * JSON-RPC method for retrieving the transaction count for an Ethereum address.
  */
 const val GET_TRANSACTION_COUNT = "eth_getTransactionCount"
@@ -54,6 +59,17 @@ const val ETH_GET_BALANCE = "eth_getBalance"
 const val ETH_GET_CODE = "eth_getCode"
 
 /**
+ * JSON-RPC method for getting the block by number
+ */
+const val ETH_GET_BLOCK_BY_NUMBER = "eth_getBlockByNumber"
+
+/**
+ * JSON-RPC method for getting the block by hash
+ */
+const val ETH_GET_BLOCK_BY_HASH = "eth_getBlockByHash"
+
+/**
  * Constant representing the "latest" block parameter when querying blockchain data.
  */
 const val LATEST = "latest"
+

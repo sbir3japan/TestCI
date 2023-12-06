@@ -1,5 +1,5 @@
 rm -rf output.cpi
-./gradlew jar && ./gradlew cpb
+./gradlew cpb && ./gradlew jar
 
 ./../corda-cli-plugin-host/build/generatedScripts/corda-cli.sh package create-cpi \
     --cpb testing/cpbs/evm-interop/build/libs/evm-interop-5.1.0-EVMINTEROP.0-SNAPSHOT-package.cpb  \
