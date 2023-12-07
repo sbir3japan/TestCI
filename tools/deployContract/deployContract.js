@@ -55,7 +55,6 @@ const deployContract = async () => {
     const signedTx2 = await web3.eth.accounts.signTransaction(tx2, privKey);
 
     const receipt2 = await web3.eth.sendSignedTransaction(signedTx2.rawTransaction);
-console.log(receipt2)
     // get balance
     const balance = contractInst.methods.balanceOf(mainAccount.address,1).encodeABI();
     const decodedBalance = await web3.eth.call({
