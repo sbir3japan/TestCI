@@ -6,6 +6,6 @@ First, run the development server:
 
 ```bash
   docker build -t swapsdemofe .
-  docker run -p 3000:3000 --network="host" swapsdemofe
+  docker run -p 3000:3000 swapsdemofe
 ```
 
