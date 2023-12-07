@@ -68,7 +68,7 @@ In the repository you will notice a .env file, copy the smart contract address t
 
 `
 docker build -t swapsdemofe .
-docker run -p 3000:3000 --network="host" swapsdemofe
+docker run -p 3000:3000  swapsdemofe
 `
 
 java -jar ./applications/workers/release/combined-worker/build/bin/corda-combined-worker-5.1.0-EVMINTEROP.0-SNAPSHOT.jar \
