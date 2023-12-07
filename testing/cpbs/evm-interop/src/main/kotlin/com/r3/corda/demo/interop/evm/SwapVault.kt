@@ -40,6 +40,34 @@ class SwapVault(
         return receipt.status
     }
 
+    fun claimCommitment(swapId: String, signatures: List<String>): Boolean {
+        val dummyGasNumber = BigInteger("a41c5", 16)
+        val transactionOptions = TransactionOptions(
+            dummyGasNumber,                 // gasLimit
+            0.toBigInteger(),               // value
+            20000000000.toBigInteger(),     // maxFeePerGas
+            20000000000.toBigInteger(),     // maxPriorityFeePerGas
+            rpcUrl,                // rpcUrl
+            contractAddress,          // from
+        )
+
+        val parameters = listOf(
+            Parameter.of("swapId", Type.STRING, swapId),
+            Parameter.of("signatures", Type.BYTE_LIST, signatures),
+        )
+
+        val hash = evmService.transaction(
+            "claimCommitment",
+            contractAddress,
+            transactionOptions,
+            parameters
+        )
+
+        val receipt = evmService.waitForTransaction(hash, transactionOptions)
+        return receipt.status
+    }
+
+
 
     fun commit(swapId: String, recipient: String, signaturesThreshold: BigInteger): Boolean {
         val dummyGasNumber = BigInteger("a41c5", 16)
@@ -105,7 +133,6 @@ class SwapVault(
         tokenId: BigInteger,
         amount: BigInteger,
         recipient: String,
-        String: String,
         signaturesThreshold: BigInteger
     ): Boolean {
         val dummyGasNumber = BigInteger("a41c5", 16)

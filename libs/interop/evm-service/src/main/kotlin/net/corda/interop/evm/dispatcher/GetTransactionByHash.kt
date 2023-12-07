@@ -20,7 +20,7 @@ class GetTransactionByHash(private val evmConnector: EthereumConnector) : EvmDis
         val resp = evmConnector.send<TransactionResponse>(
             evmRequest.rpcUrl,
             GET_TRANSACTION_BY_HASH,
-            listOf(request.blockHash)
+            listOf(request.hash)
         )
         val result = resp.result
 

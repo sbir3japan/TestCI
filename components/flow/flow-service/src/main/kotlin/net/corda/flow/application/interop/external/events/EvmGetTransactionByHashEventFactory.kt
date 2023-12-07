@@ -36,7 +36,7 @@ class EvmGetTransactionByHashExternalEventFactory
         parameters: EvmGetTransactionByHashEventFactoryParams
     ): ExternalEventRecord {
         val transaction = GetTransactionByHash.newBuilder()
-            .setBlockHash(parameters.hash)
+            .setHash(parameters.hash)
             .build()
         val request = EvmRequest.newBuilder()
             .setRpcUrl(parameters.options.rpcUrl)

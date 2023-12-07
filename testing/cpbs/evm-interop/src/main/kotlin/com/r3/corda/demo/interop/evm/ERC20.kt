@@ -179,7 +179,7 @@ class ERC20(
             ),
             Type.UINT256,
             Parameter.of("owner", Type.ADDRESS, owner),
-            Parameter.of("spender", Type.ADDRESS, owner),
+            Parameter.of("spender", Type.ADDRESS, spender),
         )
     }
 

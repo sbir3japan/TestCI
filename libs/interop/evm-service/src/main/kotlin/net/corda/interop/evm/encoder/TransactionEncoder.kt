@@ -34,15 +34,15 @@ class TransactionEncoder {
         fun encode(function: String, params: List<Parameter>): String {
             val (contractInput, typeSpecificParams) = params.map { it ->
                 // if it.type has []
-                if (it.type.contains("[]")) {
+                if (it.type.contains("[]") || it.type.contains("_list") || it.type.contains("_array")) {
                     // remove the [] and split by ,
-                    val type = it.type.replace("[]", "")
+                    val type = it.type.replace("[]", "").replace("_list", "").replace("_array", "")
                     val values = it.value.toString().replace(Regex("[\\[\\]]"), "").split(",")
                     Pair(
                         ABIContractInput(it.name, it.type, null),
                         values.map { AbiConverter.getType(type, it) }
                     )
-                } else {
+                }  else {
                     Pair(
                         ABIContractInput(it.name, it.type, null),
                         AbiConverter.getType(it.type, it.value.toString())
@@ -60,6 +60,7 @@ class TransactionEncoder {
          */
         private fun encodeFunctionSignature(method: ABIContractFunction): String {
             val methodString = jsonInterfaceMethodToString(method)
+
             return Hash.sha3String(methodString).slice(IntRange(0, 9))
         }
 
@@ -71,12 +72,15 @@ class TransactionEncoder {
         private fun flattenTypes(includeTuple: Boolean, puts: List<ABIContractInput>): List<*> {
             val types = mutableListOf<String>()
             puts.forEach { param ->
+                val type = param.type.replace("_list", "[]").replace("_array", "[]")
+
                 if (!param.components.isNullOrEmpty()) {
-                    if (!param.type.startsWith("tuple")) {
-                        throw Error("Invalid value given \"${param.type}\". Error: components found but type is not tuple.")
+                    // in case it has _list or _array replace that bit with []
+                    if (!type.startsWith("tuple")) {
+                        throw Error("Invalid value given \"${type}\". Error: components found but type is not tuple.")
                     }
-                    val arrayBracket = param.type.indexOf('[')
-                    val suffix = if (arrayBracket >= 0) param.type.substring(arrayBracket) else ""
+                    val arrayBracket = type.indexOf('[')
+                    val suffix = if (arrayBracket >= 0) type.substring(arrayBracket) else ""
                     val result = flattenTypes(includeTuple, param.components)
                     if (includeTuple) {
                         types.add("tuple(${result.joinToString(",")})$suffix")
@@ -84,7 +88,7 @@ class TransactionEncoder {
                         types.add("(${result.joinToString(",")})$suffix")
                     }
                 } else {
-                    types.add(param.type)
+                    types.add(type)
                 }
             }
             return types
@@ -97,6 +101,7 @@ class TransactionEncoder {
          */
         private fun jsonInterfaceMethodToString(method: ABIContractFunction): String {
             val types = flattenTypes(false, method.inputs)
+
             return "${method.name}(${types.joinToString(",")})"
         }
 

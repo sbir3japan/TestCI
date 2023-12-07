@@ -12,6 +12,7 @@ import net.corda.interop.evm.constants.LATEST
 import net.corda.interop.evm.constants.SEND_RAW_TRANSACTION
 import net.corda.interop.evm.constants.TEMPORARY_PRIVATE_KEY
 import net.corda.interop.evm.encoder.TransactionEncoder
+import org.slf4j.LoggerFactory
 import org.web3j.crypto.Credentials
 import org.web3j.crypto.RawTransaction
 import org.web3j.service.TxSignServiceImpl
@@ -25,10 +26,13 @@ import org.web3j.utils.Numeric
 class SendRawTransactionDispatcher(private val evmConnector: EthereumConnector) : EvmDispatcher {
     // This is used in absence of the crypto worker being able to sign these transactions for use
     private val temporaryPrivateKey = TEMPORARY_PRIVATE_KEY
+    private val log = LoggerFactory.getLogger(SendRawTransactionDispatcher::class.java)
 
     override fun dispatch(evmRequest: EvmRequest): EvmResponse {
          val request = evmRequest.payload as Transaction
         val data = TransactionEncoder.encode(request.function, request.parameters)
+
+        log.info("Transaction data: $data")
 
 
         val transactionCountResponse = evmConnector.send<GenericResponse>(
