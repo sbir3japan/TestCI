@@ -17,7 +17,7 @@ async function main() {
   // instantiate the contract
   // mint 10000 tokens to the deployer
   const mainAddress = "0xFE3B557E8Fb62b89F4916B721be55cEb828dBd73"
-  const tx = await lock.createToken(mainAddress, 10000,"DemoToken");
+  const tx = await lock.createToken(mainAddress, 1000000,"DemoToken");
   await tx.wait();
 
 
