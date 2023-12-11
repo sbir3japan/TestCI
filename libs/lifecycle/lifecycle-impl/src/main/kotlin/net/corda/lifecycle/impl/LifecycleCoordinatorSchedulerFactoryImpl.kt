@@ -27,7 +27,7 @@ class LifecycleCoordinatorSchedulerFactoryImpl @Activate constructor(): Lifecycl
      * By sharing a thread pool among coordinators, it should be possible to reduce resource usage when in a stable
      * state.
      */
-    private val executor = Executors.newCachedThreadPool(
+    private val executor = Executors.newSingleThreadExecutor(
         ThreadFactoryBuilder()
             .setUncaughtExceptionHandler(::handleUncaughtException)
             .setNameFormat("lifecycle-coordinator-%d")
