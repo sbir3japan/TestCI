@@ -10,18 +10,16 @@ import net.corda.v5.base.annotations.Suspendable
 import org.slf4j.LoggerFactory
 import java.math.BigInteger
 
-class GetTokenMetadataByAddressFlowInput {
-    val address: String? = null
+class Erc20TokensBalanceFlowInput {
+    val tokenAddress: String? = null
+    val holderAddress: String? = null
 }
 
-data class GetTokenMetadataByAddressFlowOutput (
-    val name: String? = null,
-    val symbol: String? = null,
-    val decimals: Byte? = null,
-    val address: String? = null
+data class Erc20TokensBalanceFlowOutput (
+    val balance: BigInteger? = null
 )
 @Suppress("unused")
-class GetTokenMetadataByAddressFlow: ClientStartableFlow {
+class Erc20TokensBalanceFlow: ClientStartableFlow {
     private companion object {
         private val log = LoggerFactory.getLogger(this::class.java.enclosingClass)
     }
@@ -34,27 +32,21 @@ class GetTokenMetadataByAddressFlow: ClientStartableFlow {
 
     @Suspendable
     override fun call(requestBody: ClientRequestBody): String {
-        log.info("Starting Evm Get Token metadata by address Flow...")
+        log.info("Starting Evm Get Balance Flow...")
         try {
             // Get any of the relevant details from the request here
-            val inputs = requestBody.getRequestBodyAs(jsonMarshallingService, GetTokenMetadataByAddressFlowInput::class.java)
+            val inputs = requestBody.getRequestBodyAs(jsonMarshallingService, Erc20TokensBalanceFlowInput::class.java)
 
             // Instantiate the erc20 token
-            val erc20 = ERC20(Constants.RPC_URL, evmService, inputs.address!!)
+            val erc20 = ERC20(Constants.RPC_URL, evmService, inputs.tokenAddress!!)
 
-            // Get the token name
-            val name = erc20.name()
+            // Get the balance
+            val output = erc20.balanceOf(inputs.holderAddress!!)
 
-            // Get the token symbol
-            val symbol = erc20.symbol()
-
-            // Get the token decimals
-            val decimals = erc20.decimals()
-
-            return jsonMarshallingService.format(GetTokenMetadataByAddressFlowOutput(name, symbol, decimals, inputs.address))
+            return jsonMarshallingService.format(Erc20TokensBalanceFlowOutput(output))
 
         } catch (e: Exception) {
-            log.error("Error in Evm Get Metadata Flow", e)
+            log.error("Error in Evm Get Balance Flow", e)
             throw e
         }
     }

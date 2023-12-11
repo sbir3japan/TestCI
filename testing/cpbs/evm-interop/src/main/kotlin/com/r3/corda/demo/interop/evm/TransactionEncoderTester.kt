@@ -47,7 +47,7 @@ class TransactionEncoderTester : ClientStartableFlow {
                 transactionOptions,
                 listOf(
                     Parameter("swapId", Type.STRING, "0x000000"),
-                    Parameter("signatures",Type.BYTES_LIST, mutableListOf(0x000000.toByte()))
+                    Parameter("signatures",Type.STRING, "0x000000"),
                 )
 
             )

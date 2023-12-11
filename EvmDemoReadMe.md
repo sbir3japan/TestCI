@@ -67,7 +67,7 @@ Navigate to the tools/evmDemo directory to startup the frontend.
     cd tools/evmDemo
 ```
 
-In the repository you will notice a .env file, copy the smart contract address to the paramater FRACTIONAL_CONTRACT_ADDRESS
+In the repository you will notice a next.config.js file, copy the smart contract address to the paramater FRACTIONAL_CONTRACT_ADDRESS
 
 ``` 
     FRACTIONAL_CONTRACT_ADDRESS=0x5FbDB2315678afecb367f032d93F642f64180aa3
