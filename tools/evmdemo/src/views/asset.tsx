@@ -172,6 +172,7 @@ const Asset = ({
                 }}
               />
               <Input
+                readOnly={true}
                 placeholder="Cost in total"
                 padding={10}
                 borderRadius={10}

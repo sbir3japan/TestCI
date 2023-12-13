@@ -25,11 +25,11 @@ sleep 1
 CPI=./notary.cpi
 
 sleep 1
-read REQUEST_ID < <(echo $(curl --insecure -u admin:admin  -s -F upload=@$CPI https://localhost:8888/api/v1/cpi/ | jq -r '.id'))
+read REQUEST_ID <<< $(curl --insecure -u admin:admin  -s -F upload=@$CPI https://localhost:8888/api/v1/cpi/ | jq -r '.id')
 echo "RequestID = "$REQUEST_ID
 
 sleep 25
-read STATUS CPI_HASH < <(echo $(curl --insecure -u admin:admin -s https://localhost:8888/api/v1/cpi/status/$REQUEST_ID | jq -r '.status, .cpiFileChecksum'))
+read STATUS CPI_HASH <<< $(curl --insecure -u admin:admin -s https://localhost:8888/api/v1/cpi/status/$REQUEST_ID | jq -r '.status, .cpiFileChecksum')
 printf "\nRequest id = $REQUEST_ID   CPI hash = $CPI_HASH   Status = $STATUS\n\n"
 sleep 1
 X500="C=GB, L=London, O=Notary"
@@ -50,11 +50,11 @@ sleep 1
 CPI=./output.cpi
 
 sleep 1
-read REQUEST_ID < <(echo $(curl --insecure -u admin:admin  -s -F upload=@$CPI https://localhost:8888/api/v1/cpi/ | jq -r '.id'))
+read REQUEST_ID <<< $(curl --insecure -u admin:admin  -s -F upload=@$CPI https://localhost:8888/api/v1/cpi/ | jq -r '.id')
 echo "RequestID = "$REQUEST_ID
 
 sleep 25
-read STATUS CPI_HASH < <(echo $(curl --insecure -u admin:admin -s https://localhost:8888/api/v1/cpi/status/$REQUEST_ID | jq -r '.status, .cpiFileChecksum'))
+read STATUS CPI_HASH <<< $(curl --insecure -u admin:admin -s https://localhost:8888/api/v1/cpi/status/$REQUEST_ID | jq -r '.status, .cpiFileChecksum')
 printf "\nRequest id = $REQUEST_ID   CPI hash = $CPI_HASH   Status = $STATUS\n\n"
 sleep 1
 X500="CN=Testing, OU=Application, O=R3, L=London, C=GB"
@@ -77,11 +77,11 @@ sleep 1
 CPI=./output.cpi
 
 sleep 1
-#read REQUEST_ID < <(echo $(curl --insecure -u admin:admin  -s -F upload=@$CPI https://localhost:8888/api/v1/cpi/ | jq -r '.id'))
+#read REQUEST_ID <<< $(curl --insecure -u admin:admin  -s -F upload=@$CPI https://localhost:8888/api/v1/cpi/ | jq -r '.id')
 #echo "RequestID = "$REQUEST_ID
 #
 #sleep 25
-#read STATUS CPI_HASH < <(echo $(curl --insecure -u admin:admin -s https://localhost:8888/api/v1/cpi/status/$REQUEST_ID | jq -r '.status, .cpiFileChecksum'))
+#read STATUS CPI_HASH <<< $(curl --insecure -u admin:admin -s https://localhost:8888/api/v1/cpi/status/$REQUEST_ID | jq -r '.status, .cpiFileChecksum')
 #printf "\nRequest id = $REQUEST_ID   CPI hash = $CPI_HASH   Status = $STATUS\n\n"
 sleep 1
 X500="CN=EVM, OU=Application, O=Ethereum, L=Brussels, C=BE"

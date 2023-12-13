@@ -28,6 +28,11 @@ export default function DialogElement({ open, setOpen, onComplete }: Props) {
     setOpen(false);
   };
 
+  const handleAgree = () => {
+    onComplete();
+    handleClose();
+  };
+
   return (
     <Dialog
       open={open}
@@ -41,7 +46,7 @@ export default function DialogElement({ open, setOpen, onComplete }: Props) {
         <DialogContentText id="alert-dialog-slide-description"></DialogContentText>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onComplete}>Agree</Button>
+        <Button onClick={handleAgree}>Agree</Button>
       </DialogActions>
     </Dialog>
   );
