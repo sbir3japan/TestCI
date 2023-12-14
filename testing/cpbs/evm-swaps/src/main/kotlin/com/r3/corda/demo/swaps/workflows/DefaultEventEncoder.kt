@@ -1,15 +1,15 @@
-package com.r3.corda.demo.swaps
+package com.r3.corda.demo.swaps.workflows
 
 import net.corda.v5.application.interop.evm.TransactionReceipt
 import net.corda.v5.base.annotations.CordaSerializable
-import org.web3j.abi.TypeEncoder
-import org.web3j.abi.datatypes.*
-import org.web3j.abi.datatypes.generated.Bytes32
-import org.web3j.abi.datatypes.generated.Int256
-import org.web3j.abi.datatypes.generated.Uint256
-import org.web3j.abi.datatypes.generated.Uint8
-import org.web3j.crypto.Hash
-import org.web3j.utils.Numeric
+import org.abi.TypeEncoder
+import org.abi.datatypes.*
+import org.abi.datatypes.generated.Bytes32
+import org.abi.datatypes.generated.Int256
+import org.abi.datatypes.generated.Uint256
+import org.abi.datatypes.generated.Uint8
+import org.crypto.Hash
+import org.utils.Numeric
 import java.math.BigInteger
 
 /**

@@ -17,7 +17,6 @@ dependencies {
     cordaProvided platform("net.corda:corda-api:$cordaApiVersion")
     cordaProvided 'org.jetbrains.kotlin:kotlin-osgi-bundle'
     cordaProvided 'net.corda:corda-ledger-utxo'
-    implementation "org.web3j:core:$web3jVersion"
 
     testImplementation project(":libs:application:application-impl")
     testImplementation project(":libs:sandbox-types")

@@ -1,6 +1,5 @@
 package com.r3.corda.demo.swaps.states.swap
 
-import com.r3.corda.demo.swaps.IUnlockEventEncoder
 import net.corda.v5.base.annotations.CordaSerializable
 import net.corda.v5.ledger.utxo.ContractState
 import java.security.PublicKey

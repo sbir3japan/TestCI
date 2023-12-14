@@ -6,41 +6,6 @@ import net.corda.v5.application.interop.evm.Log
 import net.corda.v5.application.interop.evm.TransactionReceipt
 
 
-/**
- * Helper function to replicate a TransactionReceipt to a Corda serializable version of it.
- */
-fun org.web3j.protocol.core.methods.response.TransactionReceipt.toSerializable(): TransactionReceipt {
-    return TransactionReceipt(
-       blockHash,
-        blockNumber,
-        contractAddress,
-        cumulativeGasUsed,
-        effectiveGasPrice.toBigInteger(),
-        from,
-        gasUsed,
-        logs.map {
-            Log(
-                it.address,
-                it.topics,
-                it.data,
-                it.blockNumber,
-                it.transactionHash,
-                it.transactionIndex,
-                it.blockHash,
-                it.logIndex.toInt(),
-                it.isRemoved
-            )
-        },
-        logsBloom,
-        status.toBoolean(),
-        to,
-        transactionHash,
-        transactionIndex,
-        type
-    )
-}
-
-
 //
 ///**
 // * Collect signatures for the provided [SignedTransaction], from the list of [Party] provided.

@@ -14,8 +14,6 @@ import net.corda.v5.base.types.MemberX500Name
 data class SwapTransactionDetails(
     val senderCordaName: MemberX500Name,
     val receiverCordaName: MemberX500Name,
-//    val cordaAssetState: StateAndRef<OwnableState>,
     val approvedCordaValidators: List<MemberX500Name>,
     val minimumNumberOfEventValidations: Int,
-//    val unlockEvent: IUnlockEventEncoder
 )

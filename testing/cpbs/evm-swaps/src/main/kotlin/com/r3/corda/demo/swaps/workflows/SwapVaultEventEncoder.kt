@@ -1,16 +1,16 @@
-package com.r3.corda.demo.swaps
+package com.r3.corda.demo.swaps.workflows
 
 import net.corda.v5.base.annotations.CordaSerializable
 import net.corda.v5.crypto.SecureHash
-import org.web3j.abi.DefaultFunctionEncoder
-import org.web3j.abi.Utils.typeMap
-import org.web3j.abi.datatypes.Address
-import org.web3j.abi.datatypes.DynamicArray
-import org.web3j.abi.datatypes.Type
-import org.web3j.abi.datatypes.generated.Bytes32
-import org.web3j.abi.datatypes.generated.Uint256
-import org.web3j.crypto.Hash
-import org.web3j.utils.Numeric
+import org.abi.DefaultFunctionEncoder
+import org.abi.Utils.typeMap
+import org.abi.datatypes.Address
+import org.abi.datatypes.DynamicArray
+import org.abi.datatypes.Type
+import org.abi.datatypes.generated.Bytes32
+import org.abi.datatypes.generated.Uint256
+import org.crypto.Hash
+import org.utils.Numeric
 import java.math.BigInteger
 
 @CordaSerializable
