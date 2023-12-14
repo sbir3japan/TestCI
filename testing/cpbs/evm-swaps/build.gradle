@@ -14,10 +14,13 @@ cordapp {
 }
 
 dependencies {
+    implementation project(path: ':libs:ledger:ledger-common-data')
+    implementation project(path: ':testing:cpbs:evm-swaps-contract')
     cordaProvided platform("net.corda:corda-api:$cordaApiVersion")
     cordaProvided 'net.corda:corda-application'
     cordaProvided 'net.corda:corda-ledger-utxo'
     cordaProvided 'net.corda:corda-notary-plugin'
+//    cordaEmbedded "org.web3j:core:$web3jVersion"
 
 
     // Common and API packages pulled in as transitive dependencies through client
