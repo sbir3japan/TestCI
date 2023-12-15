@@ -174,7 +174,7 @@ class SwapVault(
         recipient: String,
         signaturesThreshold: BigInteger,
         signatures: List<String>
-    ): Boolean {
+    ): TransactionReceipt {
         val dummyGasNumber = BigInteger("a41c5", 16)
         val transactionOptions = TransactionOptions(
             dummyGasNumber,                 // gasLimit
@@ -202,7 +202,7 @@ class SwapVault(
         )
 
         val receipt = evmService.waitForTransaction(hash, transactionOptions)
-        return receipt.status
+        return receipt
     }
 
     fun commitWithToken(
