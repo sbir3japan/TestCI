@@ -44,6 +44,9 @@ class IssueCurrency : ClientStartableFlow {
     @CordaInject
     lateinit var flowEngine: FlowEngine
 
+    @CordaInject
+    lateinit var
+
     /**
      * This function builds issues a currency on Corda
      */
@@ -104,6 +107,7 @@ class IssueCurrency : ClientStartableFlow {
                 sessions
             )
 
+
             // Returns the transaction id
             return output.transaction.id.toString()
 
@@ -119,7 +123,7 @@ class IssueCurrency : ClientStartableFlow {
 
 @Suppress("unused")
 @InitiatedBy(protocol = "issue-currency-flow")
-class FinalizeIssueCurrencySubFlow : ResponderFlow {
+class FinalizeIssueCurrenySubFlow : ResponderFlow {
 
     @CordaInject
     lateinit var utxoLedgerService: UtxoLedgerService
@@ -128,6 +132,7 @@ class FinalizeIssueCurrencySubFlow : ResponderFlow {
     override fun call(session: FlowSession) {
         // Receive, verify, validate, sign and record the transaction sent from the initiator
         utxoLedgerService.receiveFinality(session) {
+
 
         }
     }
