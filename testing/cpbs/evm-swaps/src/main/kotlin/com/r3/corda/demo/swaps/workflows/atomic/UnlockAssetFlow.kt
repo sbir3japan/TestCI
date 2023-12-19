@@ -1,28 +1,46 @@
-package com.r3.corda.demo.interop.evm
+package com.r3.corda.demo.swaps.workflows.atomic
 
-import com.corda.evm.contracts.TokenCommand
-import com.corda.evm.states.FungibleTokenState
-import net.corda.v5.application.flows.*
+import com.r3.corda.demo.swaps.states.swap.LockState
+import com.r3.corda.demo.swaps.states.swap.OwnableState
+import com.r3.corda.demo.swaps.states.swap.UnlockData
+import com.r3.corda.demo.swaps.utils.trie.PatriciaTrie
+import com.r3.corda.demo.swaps.utils.trie.SimpleKeyValueStore
+import com.r3.corda.demo.swaps.workflows.eth2eth.GetBlockByNumberSubFlow
+import com.r3.corda.demo.swaps.workflows.eth2eth.GetBlockReceiptsSubFlow
+import com.r3.corda.demo.swaps.workflows.internal.DraftTxService
+import com.r3.corda.demo.swaps.workflows.swap.UnlockTransactionAndObtainAssetSubFlow
+import java.math.BigInteger
+import net.corda.v5.application.flows.ClientRequestBody
+import net.corda.v5.application.flows.ClientStartableFlow
+import net.corda.v5.application.flows.CordaInject
+import net.corda.v5.application.flows.FlowEngine
+import net.corda.v5.application.flows.InitiatingFlow
+import net.corda.v5.application.interop.evm.Log
+import net.corda.v5.application.interop.evm.TransactionReceipt
 import net.corda.v5.application.marshalling.JsonMarshallingService
 import net.corda.v5.application.membership.MemberLookup
 import net.corda.v5.application.messaging.FlowMessaging
-import net.corda.v5.application.messaging.FlowSession
 import net.corda.v5.base.annotations.Suspendable
+import net.corda.v5.crypto.DigitalSignature
 import net.corda.v5.crypto.SecureHash
 import net.corda.v5.ledger.common.NotaryLookup
+import net.corda.v5.ledger.utxo.StateAndRef
 import net.corda.v5.ledger.utxo.UtxoLedgerService
 import org.slf4j.LoggerFactory
-import java.time.Instant
-
-class RequestParams {
-    val symbol: String? = null
-    val amount: Int? = null
-    val transactionId: SecureHash? = null
-}
+import org.web3j.rlp.RlpEncoder
+import org.web3j.rlp.RlpList
+import org.web3j.rlp.RlpString
+import org.web3j.utils.Numeric
 
 @Suppress("unused")
-@InitiatingFlow(protocol = "issue-currency-flow")
-class CollectBlockSignaturesFlow : ClientStartableFlow {
+@InitiatingFlow(protocol = "unlock-asset-flow")
+class UnlockAssetFlow : ClientStartableFlow {
+
+    data class RequestParams(
+        val transactionId: SecureHash,
+        val blockNumber: BigInteger,
+        val transactionIndex: BigInteger
+    )
 
     private companion object {
         private val log = LoggerFactory.getLogger(this::class.java.enclosingClass)
@@ -53,87 +71,102 @@ class CollectBlockSignaturesFlow : ClientStartableFlow {
     override fun call(requestBody: ClientRequestBody): String {
         try {
             // Get any of the relevant details from the request here
-            val inputs = requestBody.getRequestBodyAs(jsonMarshallingService, RequestParams::class.java)
+            val (
+                transactionId,
+                blockNumber,
+                transactionIndex
+            ) = requestBody.getRequestBodyAs(jsonMarshallingService, RequestParams::class.java)
 
+            val signedTransaction = ledgerService.findSignedTransaction(transactionId)
+                ?: throw IllegalArgumentException("Transaction not found for ID: $transactionId")
 
-            ledgerService.findSignedTransaction(inputs.transactionId!!)
-            // Save the users key
-            val key = memberLookup.myInfo().ledgerKeys.first()
+            val outputStateAndRefs = signedTransaction.outputStateAndRefs
 
-            // Get the notary name
-            val notaryName = notaryLookup.notaryServices.single().name
+            @Suppress("UNCHECKED_CAST") val lockState =
+                outputStateAndRefs.singleOrNull { it.state.contractState is LockState } as? StateAndRef<LockState>
+                    ?: throw IllegalArgumentException("Transaction $transactionId does not have a lock state")
 
-            // Get the key of the other participant
-            val participants = memberLookup.lookup().filter {
-                it.memberProvidedContext["corda.notary.service.name"] != notaryName.toString()
-            }.map {
-                it.ledgerKeys.first()
+            @Suppress("UNCHECKED_CAST") val assetState =
+                outputStateAndRefs.singleOrNull { it.state.contractState !is OwnableState } as? StateAndRef<OwnableState>
+                    ?: throw IllegalArgumentException("Transaction $transactionId does not have a single asset")
+
+            val signatures: List<DigitalSignature.WithKeyId> = DraftTxService.blockSignatures(blockNumber)
+
+            require(signatures.count() >= lockState.state.contractState.signaturesThreshold) {
+                "Insufficient signatures for this transaction"
             }
 
-            // Filter out the other participants key
-            val otherKey = participants.single { it != key }
+            // Get the block that mined the transaction that generated the designated EVM event
+            val block = flowEngine.subFlow(GetBlockByNumberSubFlow(blockNumber, true))
 
-            // Create the balance mapping
-            val balanceMapping = mapOf(key to inputs.amount!!.toLong(),otherKey to 0L)
+            // Get all the transaction receipts from the block to build and verify the transaction receipts root
+            val receipts = flowEngine.subFlow(GetBlockReceiptsSubFlow(blockNumber))
 
-            // Create the state
-            val state = FungibleTokenState(
-                valuation = 1,
-                maintainer = key,
-                fractionDigits = 0,
-                symbol = inputs.symbol!!,
-                balances = balanceMapping,
-                participants = participants
-            )
+            // Get the receipt specifically associated with the transaction that generated the event
+            val unlockReceipt = receipts[transactionIndex.toInt()]
 
-            // Create the transaction builder
-            val txBuilder = ledgerService.createTransactionBuilder()
-                .setNotary(notaryName)
-                .addOutputState(state)
-                .setTimeWindowUntil(Instant.now().plusSeconds(300000))
-                .addSignatories(key)
-                .addCommand(TokenCommand.Issue)
+            val merkleProof = generateMerkleProof(receipts, unlockReceipt)
 
+            val unlockData = UnlockData(merkleProof, signatures, block.receiptsRoot, unlockReceipt)
 
-            // Get the sessions for the other participants
-            val sessions = memberLookup.lookup().filter {
-                it.memberProvidedContext["corda.notary.service.name"] != notaryName.toString() && it.ledgerKeys.first() != key
-            }.map {
-                flowMessaging.initiateFlow(it.name)
-            }
+            val transaction =
+                flowEngine.subFlow(UnlockTransactionAndObtainAssetSubFlow(assetState, lockState, unlockData))
 
-            // Finalize the transaction
-            val output = ledgerService.finalize(
-                txBuilder.toSignedTransaction(),
-                sessions
-            )
-
-
-            // Returns the transaction id
-            return output.transaction.id.toString()
-
+            return jsonMarshallingService.format(transaction)
         } catch (e: Exception) {
             log.error("Unexpected error while processing Issue Currency Flow ", e)
             throw e
         }
-
     }
-}
-
-
-
-@Suppress("unused")
-@InitiatedBy(protocol = "issue-currency-flow")
-class FinalizeIssueCurrencySubFlow : ResponderFlow {
-
-    @CordaInject
-    lateinit var utxoLedgerService: UtxoLedgerService
 
     @Suspendable
-    override fun call(session: FlowSession) {
-        // Receive, verify, validate, sign and record the transaction sent from the initiator
-        utxoLedgerService.receiveFinality(session) {
-
+    public fun generateMerkleProof(
+        receipts: List<TransactionReceipt>,
+        unlockReceipt: TransactionReceipt
+    ): SimpleKeyValueStore {
+        // Build the trie
+        val trie = PatriciaTrie()
+        for (receipt in receipts) {
+            trie.put(
+                encodeKey(receipt.transactionIndex!!),
+                receipt.encoded()
+            )
         }
+
+        return trie.generateMerkleProof(encodeKey(unlockReceipt.transactionIndex))
     }
+
+
+    @Suspendable
+    fun encodeKey(key: BigInteger): ByteArray = RlpEncoder.encode(RlpString.create(key))
+
+}
+
+fun TransactionReceipt.encoded(): ByteArray {
+    fun serializeLog(log: Log): RlpList {
+        val address = Numeric.hexStringToByteArray(log.address)
+        val topics = log.topics.map { topic -> Numeric.hexStringToByteArray(topic) }
+
+        require(address.size == 20) { "Invalid contract address size (${address.size})" }
+        require(topics.isNotEmpty() && topics.all { it.size == 32 }) { "Invalid topics length or size" }
+
+        return RlpList(
+            listOf(
+                RlpString.create(address),
+                RlpList(topics.map { topic -> RlpString.create(topic) }),
+                RlpString.create(Numeric.hexStringToByteArray(log.data))
+            )
+        )
+    }
+
+    return RlpEncoder.encode(
+        RlpList(
+            listOf(
+                RlpString.create(if (this.status) "1" else "0"),
+                RlpString.create(this.cumulativeGasUsed),
+                RlpString.create(Numeric.hexStringToByteArray(this.logsBloom)),
+                RlpList(this.logs.map { serializeLog(it) })
+            )
+        )
+    )
 }

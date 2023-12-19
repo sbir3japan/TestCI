@@ -7,7 +7,7 @@ cordapp {
     targetPlatformVersion platformVersion.toInteger()
     minimumPlatformVersion platformVersion.toInteger()
     contract {
-        name "EVM Swaps Demo"
+        name "EVM Swaps Demo Common Files"
         versionId 1
         vendor "R3"
     }
@@ -16,12 +16,7 @@ cordapp {
 dependencies {
     cordaProvided platform("net.corda:corda-api:$cordaApiVersion")
     cordaProvided 'org.jetbrains.kotlin:kotlin-osgi-bundle'
-    cordaProvided 'net.corda:corda-ledger-utxo'
 
-    implementation project(":testing:cpbs:evm-swaps-common")
-
-    testImplementation project(":libs:application:application-impl")
-    testImplementation project(":libs:sandbox-types")
     testImplementation "org.mockito:mockito-core:$mockitoVersion"
     testImplementation "org.mockito.kotlin:mockito-kotlin:$mockitoKotlinVersion"
 }
