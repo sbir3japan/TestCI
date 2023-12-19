@@ -26,11 +26,11 @@ import net.corda.v5.crypto.SecureHash
 import net.corda.v5.ledger.common.NotaryLookup
 import net.corda.v5.ledger.utxo.StateAndRef
 import net.corda.v5.ledger.utxo.UtxoLedgerService
+import org.rlp.RlpEncoder
+import org.rlp.RlpList
+import org.rlp.RlpString
 import org.slf4j.LoggerFactory
-import org.web3j.rlp.RlpEncoder
-import org.web3j.rlp.RlpList
-import org.web3j.rlp.RlpString
-import org.web3j.utils.Numeric
+import org.utils.Numeric
 
 @Suppress("unused")
 @InitiatingFlow(protocol = "unlock-asset-flow")
