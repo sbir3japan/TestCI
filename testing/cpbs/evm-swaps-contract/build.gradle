@@ -18,7 +18,7 @@ dependencies {
     cordaProvided 'org.jetbrains.kotlin:kotlin-osgi-bundle'
     cordaProvided 'net.corda:corda-ledger-utxo'
 
-    implementation project(":testing:cpbs:evm-swaps-common")
+    cordapp project(":testing:cpbs:evm-swaps-common")
 
     testImplementation project(":libs:application:application-impl")
     testImplementation project(":libs:sandbox-types")

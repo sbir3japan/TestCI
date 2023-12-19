@@ -16,6 +16,8 @@ cordapp {
 dependencies {
     cordaProvided platform("net.corda:corda-api:$cordaApiVersion")
     cordaProvided 'org.jetbrains.kotlin:kotlin-osgi-bundle'
+    cordaProvided 'net.corda:corda-application'
+    implementation "org.bouncycastle:bcpkix-jdk18on:$bouncycastleVersion"
 
     testImplementation "org.mockito:mockito-core:$mockitoVersion"
     testImplementation "org.mockito.kotlin:mockito-kotlin:$mockitoKotlinVersion"

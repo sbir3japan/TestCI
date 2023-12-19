@@ -16,10 +16,10 @@
 
 package com.r3.corda.demo.swaps.utils.trie
 
-import org.web3j.rlp.RlpDecoder
-import org.web3j.rlp.RlpEncoder
-import org.web3j.rlp.RlpList
-import org.web3j.rlp.RlpString
+import org.rlp.RlpDecoder
+import org.rlp.RlpEncoder
+import org.rlp.RlpList
+import org.rlp.RlpString
 
 /**
  * Represents an ExtensionNode in a Patricia Trie.

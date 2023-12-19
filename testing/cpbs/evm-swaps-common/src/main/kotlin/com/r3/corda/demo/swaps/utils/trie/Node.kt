@@ -16,11 +16,11 @@
 
 package com.r3.corda.demo.swaps.utils.trie
 
-import org.web3j.crypto.Hash.sha3
-import org.web3j.rlp.RlpDecoder
-import org.web3j.rlp.RlpList
-import org.web3j.rlp.RlpString
-import org.web3j.utils.Numeric
+import org.crypto.Hash
+import org.utils.Numeric
+import org.rlp.RlpDecoder
+import org.rlp.RlpList
+import org.rlp.RlpString
 
 /**
  * The base class for all types of nodes in a Patricia Trie.
@@ -38,7 +38,7 @@ abstract class Node
      * @return hash of the encoded node.
      */
     open val hash: ByteArray
-        get() = sha3(encoded)
+        get() = Hash.sha3(encoded)
 
     /**
      * Provide a String representation of the Node for debugging.

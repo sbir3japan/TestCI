@@ -17,13 +17,13 @@
 package com.r3.corda.demo.swaps.utils.trie
 
 import net.corda.v5.base.annotations.CordaSerializable
-import org.web3j.utils.Numeric
+import net.corda.v5.base.util.ByteArrays
 
 /**
  * Implementation of KeyValueStore using a simple hash map.
  */
 @CordaSerializable
-class SimpleKeyValueStore(val store: LinkedHashMap<Int, ByteArray>) // : KeyValueStore
+class SimpleKeyValueStore(private val store: LinkedHashMap<Int, ByteArray>) // : KeyValueStore
 {
 
     constructor() : this(LinkedHashMap<Int, ByteArray>())
@@ -62,6 +62,12 @@ class SimpleKeyValueStore(val store: LinkedHashMap<Int, ByteArray>) // : KeyValu
      * @return A string representation of the store's contents.
      */
     override fun toString(): String {
-        return store.entries.joinToString("\n") { (key, value) -> "(Key Hash: $key, Value: ${Numeric.toHexString(value)}" }
+        return store.entries.joinToString("\n") { (key, value) ->
+            "(Key Hash: $key, Value: ${
+                ByteArrays.toHexString(
+                    value
+                )
+            }"
+        }
     }
 }

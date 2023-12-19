@@ -16,9 +16,9 @@
 
 package com.r3.corda.demo.swaps.utils.trie
 
-import org.web3j.rlp.RlpEncoder
-import org.web3j.rlp.RlpList
-import org.web3j.rlp.RlpString
+import org.rlp.RlpEncoder
+import org.rlp.RlpList
+import org.rlp.RlpString
 
 /**
  * Represents a LeafNode in a Patricia Trie.
