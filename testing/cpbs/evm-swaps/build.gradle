@@ -14,6 +14,7 @@ cordapp {
 }
 
 dependencies {
+//    implementation project(path: ':libs:crypto:cipher-suite')
 //    implementation project(path: ':libs:ledger:ledger-common-data')
     cordapp project(path: ':testing:cpbs:evm-swaps-contract')
     cordaProvided platform("net.corda:corda-api:$cordaApiVersion")

@@ -77,18 +77,63 @@ sleep 1
 CPI=./output.cpi
 
 sleep 1
-#read REQUEST_ID <<< $(curl --insecure -u admin:admin  -s -F upload=@$CPI https://localhost:8888/api/v1/cpi/ | jq -r '.id')
-#echo "RequestID = "$REQUEST_ID
-#
-#sleep 25
-#read STATUS CPI_HASH <<< $(curl --insecure -u admin:admin -s https://localhost:8888/api/v1/cpi/status/$REQUEST_ID | jq -r '.status, .cpiFileChecksum')
-#printf "\nRequest id = $REQUEST_ID   CPI hash = $CPI_HASH   Status = $STATUS\n\n"
+
 sleep 1
 X500="CN=EVM, OU=Application, O=Ethereum, L=Brussels, C=BE"
 HOLDING_ID_2=$(curl --insecure -u admin:admin -s -d '{ "request": { "cpiFileChecksum": "'"$CPI_HASH"'", "x500Name": "'"$X500"'"  } }' https://localhost:8888/api/v1/virtualnode | jq -r '.requestId')
-echo "Holding ID = "$HOLDING_ID_2
+echo "Holding ID 2 = "$HOLDING_ID_2
 
 sleep 10
+
+# Register VNode 3
+
+
+sleep 1
+curl --insecure -u admin:admin -X PUT -F alias="digicert-ca" -F certificate=@digicert-ca.pem https://localhost:8888/api/v1/certificates/cluster/code-signer
+sleep 1
+keytool -exportcert -rfc -alias "signing key 1" -keystore signingkeys.pfx -storepass "DemoPassword123" -file signingkey1.pem
+sleep 1
+curl --insecure -u admin:admin -X PUT -F alias="signingkey1-2022" -F certificate=@signingkey1.pem https://localhost:8888/api/v1/certificates/cluster/code-signer
+sleep 1
+curl --insecure -u admin:admin -X PUT -F alias="gradle-plugin-default-key" -F certificate=@gradle-plugin-default-key.pem https://localhost:8888/api/v1/certificates/cluster/code-signer
+
+sleep 1
+CPI=./output.cpi
+
+sleep 1
+
+sleep 1
+X500="CN=Charlie, OU=Application, O=NordVPN, L=Vilnius, C=LT"
+HOLDING_ID_3=$(curl --insecure -u admin:admin -s -d '{ "request": { "cpiFileChecksum": "'"$CPI_HASH"'", "x500Name": "'"$X500"'"  } }' https://localhost:8888/api/v1/virtualnode | jq -r '.requestId')
+echo "Holding ID = "$HOLDING_ID_3
+
+sleep 10
+
+
+# Register VNode 4
+
+
+sleep 1
+curl --insecure -u admin:admin -X PUT -F alias="digicert-ca" -F certificate=@digicert-ca.pem https://localhost:8888/api/v1/certificates/cluster/code-signer
+sleep 1
+keytool -exportcert -rfc -alias "signing key 1" -keystore signingkeys.pfx -storepass "DemoPassword123" -file signingkey1.pem
+sleep 1
+curl --insecure -u admin:admin -X PUT -F alias="signingkey1-2022" -F certificate=@signingkey1.pem https://localhost:8888/api/v1/certificates/cluster/code-signer
+sleep 1
+curl --insecure -u admin:admin -X PUT -F alias="gradle-plugin-default-key" -F certificate=@gradle-plugin-default-key.pem https://localhost:8888/api/v1/certificates/cluster/code-signer
+
+sleep 1
+CPI=./output.cpi
+
+sleep 1
+
+sleep 1
+X500="CN=Eve, OU=Application, O=NordVPN, L=Athens, C=GR"
+HOLDING_ID_3=$(curl --insecure -u admin:admin -s -d '{ "request": { "cpiFileChecksum": "'"$CPI_HASH"'", "x500Name": "'"$X500"'"  } }' https://localhost:8888/api/v1/virtualnode | jq -r '.requestId')
+echo "Holding ID = "$HOLDING_ID_3
+
+sleep 10
+
 
 
 export NOTARY_REGISTRATION_CONTEXT='{

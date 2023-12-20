@@ -1,7 +1,16 @@
 package net.corda.interop.evm.dispatcher.factory
 
 import net.corda.interop.evm.EthereumConnector
-import net.corda.interop.evm.dispatcher.*
+import net.corda.interop.evm.dispatcher.CallDispatcher
+import net.corda.interop.evm.dispatcher.EvmDispatcher
+import net.corda.interop.evm.dispatcher.GetBalanceDispatcher
+import net.corda.interop.evm.dispatcher.GetBlockByHash
+import net.corda.interop.evm.dispatcher.GetBlockByNumber
+import net.corda.interop.evm.dispatcher.GetTransactionByHash
+import net.corda.interop.evm.dispatcher.GetTransactionReceiptDispatcher
+import net.corda.interop.evm.dispatcher.SendRawTransactionDispatcher
+import net.corda.interop.evm.dispatcher.WaitForTransactionDispatcher
+
 
 object GenericDispatcherFactory : DispatcherFactory {
 

@@ -4,7 +4,6 @@ import java.math.BigInteger
 import net.corda.data.flow.event.external.ExternalEventContext
 import net.corda.data.interop.evm.EvmRequest
 import net.corda.data.interop.evm.EvmResponse
-import net.corda.data.interop.evm.request.GetBlockByHash
 import net.corda.data.interop.evm.request.GetTransactionByHash
 import net.corda.flow.external.events.factory.ExternalEventFactory
 import net.corda.flow.external.events.factory.ExternalEventRecord
@@ -14,7 +13,6 @@ import net.corda.v5.application.interop.evm.options.EvmOptions
 import org.osgi.service.component.annotations.Component
 import net.corda.v5.application.interop.evm.Block;
 import net.corda.v5.application.interop.evm.TransactionObject
-import net.corda.v5.application.interop.evm.options.TransactionOptions
 
 data class EvmGetTransactionByHashEventFactoryParams(
     val options: EvmOptions,
@@ -52,7 +50,6 @@ class EvmGetTransactionByHashExternalEventFactory
         )
     }
 
-    // TODO: Correct type for TransactionObject
     private fun net.corda.data.interop.evm.response.TransactionObject.toCorda(): TransactionObject {
         return TransactionObject(
             blockHash,

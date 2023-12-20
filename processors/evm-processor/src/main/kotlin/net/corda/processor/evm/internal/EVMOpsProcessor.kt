@@ -4,7 +4,15 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import net.corda.data.flow.event.FlowEvent
 import net.corda.data.interop.evm.EvmRequest
-import net.corda.data.interop.evm.request.*
+import net.corda.data.interop.evm.request.Call
+import net.corda.data.interop.evm.request.GetBalance
+import net.corda.data.interop.evm.request.GetTransactionReceipt
+import net.corda.data.interop.evm.request.GetBlockByNumber
+import net.corda.data.interop.evm.request.GetBlockByHash
+import net.corda.data.interop.evm.request.GetTransactionByHash
+import net.corda.data.interop.evm.request.WaitForTransaction
+
+import net.corda.data.interop.evm.request.Transaction
 import net.corda.flow.external.events.responses.factory.ExternalEventResponseFactory
 import net.corda.interop.evm.EVMErrorException
 import net.corda.interop.evm.EthereumConnector

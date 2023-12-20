@@ -1,14 +1,67 @@
 package net.corda.interop.evm.encoder
 
 import net.corda.v5.base.exceptions.CordaRuntimeException
-import org.web3j.abi.datatypes.*
-import org.web3j.abi.datatypes.generated.*
-import org.web3j.abi.datatypes.primitive.Byte
-import org.web3j.abi.datatypes.primitive.Double
-import org.web3j.abi.datatypes.primitive.Float
-import org.web3j.abi.datatypes.primitive.Long
-import org.web3j.abi.datatypes.primitive.Short
+import org.web3j.abi.datatypes.Address
+import org.web3j.abi.datatypes.Bool
+import org.web3j.abi.datatypes.Utf8String
+import org.web3j.abi.datatypes.DynamicBytes
+import org.web3j.abi.datatypes.Uint
 import org.web3j.utils.Numeric
+
+import org.web3j.abi.datatypes.generated.Int104;
+import org.web3j.abi.datatypes.generated.Int112;
+import org.web3j.abi.datatypes.generated.Int120;
+import org.web3j.abi.datatypes.generated.Int128;
+import org.web3j.abi.datatypes.generated.Int136;
+import org.web3j.abi.datatypes.generated.Int144;
+import org.web3j.abi.datatypes.generated.Int152;
+import org.web3j.abi.datatypes.generated.Int160;
+import org.web3j.abi.datatypes.generated.Int168;
+import org.web3j.abi.datatypes.generated.Int176;
+import org.web3j.abi.datatypes.generated.Int184;
+import org.web3j.abi.datatypes.generated.Int192;
+import org.web3j.abi.datatypes.generated.Int200;
+import org.web3j.abi.datatypes.generated.Int208;
+import org.web3j.abi.datatypes.generated.Int216;
+import org.web3j.abi.datatypes.generated.Int224;
+import org.web3j.abi.datatypes.generated.Int232;
+import org.web3j.abi.datatypes.generated.Int240;
+import org.web3j.abi.datatypes.generated.Int248;
+import org.web3j.abi.datatypes.generated.Int256;
+
+import org.web3j.abi.datatypes.generated.Int72;
+import org.web3j.abi.datatypes.generated.Int80;
+import org.web3j.abi.datatypes.generated.Int88;
+import org.web3j.abi.datatypes.generated.Int96;
+import org.web3j.abi.datatypes.generated.Uint104;
+import org.web3j.abi.datatypes.generated.Uint112;
+import org.web3j.abi.datatypes.generated.Uint120;
+import org.web3j.abi.datatypes.generated.Uint128;
+import org.web3j.abi.datatypes.generated.Uint136;
+import org.web3j.abi.datatypes.generated.Uint144;
+import org.web3j.abi.datatypes.generated.Uint152;
+import org.web3j.abi.datatypes.generated.Uint160;
+import org.web3j.abi.datatypes.generated.Uint168;
+import org.web3j.abi.datatypes.generated.Uint176;
+import org.web3j.abi.datatypes.generated.Uint184;
+import org.web3j.abi.datatypes.generated.Uint192;
+import org.web3j.abi.datatypes.generated.Uint200;
+import org.web3j.abi.datatypes.generated.Uint208;
+import org.web3j.abi.datatypes.generated.Uint216;
+import org.web3j.abi.datatypes.generated.Uint224;
+import org.web3j.abi.datatypes.generated.Uint232;
+import org.web3j.abi.datatypes.generated.Uint240;
+import org.web3j.abi.datatypes.generated.Uint248;
+import org.web3j.abi.datatypes.generated.Uint256;
+
+import org.web3j.abi.datatypes.generated.Uint64;
+import org.web3j.abi.datatypes.generated.Uint72;
+import org.web3j.abi.datatypes.generated.Uint8;
+import org.web3j.abi.datatypes.generated.Uint80;
+import org.web3j.abi.datatypes.generated.Uint88;
+import org.web3j.abi.datatypes.generated.Uint96;
+
+import org.web3j.abi.datatypes.primitive.Int;
 
 
 class AbiConverter {
@@ -29,30 +82,30 @@ class AbiConverter {
                 "bool", "boolean" -> Bool(value.toBoolean())
                 "string" -> Utf8String(value)
                 "bytes" -> DynamicBytes(value.toByteArray())
-                "byte" -> Byte(value.toByte())
+                "byte" -> org.web3j.abi.datatypes.primitive.Byte(value.toByte())
                 "char" -> Char(value.toInt())
-                "double" -> Double(value.toDouble())
-                "float" -> Float(value.toFloat())
+                "double" -> org.web3j.abi.datatypes.primitive.Double(value.toDouble())
+                "float" -> org.web3j.abi.datatypes.primitive.Float(value.toFloat())
                 "uint" -> Uint(value.toBigInteger())
                 "int" -> org.web3j.abi.datatypes.primitive.Int(value.toInt())
-                "long" -> Long(value.toLong())
-                "short" -> Short(value.toShort())
+                "long" -> org.web3j.abi.datatypes.primitive.Long(value.toLong())
+                "short" -> org.web3j.abi.datatypes.primitive.Short(value.toShort())
                 "uint8" -> Uint8(value.toBigInteger())
-                "int8" -> Short(value.toShort())
+                "int8" -> org.web3j.abi.datatypes.primitive.Short(value.toShort())
                 "uint16" -> org.web3j.abi.datatypes.primitive.Int(value.toInt())
                 "int16" -> org.web3j.abi.datatypes.primitive.Int(value.toInt())
                 "uint24" -> org.web3j.abi.datatypes.primitive.Int(value.toInt())
                 "int24" -> org.web3j.abi.datatypes.primitive.Int(value.toInt())
-                "uint32" -> Long(value.toLong())
+                "uint32" -> org.web3j.abi.datatypes.primitive.Long(value.toLong())
                 "int32" -> org.web3j.abi.datatypes.primitive.Int(value.toInt())
-                "uint40" -> Long(value.toLong())
-                "int40" -> Long(value.toLong())
-                "uint48" -> Long(value.toLong())
-                "int48" -> Long(value.toLong())
-                "uint56" -> Long(value.toLong())
-                "int56" -> Long(value.toLong())
+                "uint40" -> org.web3j.abi.datatypes.primitive.Long(value.toLong())
+                "int40" -> org.web3j.abi.datatypes.primitive.Long(value.toLong())
+                "uint48" -> org.web3j.abi.datatypes.primitive.Long(value.toLong())
+                "int48" -> org.web3j.abi.datatypes.primitive.Long(value.toLong())
+                "uint56" -> org.web3j.abi.datatypes.primitive.Long(value.toLong())
+                "int56" -> org.web3j.abi.datatypes.primitive.Long(value.toLong())
                 "uint64" -> Uint64(value.toBigInteger())
-                "int64" -> Long(value.toLong())
+                "int64" -> org.web3j.abi.datatypes.primitive.Long(value.toLong())
                 "uint72" -> Uint72(value.toBigInteger())
                 "int72" -> Int72(value.toBigInteger())
                 "uint80" -> Uint80(value.toBigInteger())

@@ -2,7 +2,6 @@ package net.corda.interop.evm.dispatcher
 
 import net.corda.data.interop.evm.EvmRequest
 import net.corda.data.interop.evm.EvmResponse
-import net.corda.data.interop.evm.request.GetTransactionReceipt
 import net.corda.data.interop.evm.request.WaitForTransaction
 import net.corda.data.interop.evm.response.TransactionReceipt
 import net.corda.interop.evm.EthereumConnector

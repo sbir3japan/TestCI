@@ -4,7 +4,8 @@ import com.fasterxml.jackson.databind.DatabindException
 import com.fasterxml.jackson.databind.ObjectMapper
 import net.corda.v5.base.exceptions.CordaRuntimeException
 
-class EvmRpcError(message: String, private val code: Int) : CordaRuntimeException("Encountered an error ($code) when sending an RPC command to the Evm: $message")
+class EvmRpcError(message: String, private val code: Int) :
+    CordaRuntimeException("Encountered an error ($code) when sending an RPC command to the Evm: $message")
 
 
 /**

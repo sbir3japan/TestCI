@@ -16,12 +16,15 @@ import org.web3j.crypto.Hash
 import org.web3j.utils.Numeric
 
 
+
 /**
  * TransactionEncoder Class
  *
  * This class facilitates encoding transactions & calls for the evm
  *
  */
+
+@Suppress("NestedBlockDepth", "TooGenericExceptionThrown","TooGenericExceptionCaught")
 class TransactionEncoder {
 
     companion object {

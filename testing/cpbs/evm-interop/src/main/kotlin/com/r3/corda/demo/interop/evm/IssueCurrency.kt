@@ -44,13 +44,10 @@ class IssueCurrency : ClientStartableFlow {
     @CordaInject
     lateinit var flowEngine: FlowEngine
 
-    @CordaInject
-    lateinit var
 
     /**
      * This function builds issues a currency on Corda
      */
-    @Suspendable
     override fun call(requestBody: ClientRequestBody): String {
         try {
             // Get any of the relevant details from the request here
