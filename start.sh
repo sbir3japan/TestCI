@@ -1,3 +1,5 @@
+#! /bin/bash
+
 rm -rf output.cpi
 ./gradlew cpb && ./gradlew jar
 

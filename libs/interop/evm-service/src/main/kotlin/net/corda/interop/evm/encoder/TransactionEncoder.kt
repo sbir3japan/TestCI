@@ -2,6 +2,7 @@ package net.corda.interop.evm.encoder
 
 import java.math.BigInteger
 import net.corda.data.interop.evm.request.Parameter
+import net.corda.v5.base.exceptions.CordaRuntimeException
 import org.web3j.abi.TypeEncoder
 import org.web3j.abi.datatypes.DynamicArray
 import org.web3j.abi.datatypes.DynamicBytes
@@ -24,7 +25,6 @@ import org.web3j.utils.Numeric
  *
  */
 
-@Suppress("NestedBlockDepth", "TooGenericExceptionThrown","TooGenericExceptionCaught")
 class TransactionEncoder {
 
     companion object {
@@ -43,9 +43,9 @@ class TransactionEncoder {
                     val values = it.value.toString().replace(Regex("[\\[\\]]"), "").split(",")
                     Pair(
                         ABIContractInput(it.name, it.type, null),
-                        values.map { AbiConverter.getType(type, it) }
+                        AbiConverter.getDynamicType(type, values)
                     )
-                }  else {
+                } else {
                     Pair(
                         ABIContractInput(it.name, it.type, null),
                         AbiConverter.getType(it.type, it.value.toString())
@@ -53,7 +53,7 @@ class TransactionEncoder {
                 }
             }.unzip()
             return encodeFunctionSignature(ABIContractFunction(contractInput, function)) +
-                    encodeParameters(typeSpecificParams)
+                encodeParameters(typeSpecificParams)
         }
 
         /**
@@ -80,7 +80,7 @@ class TransactionEncoder {
                 if (!param.components.isNullOrEmpty()) {
                     // in case it has _list or _array replace that bit with []
                     if (!type.startsWith("tuple")) {
-                        throw Error("Invalid value given \"${type}\". Error: components found but type is not tuple.")
+                        throw CordaRuntimeException("Invalid value given \"${type}\". Error: components found but type is not tuple.")
                     }
                     val arrayBracket = type.indexOf('[')
                     val suffix = if (arrayBracket >= 0) type.substring(arrayBracket) else ""
@@ -114,31 +114,22 @@ class TransactionEncoder {
          *  @param parameters is a list of the function input Parameters defined in Corda API
          *  @return The encoded version of the parameters
          */
-        private fun encodeParameters(parameters: List<*>): String {
+        private fun encodeParameters(parameters: List<Any>): String {
             val result = StringBuilder()
             var dynamicDataOffset = parameters.size * Type.MAX_BYTE_LENGTH
             val dynamicData = StringBuilder()
             for (parameter in parameters) {
-                if (parameter == null) {
-                    throw Error("nullable parameter")
-                }
-
-                if (parameter is List<*>) {
-
-                    parameter.map {
-                        result.append(TypeEncoder.encode(it as Type<*>))
+                when (parameter) {
+                    is List<*> -> {
+                        result.append(TypeEncoder.encode(parameter as Type<*>))
                     }
-
-                } else {
-                    // if it is bytes we can simply append it
-                    if (parameter is ByteArray) {
+                    is ByteArray -> {
                         // should have length of 64
                         val padding = "0".repeat((32 - parameter.size) * 2)
                         result.append(Numeric.toHexStringNoPrefix(parameter) + padding)
-                    } else {
-
+                    }
+                    else -> {
                         val encodedValue = TypeEncoder.encode(parameter as Type<*>)
-
                         if (isDynamic(parameter)) {
                             val encodedDataOffset = encodeNumeric(Uint(BigInteger.valueOf(dynamicDataOffset.toLong())))
                             result.append(encodedDataOffset)
@@ -161,9 +152,9 @@ class TransactionEncoder {
          */
         private fun isDynamic(parameter: Type<*>): Boolean {
             return parameter is DynamicBytes
-                    || parameter is Utf8String
-                    || parameter is DynamicArray<*>
-                    || (parameter is StaticArray<*> && DynamicStruct::class.java.isAssignableFrom(parameter.componentType))
+                || parameter is Utf8String
+                || parameter is DynamicArray<*>
+                || (parameter is StaticArray<*> && DynamicStruct::class.java.isAssignableFrom(parameter.componentType))
         }
 
         /**
