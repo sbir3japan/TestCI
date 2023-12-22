@@ -4,7 +4,7 @@ rm -rf output.cpi
 ./gradlew cpb && ./gradlew jar
 
 ./../corda-cli-plugin-host/build/generatedScripts/corda-cli.sh package create-cpi \
-    --cpb testing/cpbs/evm-interop/build/libs/evm-interop-5.1.0-EVMINTEROP.0-SNAPSHOT-package.cpb  \
+    --cpb testing/cpbs/evm-interop/build/libs/evm-swaps-5.1.0-EVMINTEROP.0-SNAPSHOT-package.cpb  \
     --group-policy TestGroupPolicy.json \
     --cpi-name "cordapp cpi" \
     --cpi-version "1.0.0.0-SNAPSHOT" \
