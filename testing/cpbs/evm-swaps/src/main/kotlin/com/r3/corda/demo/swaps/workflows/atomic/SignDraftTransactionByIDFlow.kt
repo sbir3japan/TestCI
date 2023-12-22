@@ -1,61 +1,158 @@
-//package com.r3.corda.demo.swaps.workflows.atomic
-//
-//import com.r3.corda.demo.swaps.workflows.internal.DraftTxService
-//import net.corda.v5.application.flows.ClientRequestBody
-//import net.corda.v5.application.flows.ClientStartableFlow
-//import net.corda.v5.application.flows.CordaInject
-//import net.corda.v5.application.flows.FlowEngine
-//import net.corda.v5.application.flows.InitiatingFlow
-//import net.corda.v5.application.marshalling.JsonMarshallingService
-//import net.corda.v5.application.membership.MemberLookup
-//import net.corda.v5.application.messaging.FlowMessaging
-//import net.corda.v5.base.annotations.Suspendable
-//import net.corda.v5.crypto.SecureHash
-//import net.corda.v5.ledger.common.NotaryLookup
-//import net.corda.v5.ledger.utxo.UtxoLedgerService
-//import org.slf4j.LoggerFactory
-//
-//
-//class SignedDraftTransactionFlowByIdInputs {
-//    val transactionId: SecureHash? = null
-//}
-//
-//@Suppress("unused")
-//@InitiatingFlow(protocol = "sign-draft-transaction-by-id-flow")
-//class SignedDraftTransactionByIdFlow : ClientStartableFlow {
-//
-//    private companion object {
-//        private val log = LoggerFactory.getLogger(this::class.java.enclosingClass)
-//    }
-//
-//    @CordaInject
-//    lateinit var jsonMarshallingService: JsonMarshallingService
-//
-//    @CordaInject
-//    lateinit var memberLookup: MemberLookup
-//
-//    @CordaInject
-//    lateinit var ledgerService: UtxoLedgerService
-//
-//    @CordaInject
-//    lateinit var notaryLookup: NotaryLookup
-//
-//    @CordaInject
-//    lateinit var flowMessaging: FlowMessaging
-//
-//    @CordaInject
-//    lateinit var flowEngine: FlowEngine
-//
-//    @Suspendable
-//    override fun call(requestBody: ClientRequestBody): String {
-//        try {
-//            val inputs = requestBody.getRequestBodyAs(jsonMarshallingService, SignedDraftTransactionFlowByIdInputs::class.java)
-//            DraftTxService.getDraftTx(inputs.transactionId!!)
-//
-//        } catch (e: Exception) {
-//            log.error("Unexpected error while processing Issue Currency Flow ", e)
-//            throw e
-//        }
-//
-//    }
-//}
+package com.r3.corda.demo.swaps.workflows.atomic
+
+import com.r3.corda.demo.swaps.TransactionBytes
+import com.r3.corda.demo.swaps.states.swap.LockState
+import com.r3.corda.demo.swaps.workflows.internal.DraftTransaction
+import com.r3.corda.demo.swaps.workflows.internal.DraftTxService
+import com.r3.corda.demo.swaps.workflows.internal.DraftTxService.persistenceService
+import net.corda.v5.application.flows.*
+import net.corda.v5.application.interop.evm.EvmService
+import net.corda.v5.application.interop.evm.options.TransactionOptions
+import net.corda.v5.application.marshalling.JsonMarshallingService
+import net.corda.v5.application.membership.MemberLookup
+import net.corda.v5.application.messaging.FlowMessaging
+import net.corda.v5.application.messaging.FlowSession
+import net.corda.v5.application.persistence.PersistenceService
+import net.corda.v5.application.serialization.SerializationService
+import net.corda.v5.base.annotations.Suspendable
+import net.corda.v5.base.exceptions.CordaRuntimeException
+import net.corda.v5.crypto.SecureHash
+import net.corda.v5.ledger.common.NotaryLookup
+import net.corda.v5.ledger.utxo.StateAndRef
+import net.corda.v5.ledger.utxo.UtxoLedgerService
+import net.corda.v5.ledger.utxo.transaction.UtxoSignedTransaction
+import net.corda.v5.membership.MemberInfo
+import org.slf4j.LoggerFactory
+import java.security.PublicKey
+
+
+data class SignDraftTransactionByIdArgs(val transactionId: SecureHash)
+
+@Suppress("unused")
+@InitiatingFlow(protocol = "sign-draft-transaction-by-id-flow")
+class SignDraftTransactionByIdFlow : ClientStartableFlow {
+
+    private companion object {
+        private val log = LoggerFactory.getLogger(this::class.java.enclosingClass)
+    }
+
+    @CordaInject
+    lateinit var jsonMarshallingService: JsonMarshallingService
+
+    @CordaInject
+    lateinit var memberLookup: MemberLookup
+
+    @CordaInject
+    lateinit var ledgerService: UtxoLedgerService
+
+    @CordaInject
+    lateinit var notaryLookup: NotaryLookup
+
+    @CordaInject
+    lateinit var flowMessaging: FlowMessaging
+
+    @CordaInject
+    lateinit var flowEngine: FlowEngine
+
+    @CordaInject
+    lateinit var persistenceService: PersistenceService
+
+    @CordaInject
+    lateinit var serializationService: SerializationService
+
+    @Suspendable
+    override fun call(requestBody: ClientRequestBody): String {
+        try {
+            val (transactionId) = requestBody.getRequestBodyAs(
+                jsonMarshallingService,
+                SignDraftTransactionByIdArgs::class.java
+            )
+
+            val transactionData = persistenceService.find(
+                TransactionBytes::class.java,
+                listOf(transactionId.toString())
+            ).singleOrNull() ?: throw IllegalArgumentException("No transaction found by the id $transactionId")
+
+            val signedTransaction = serializationService.deserialize(
+                transactionData.serializedTransaction,
+                UtxoSignedTransaction::class.java
+            )
+
+            @Suppress("UNCHECKED_CAST") val lockState =
+                signedTransaction.outputStateAndRefs.singleOrNull { it.state.contractState is LockState } as? StateAndRef<LockState>
+                    ?: throw IllegalArgumentException("Transaction $transactionId does not have a lock state")
+
+            val ourIdentityKey = memberLookup.myInfo().ledgerKeys.first()
+            val sessions = lockState.state.contractState.participants
+                .asSequence()
+                .mapNotNull(memberLookup::lookup)
+                .filter { !it.ledgerKeys.contains(ourIdentityKey) }
+                .map { flowMessaging.initiateFlow(it.name) }
+                .toList()
+
+            ledgerService.finalize(signedTransaction, sessions)
+
+            return signedTransaction.id.toString()
+
+        } catch (e: Exception) {
+            throw CordaRuntimeException("Failed to sign transaction by ID", e)
+        }
+    }
+}
+
+@Suppress("unused")
+@InitiatedBy(protocol = "sign-draft-transaction-by-id-flow")
+class SignDraftTransactionByIdResponder : ResponderFlow {
+
+    private companion object {
+        private val log = LoggerFactory.getLogger(this::class.java.enclosingClass)
+    }
+
+    @CordaInject
+    lateinit var jsonMarshallingService: JsonMarshallingService
+
+    @CordaInject
+    lateinit var memberLookup: MemberLookup
+
+    @CordaInject
+    lateinit var ledgerService: UtxoLedgerService
+
+    @CordaInject
+    lateinit var notaryLookup: NotaryLookup
+
+    @CordaInject
+    lateinit var flowMessaging: FlowMessaging
+
+    @CordaInject
+    lateinit var flowEngine: FlowEngine
+
+    @CordaInject
+    lateinit var persistenceService: PersistenceService
+
+    @CordaInject
+    lateinit var serializationService: SerializationService
+
+    @Suspendable
+    override fun call(session: FlowSession) {
+        try {
+
+            ledgerService.receiveFinality(session) { tx ->
+                // TODO: add required checks
+
+                val transactionData = persistenceService.find(
+                    TransactionBytes::class.java,
+                    listOf(tx.id)
+                ).singleOrNull()
+
+                if (transactionData != null) {
+                    persistenceService.remove(transactionData)
+                } else {
+                    throw IllegalArgumentException("Trying to sign a non existing draft transaction")
+                }
+            }
+
+        } catch (e: Exception) {
+            throw CordaRuntimeException("Failed to receive finality", e)
+        }
+    }
+}

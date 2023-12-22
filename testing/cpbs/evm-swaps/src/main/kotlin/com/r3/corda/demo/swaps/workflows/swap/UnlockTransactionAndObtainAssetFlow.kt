@@ -35,7 +35,7 @@ class UnlockTransactionAndObtainAssetSubFlow(
             .addInputState(lockedAsset.ref)
             .addInputState(lockState.ref)
             .addSignatories(myInfo.ledgerKeys.first())
-            .addOutputState(lockedAsset.state.contractState.withNewOwner(newOwner.name))
+            .addOutputState(lockedAsset.state.contractState.withNewOwner(newOwner.ledgerKeys.first()))
             .addCommand(unlockCommand)
             .toSignedTransaction()
 
