@@ -123,6 +123,8 @@ class ERC20(
             contractAddress,          // from
         )
 
+        // REVIEW: cannot set transaction options inside the contract functions?
+
         val parameters = listOf(
             Parameter.of("from", Type.ADDRESS, from),
             Parameter.of("to", Type.ADDRESS, to),

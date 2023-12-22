@@ -1,6 +1,8 @@
 package com.r3.corda.demo.swaps.states.swap
 
+import com.r3.corda.demo.swaps.contracts.swap.LockStateContract
 import net.corda.v5.base.annotations.CordaSerializable
+import net.corda.v5.ledger.utxo.BelongsToContract
 import net.corda.v5.ledger.utxo.ContractState
 import java.security.PublicKey
 import java.util.UUID
@@ -11,13 +13,16 @@ import java.util.UUID
 
 
 @CordaSerializable
-data class LockState(
+@BelongsToContract(LockStateContract::class)
+class LockState(
     val assetSender: PublicKey,
     val assetRecipient: PublicKey,
     val notary: PublicKey,
     val approvedValidators: List<PublicKey>,
     val signaturesThreshold: Int,
     val linearId: UUID = UUID.randomUUID(),
-    private val participants : List<PublicKey>): ContractState {
-    override fun getParticipants(): List<PublicKey> = participants
+): ContractState {
+    override fun getParticipants(): List<PublicKey> {
+        return listOf(assetSender, assetRecipient)
+    }
 }

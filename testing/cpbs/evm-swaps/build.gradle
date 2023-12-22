@@ -14,18 +14,17 @@ cordapp {
 }
 
 dependencies {
-//    implementation project(path: ':libs:crypto:cipher-suite')
-//    implementation project(path: ':libs:ledger:ledger-common-data')
-    cordapp project(path: ':testing:cpbs:evm-swaps-contract')
     cordaProvided platform("net.corda:corda-api:$cordaApiVersion")
     cordaProvided 'net.corda:corda-application'
+    cordaProvided 'net.corda:corda-crypto-extensions'
     cordaProvided 'net.corda:corda-ledger-utxo'
     cordaProvided 'net.corda:corda-notary-plugin'
 
     cordapp project(":testing:cpbs:evm-swaps-common")
+    cordapp project(':testing:cpbs:evm-swaps-contract')
+    implementation "org.bouncycastle:bcpkix-jdk18on:$bouncycastleVersion"
 
     // Common and API packages pulled in as transitive dependencies through client
     cordapp project(':notary-plugins:notary-plugin-non-validating:notary-plugin-non-validating-client')
     cordapp project(':testing:cpbs:ledger-utxo-demo-contract')
-
 }

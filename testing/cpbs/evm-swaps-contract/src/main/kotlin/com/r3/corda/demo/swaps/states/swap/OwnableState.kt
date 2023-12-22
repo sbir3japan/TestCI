@@ -12,15 +12,14 @@ import java.util.UUID
 
 
 @CordaSerializable
-data class OwnableState(
-    val owner: MemberX500Name,
-    val linearId: UUID,
-    private val participants : List<PublicKey>): ContractState {
+open class OwnableState(
+    open val owner: PublicKey,
+    open val linearId: UUID = UUID.randomUUID(),
+    private val participants : List<PublicKey> = listOf(owner)
+): ContractState {
     override fun getParticipants(): List<PublicKey> = participants
 
-    fun withNewOwner(newOwner: MemberX500Name): OwnableState {
-        return copy(owner = newOwner)
+    open fun withNewOwner(newOwner: PublicKey): OwnableState {
+        return OwnableState(newOwner, linearId, setOf(owner, newOwner).toList())
     }
-
-
 }

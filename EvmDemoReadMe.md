@@ -105,6 +105,8 @@ module.exports = nextConfig;
 
 ### Startup the combined worker
 
+./gradlew :applications:workers:release:combined-worker:build
+
 ```
 java -jar ./applications/workers/release/combined-worker/build/bin/corda-combined-worker-5.1.0-EVMINTEROP.0-SNAPSHOT.jar \
 --instance-id=0 \
