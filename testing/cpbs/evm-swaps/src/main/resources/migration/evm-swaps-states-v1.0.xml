@@ -13,5 +13,22 @@
                 <constraints nullable="false"/>
             </column>
         </createTable>
+        <createTable tableName="block_signatures">
+            <column name="block_number" type="bigint">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="signature" type="VARBINARY(8388608)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <createTable tableName="evm_signatures">
+            <column name="transaction_id" type="VARCHAR(255)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="signature" type="VARBINARY(8388608)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
     </changeSet>
+
 </databaseChangeLog>

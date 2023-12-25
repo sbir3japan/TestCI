@@ -1,199 +1,188 @@
-//package com.r3.corda.demo.swaps.workflows.swap
-//
-//
-//import com.r3.corda.demo.swaps.contracts.swap.LockCommand
-//import com.r3.corda.demo.swaps.states.swap.LockState
-//import com.r3.corda.demo.swaps.states.swap.OwnableState
-//import net.corda.v5.application.flows.*
-//import net.corda.v5.application.marshalling.JsonMarshallingService
-//import net.corda.v5.application.membership.MemberLookup
-//import net.corda.v5.application.messaging.FlowMessaging
-//import net.corda.v5.application.messaging.FlowSession
-//import net.corda.v5.base.annotations.Suspendable
-//import net.corda.v5.base.types.MemberX500Name
-//import net.corda.v5.ledger.common.NotaryLookup
-//import net.corda.v5.ledger.utxo.UtxoLedgerService
-//import org.slf4j.LoggerFactory
-//import java.time.Instant
-//import java.util.*
-//
-//class IssueCurrencyInputs {
-//    val symbol: String? = null
-//    val amount: Int? = null
-//}
-//
-//data class SwapTransactionDetails(
-//    val senderCordaName: MemberX500Name,
-//    val receiverCordaName: MemberX500Name,
-//    val cordaAssetState: UUID,
-//    val approvedCordaValidators: List<MemberX500Name>,
-//    val minimumNumberOfEventValidations: Int,
-//)
-//
-//data class BuildAndProposeDraftTransactionFlowInput(
-//    val swapTransactionDetails: SwapTransactionDetails,
-//    val commitmentHash: ByteArray
-//)
-//
-//@Suppress("unused")
-//@InitiatingFlow(protocol = "build-and-propose-draft-transaction-flow")
-//class BuildAndProposeDraftTransactionFlow : ClientStartableFlow {
-//
-//    private companion object {
-//        private val log = LoggerFactory.getLogger(this::class.java.enclosingClass)
-//    }
-//
-//    @CordaInject
-//    lateinit var jsonMarshallingService: JsonMarshallingService
-//
-//    @CordaInject
-//    lateinit var memberLookup: MemberLookup
-//
-//    @CordaInject
-//    lateinit var ledgerService: UtxoLedgerService
-//
-//    @CordaInject
-//    lateinit var notaryLookup: NotaryLookup
-//
-//    @CordaInject
-//    lateinit var flowMessaging: FlowMessaging
-//
+package com.r3.corda.demo.swaps.workflows.swap
+
+import com.r3.corda.demo.swaps.TransactionBytes
+import com.r3.corda.demo.swaps.contracts.swap.LockStateContract
+import com.r3.corda.demo.swaps.states.swap.LockState
+import com.r3.corda.demo.swaps.states.swap.OwnableState
+import net.corda.v5.application.crypto.CompositeKeyGenerator
+import net.corda.v5.application.flows.*
+import net.corda.v5.application.marshalling.JsonMarshallingService
+import net.corda.v5.application.membership.MemberLookup
+import net.corda.v5.application.messaging.FlowMessaging
+import net.corda.v5.application.messaging.FlowSession
+import net.corda.v5.application.persistence.PersistenceService
+import net.corda.v5.application.serialization.SerializationService
+import net.corda.v5.base.annotations.CordaSerializable
+import net.corda.v5.base.annotations.Suspendable
+import net.corda.v5.base.exceptions.CordaRuntimeException
+import net.corda.v5.base.types.MemberX500Name
+import net.corda.v5.crypto.CompositeKeyNodeAndWeight
+import net.corda.v5.crypto.SecureHash
+import net.corda.v5.ledger.utxo.ContractState
+import net.corda.v5.ledger.utxo.UtxoLedgerService
+import net.corda.v5.ledger.utxo.transaction.UtxoSignedTransaction
+import org.slf4j.LoggerFactory
+import java.security.PublicKey
+import java.time.Duration
+import java.time.Instant
+
+@CordaSerializable
+data class RequestLockFlowArgs(
+    val transactionId: SecureHash,
+    val assetType: String,
+    val lockToRecipient: String,
+    val signaturesThreshold: Int
+)
+
+@InitiatingFlow(protocol = "lock-asset")
+class RequestLockFlow : ClientStartableFlow {
+
+    private companion object {
+        val log = LoggerFactory.getLogger(this::class.java.enclosingClass)
+    }
+
+    @CordaInject
+    lateinit var jsonMarshallingService: JsonMarshallingService
+
+    @CordaInject
+    lateinit var memberLookup: MemberLookup
+
+    @CordaInject
+    lateinit var ledgerService: UtxoLedgerService
+
+    @CordaInject
+    lateinit var flowMessaging: FlowMessaging
+
+    @CordaInject
+    lateinit var persistenceService: PersistenceService
+
+    @CordaInject
+    lateinit var serializationService: SerializationService
+
+    @CordaInject
+    lateinit var compositeKeyGenerator: CompositeKeyGenerator
+
+    @Suspendable
+    override fun call(requestBody: ClientRequestBody): String {
+        try {
+            val (transactionId, assetType, lockToRecipient, signaturesThreshold) = requestBody.getRequestBodyAs(
+                jsonMarshallingService,
+                RequestLockFlowArgs::class.java
+            )
+
+            val senderKey = memberLookup.myInfo().ledgerKeys.first()
+            val (recipientKey, recipientName) = with(
+                memberLookup.lookup(MemberX500Name.parse(lockToRecipient))
+                    ?: throw CordaRuntimeException("MemberLookup can't find recipient specified in flow arguments.")
+            ) { Pair(ledgerKeys.first(), name) }
+
+            val stateAndRef =
+                ledgerService.findUnconsumedStatesByExactType(convertToClass(assetType), 100, Instant.now()).results
+                    .singleOrNull { it.ref.transactionId == transactionId }
+                    ?: throw CordaRuntimeException("No unique OwnableState found for transaction $transactionId")
+
+            val sender = stateAndRef.state.contractState.owner
+            val ownableState = with(stateAndRef.state.contractState) {
+                withNewOwner(compositeOwnership(owner, recipientKey))
+            }
+
+            val lockState = LockState(
+                assetSender = senderKey,
+                assetRecipient = recipientKey,
+                notary = stateAndRef.state.notaryKey,
+                approvedValidators = listOf(senderKey, recipientKey), // TODO: need to receive validators as input arguments
+                signaturesThreshold = signaturesThreshold
+                //, unlockEvent
+            )
+
+            val txBuilder = ledgerService.createTransactionBuilder()
+                .setNotary(stateAndRef.state.notaryName)
+                .setTimeWindowUntil(Instant.now() + Duration.ofHours(1))
+                .addInputState(stateAndRef.ref)
+                .addEncumberedOutputStates("lock-" + lockState.linearId, lockState, ownableState)
+                .addCommand(LockStateContract.LockCommands.Lock())
+                .addSignatories(listOf(sender))
+
+            val signedTransaction = txBuilder.toSignedTransaction()
+
+            val recipientSession = flowMessaging.initiateFlow(recipientName)
+            flowMessaging.sendAll(signedTransaction, setOf(recipientSession))
+
+            // TODO: send all transaction dependencies for counterparty backchain validation
+
+            // check the counterparty received and successfully validated transaction and backchain
+            val sendingTransactionSuccess = recipientSession.receive(Boolean::class.java)
+            if (!sendingTransactionSuccess) {
+                throw CordaRuntimeException("Counterparty failed receiving transaction")
+            }
+
+            val serializedTx = serializationService.serialize(signedTransaction).bytes
+            persistenceService.persist(TransactionBytes(signedTransaction.id.toString(), serializedTx))
+
+            return signedTransaction.id.toString()
+        } catch (e: Exception) {
+            throw CordaRuntimeException("Failed to build/propose draft transaction.", e)
+        }
+    }
+
+    /**
+     *
+     */
+    private fun <T : OwnableState> convertToClass(typeAsString: String): Class<T> {
+        return try {
+            val clazz = Class.forName(typeAsString)
+            if (ContractState::class.java.isAssignableFrom(clazz)) {
+                @Suppress("UNCHECKED_CAST")
+                clazz as Class<T>
+            } else {
+                throw CordaRuntimeException("Class $typeAsString does not represent a subclass of ContractState")
+            }
+        } catch (e: ClassNotFoundException) {
+            throw CordaRuntimeException("Class $typeAsString could not be found", e)
+        }
+    }
+
+    private fun compositeOwnership(currentOwner: PublicKey, newOwner: PublicKey): PublicKey {
+        return compositeKeyGenerator.create(
+            listOf(
+                CompositeKeyNodeAndWeight(currentOwner, 1),
+                CompositeKeyNodeAndWeight(newOwner, 1)
+            ), 1
+        )
+    }
+}
+
+@InitiatedBy(protocol = "lock-asset")
+class RequestLoanFlowResponder : ResponderFlow {
+
+    private companion object {
+        val log = LoggerFactory.getLogger(this::class.java.enclosingClass)
+    }
+
 //    @CordaInject
 //    lateinit var flowEngine: FlowEngine
-//
-//    /**
-//     * This function builds issues a currency on Corda
-//     */
-//    @Suspendable
-//    override fun call(requestBody: ClientRequestBody): String {
-//        try {
-//            // Switch the ownable state
-//            val inputs = requestBody.getRequestBodyAs(
-//                jsonMarshallingService,
-//                BuildAndProposeDraftTransactionFlowInput::class.java
-//            )
-//
-//            // Fetch the ownable state from the UUID
-//            val ownableState = ledgerService.findUnconsumedStatesByExactType(
-//                OwnableState::class.java,
-//                100,
-//                Instant.now()
-//            ).results.filter {
-//                it.state.contractState.linearId == inputs.swapTransactionDetails.cordaAssetState
-//            }.first()
-//
-//            // set the new owner
-//            val newOwnableState =
-//                ownableState.state.contractState.withNewOwner(inputs.swapTransactionDetails.receiverCordaName)
-//            val key = memberLookup.myInfo().ledgerKeys.first()
-//
-//            val otherUser = memberLookup.lookup().filter {
-//                it.name == inputs.swapTransactionDetails.receiverCordaName
-//            }.first()
-//            val otherUserKey = otherUser.ledgerKeys.first()
-//            val notary= notaryLookup.notaryServices.single()
-//
-//            val lockState = LockState(
-//                key,
-//                otherUserKey,
-//                notary.publicKey,
-//                inputs.swapTransactionDetails.approvedCordaValidators.map { memberLookup.lookup(it).ledgerKeys.first() },
-//                inputs.swapTransactionDetails.minimumNumberOfEventValidations,
-//                linearId = UUID.randomUUID(),
-//                participants = listOf(key, otherUserKey)
-//            )
-//
-//
-//            val txBuilder = ledgerService.createTransactionBuilder()
-//                .setNotary(notary.name)
-//                .addInputState(ownableState.ref)
-//                .addOutputState(newOwnableState)
-//                .addOutputState(lockState)
-//                .addSignatories(key)
-//                .addCommand(LockCommand.Lock)
-//                .setTimeWindowUntil(Instant.now().plusSeconds(300000))
-//
-//            val signedTransaction = txBuilder.toSignedTransaction()
-//
-//
-//
-//
-//            // We initiate the subflow to send the transaction to the other member
-//            val session = flowMessaging.initiateFlow(otherUser.name)
-//            // Send a message containing the input details so that the counterparty can transfer the asset
-//            session.send(inputs)
-//            val receipt = session.receive(String::class.java)
-//
-//            flowMessaging.initiateFlow(inputs.swapTransactionDetails.receiverCordaName)
-//
-//
-//
-//            // Finalize the transaction
-////            val output = ledgerService.finalize(
-////                txBuilder.toSignedTransaction(),
-////                sessions
-////            )
-//
-//            // Returns the transaction id
-////            return output.transaction.id.toString()
-//
-//        } catch (e: Exception) {
-//            log.error("Unexpected error while processing Issue Currency Flow ", e)
-//            throw e
-//        }
-//
-//
-//    }
-//
-////    @Suspendable
-////    private fun sendTransactionDetails(session: FlowSession, wireTx: WireTransaction) {
-////        session.send(wireTx)
-////        val wireTxDependencies = wireTx.inputs.map { it.txhash }.toSet() + wireTx.references.map { it.txhash }.toSet()
-////        wireTxDependencies.forEach {
-////            serviceHub.validatedTransactions.getTransaction(it)?.let { stx ->
-////                subFlow(SendTransactionFlow(session, stx))
-////            }
-////        }
-////    }
-////
-////    @Suspendable
-////    private fun handleVerificationResult(draftTxVerificationResult: Boolean, wireTx: WireTransaction): WireTransaction? {
-////        return if (draftTxVerificationResult) {
-////            serviceHub.cordaService(DraftTxService::class.java).saveDraftTx(wireTx)
-////            wireTx
-////        } else {
-////            null
-////        }
-////    }
-////
-////    @Suspendable
-////    private fun constructLockedAsset(asset: OwnableState, newOwner: Party): OwnableState {
-////        // Build composite key
-////        val compositeKey =  CompositeKey.Builder()
-////            .addKey(asset.owner.owningKey, weight = 1)
-////            .addKey(newOwner.owningKey, weight = 1)
-////            .build(1)
-////
-////
-////        return asset.withNewOwner(AnonymousParty(compositeKey)).ownableState
-////    }
-////
-//
-//}
-//
-//
-//@Suppress("unused")
-//@InitiatedBy(protocol = "build-and-propose-draft-transaction-flow")
-//class FinalizeIssueCurrencySubFlow : ResponderFlow {
-//
-//    @CordaInject
-//    lateinit var utxoLedgerService: UtxoLedgerService
-//
-//    @Suspendable
-//    override fun call(session: FlowSession) {
-//        // Receive, verify, validate, sign and record the transaction sent from the initiator
-//        utxoLedgerService.receiveFinality(session) {
-//            // TODO: Record the transaction
-//        }
-//    }
-//}
+
+    @CordaInject
+    lateinit var persistenceService: PersistenceService
+
+    @CordaInject
+    lateinit var serializationService: SerializationService
+
+    @Suspendable
+    override fun call(session: FlowSession) {
+        try {
+            val signedTransaction = session.receive(UtxoSignedTransaction::class.java)
+
+            // receive and validate all transaction's dependencies
+
+            val serializedTx = serializationService.serialize(signedTransaction).bytes
+            persistenceService.persist(TransactionBytes(signedTransaction.id.toString(), serializedTx))
+
+            session.send(true)
+        } catch (e: Exception) {
+            log.warn("Failed to receive the draft transaction.", e)
+
+            session.send(false)
+        }
+    }
+}

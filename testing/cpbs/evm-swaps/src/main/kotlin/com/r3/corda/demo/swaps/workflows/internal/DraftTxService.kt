@@ -1,26 +1,26 @@
 package com.r3.corda.demo.swaps.workflows.internal
 
+import com.r3.corda.demo.swaps.BlockSignatures
+import com.r3.corda.demo.swaps.EvmSignatures
+import com.r3.corda.demo.swaps.TransactionBytes
 import java.math.BigInteger
-import net.corda.v5.application.flows.CordaInject
 import net.corda.v5.application.persistence.PersistenceService
 import net.corda.v5.application.serialization.SerializationService
+import net.corda.v5.base.annotations.Suspendable
 import net.corda.v5.crypto.DigitalSignature
 import net.corda.v5.crypto.SecureHash
 import net.corda.v5.ledger.utxo.transaction.UtxoSignedTransaction
-import net.corda.v5.serialization.SingletonSerializeAsToken
 
 /**
  * Simple [CordaService] used to store and retrieve swap transaction information
  * TODO: Current implementation is suitable only for testing. A more robust approach is needed
  */
-object DraftTxService : SingletonSerializeAsToken {
-
-    @CordaInject
-    lateinit var persistenceService: PersistenceService
-
-    @CordaInject
-    lateinit var serializationService: SerializationService
-
+//object DraftTxService : SingletonSerializeAsToken {
+class DraftTxService(
+    val persistenceService: PersistenceService,
+    val serializationService: SerializationService
+){
+    @Suspendable
     fun saveBlockSignature(blockNumber: BigInteger, signature: DigitalSignature.WithKeyId) {
         persistenceService.merge(
             BlockSignatures(
@@ -30,6 +30,7 @@ object DraftTxService : SingletonSerializeAsToken {
         )
     }
 
+    @Suspendable
     fun saveNotarizationProof(transactionId: SecureHash, signature: ByteArray) {
         persistenceService.persist(
             EvmSignatures(
@@ -39,6 +40,7 @@ object DraftTxService : SingletonSerializeAsToken {
         )
     }
 
+    @Suspendable
     fun blockSignatures(blockNumber: BigInteger): List<DigitalSignature.WithKeyId> {
         return persistenceService.find(
             BlockSignatures::class.java,
@@ -51,6 +53,7 @@ object DraftTxService : SingletonSerializeAsToken {
         }
     }
 
+    @Suspendable
     fun notarizationProofs(transactionId: SecureHash): List<ByteArray> {
         return persistenceService.find(
             EvmSignatures::class.java,
@@ -58,27 +61,30 @@ object DraftTxService : SingletonSerializeAsToken {
         ).map { it.signature }
     }
 
-    fun saveDraftTx(tx: UtxoSignedTransaction) {
+    @Suspendable
+    fun saveDraftTx(transaction: UtxoSignedTransaction) {
         persistenceService.persist(
-            DraftTransaction(
-                transactionId = tx.id.toString(),
-                transaction = serializationService.serialize(tx).bytes
+            TransactionBytes(
+                transaction.id.toString(),
+                serializationService.serialize(transaction).bytes
             )
         )
     }
 
-    fun getDraftTx(id: SecureHash): UtxoSignedTransaction? {
+    @Suspendable
+    fun getDraftTx(transactionId: SecureHash): UtxoSignedTransaction? {
         return persistenceService.find(
-            DraftTransaction::class.java,
-            listOf(id)
+            TransactionBytes::class.java,
+            listOf(transactionId)
         ).singleOrNull()?.let {
-            return serializationService.deserialize(it.transaction, UtxoSignedTransaction::class.java)
+            return serializationService.deserialize(it.serializedTransaction, UtxoSignedTransaction::class.java)
         }
     }
 
+    @Suspendable
     fun deleteDraftTx(id: SecureHash) {
         persistenceService.find(
-            DraftTransaction::class.java,
+            TransactionBytes::class.java,
             listOf(id)
         ).singleOrNull()?.let {
             persistenceService.remove(it)

@@ -1,6 +1,6 @@
 package com.r3.corda.demo.swaps.workflows.atomic
 
-import com.r3.corda.demo.swaps.workflows.internal.DraftTxService
+//import com.r3.corda.demo.swaps.workflows.internal.DraftTxService
 import net.corda.v5.application.flows.CordaInject
 import net.corda.v5.application.flows.InitiatedBy
 import net.corda.v5.application.flows.ResponderFlow
@@ -32,7 +32,7 @@ class CollectorResponder : ResponderFlow {
     @Suspendable
     override fun call(session: FlowSession) {
         val request = session.receive(RequestParamsWithSignature::class.java)
-        DraftTxService.saveBlockSignature(request.blockNumber!!, request.signature)
+        //DraftTxService.saveBlockSignature(request.blockNumber!!, request.signature)
 
 
         if (request.blocking == true) {

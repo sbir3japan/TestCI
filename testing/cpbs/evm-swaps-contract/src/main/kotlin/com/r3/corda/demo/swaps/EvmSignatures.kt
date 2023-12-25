@@ -1,4 +1,4 @@
-package com.r3.corda.demo.swaps.workflows.internal
+package com.r3.corda.demo.swaps
 
 import net.corda.v5.base.annotations.CordaSerializable
 import javax.persistence.Column
@@ -6,12 +6,12 @@ import javax.persistence.Entity
 import javax.persistence.Id
 
 @CordaSerializable
-@Entity
-class DraftTransaction (
+@Entity(name = "evm_signatures")
+class EvmSignatures (
     @Id
     @Column(name = "transaction_id")
     val transactionId: String,
 
-    @Column(name = "transaction")
-    val transaction: ByteArray,
+    @Column(name = "signature")
+    val signature: ByteArray
 )

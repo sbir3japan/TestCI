@@ -2,12 +2,7 @@ package com.r3.corda.demo.swaps.workflows.atomic
 
 import com.r3.corda.demo.swaps.TransactionBytes
 import com.r3.corda.demo.swaps.states.swap.LockState
-import com.r3.corda.demo.swaps.workflows.internal.DraftTransaction
-import com.r3.corda.demo.swaps.workflows.internal.DraftTxService
-import com.r3.corda.demo.swaps.workflows.internal.DraftTxService.persistenceService
 import net.corda.v5.application.flows.*
-import net.corda.v5.application.interop.evm.EvmService
-import net.corda.v5.application.interop.evm.options.TransactionOptions
 import net.corda.v5.application.marshalling.JsonMarshallingService
 import net.corda.v5.application.membership.MemberLookup
 import net.corda.v5.application.messaging.FlowMessaging
@@ -21,9 +16,8 @@ import net.corda.v5.ledger.common.NotaryLookup
 import net.corda.v5.ledger.utxo.StateAndRef
 import net.corda.v5.ledger.utxo.UtxoLedgerService
 import net.corda.v5.ledger.utxo.transaction.UtxoSignedTransaction
-import net.corda.v5.membership.MemberInfo
 import org.slf4j.LoggerFactory
-import java.security.PublicKey
+import java.awt.color.ICC_ColorSpace
 
 
 data class SignDraftTransactionByIdArgs(val transactionId: SecureHash)
@@ -139,16 +133,17 @@ class SignDraftTransactionByIdResponder : ResponderFlow {
             ledgerService.receiveFinality(session) { tx ->
                 // TODO: add required checks
 
-                val transactionData = persistenceService.find(
-                    TransactionBytes::class.java,
-                    listOf(tx.id)
-                ).singleOrNull()
-
-                if (transactionData != null) {
-                    persistenceService.remove(transactionData)
-                } else {
-                    throw IllegalArgumentException("Trying to sign a non existing draft transaction")
-                }
+                tx.signatories
+//                val transactionData = persistenceService.find(
+//                    TransactionBytes::class.java,
+//                    listOf(tx.id)
+//                ).singleOrNull()
+//
+//                if (transactionData != null) {
+//                    persistenceService.remove(transactionData)
+//                } else {
+//                    throw IllegalArgumentException("Trying to sign a non existing draft transaction")
+//                }
             }
 
         } catch (e: Exception) {

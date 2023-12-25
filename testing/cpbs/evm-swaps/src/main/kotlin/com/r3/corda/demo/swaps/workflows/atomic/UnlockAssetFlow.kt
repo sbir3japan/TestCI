@@ -8,6 +8,7 @@ import com.r3.corda.demo.swaps.utils.trie.SimpleKeyValueStore
 import com.r3.corda.demo.swaps.workflows.eth2eth.GetBlockByNumberSubFlow
 import com.r3.corda.demo.swaps.workflows.eth2eth.GetBlockReceiptsSubFlow
 import com.r3.corda.demo.swaps.workflows.internal.DraftTxService
+//import com.r3.corda.demo.swaps.workflows.internal.DraftTxService
 import com.r3.corda.demo.swaps.workflows.swap.UnlockTransactionAndObtainAssetSubFlow
 import java.math.BigInteger
 import net.corda.v5.application.flows.ClientRequestBody
@@ -20,6 +21,8 @@ import net.corda.v5.application.interop.evm.TransactionReceipt
 import net.corda.v5.application.marshalling.JsonMarshallingService
 import net.corda.v5.application.membership.MemberLookup
 import net.corda.v5.application.messaging.FlowMessaging
+import net.corda.v5.application.persistence.PersistenceService
+import net.corda.v5.application.serialization.SerializationService
 import net.corda.v5.base.annotations.Suspendable
 import net.corda.v5.crypto.DigitalSignature
 import net.corda.v5.crypto.SecureHash
@@ -64,6 +67,12 @@ class UnlockAssetFlow : ClientStartableFlow {
     @CordaInject
     lateinit var flowEngine: FlowEngine
 
+    @CordaInject
+    lateinit var persistenceService: PersistenceService
+
+    @CordaInject
+    lateinit var serializationService: SerializationService
+
     /**
      * This function builds issues a currency on Corda
      */
@@ -90,12 +99,13 @@ class UnlockAssetFlow : ClientStartableFlow {
                 outputStateAndRefs.singleOrNull { it.state.contractState !is OwnableState } as? StateAndRef<OwnableState>
                     ?: throw IllegalArgumentException("Transaction $transactionId does not have a single asset")
 
-            val signatures: List<DigitalSignature.WithKeyId> = DraftTxService.blockSignatures(blockNumber)
+            val signatures: List<DigitalSignature.WithKeyId> = DraftTxService(persistenceService, serializationService).blockSignatures(blockNumber)
 
             require(signatures.count() >= lockState.state.contractState.signaturesThreshold) {
                 "Insufficient signatures for this transaction"
             }
 
+            // TODO: continue testing from here after the GetBlockByNumberSubFlow issue is resolved.
             // Get the block that mined the transaction that generated the designated EVM event
             val block = flowEngine.subFlow(GetBlockByNumberSubFlow(blockNumber, true))
 
