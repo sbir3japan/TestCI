@@ -45,6 +45,24 @@
           "endpointUrl-1" : "https://bob.corda5.r3.com:10000",
 
           "endpointProtocol-1" : 1
+        },
+        {
+          "name" : "CN=Charlie, OU=Application, O=NordVPN, L=Vilnius, C=LT",
+
+          "memberStatus" : "ACTIVE",
+
+          "endpointUrl-1" : "https://bob.corda5.r3.com:10000",
+
+          "endpointProtocol-1" : 1
+        },
+        {
+          "name" : "CN=Eve, OU=Application, O=NordVPN, L=Athens, C=GR",
+
+          "memberStatus" : "ACTIVE",
+
+          "endpointUrl-1" : "https://bob.corda5.r3.com:10000",
+
+          "endpointProtocol-1" : 1
         }
       ]
 
