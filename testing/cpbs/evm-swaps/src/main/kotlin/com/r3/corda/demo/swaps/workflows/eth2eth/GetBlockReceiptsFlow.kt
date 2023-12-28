@@ -69,8 +69,9 @@ class GetBlockReceiptsSubFlow(
                 ""
             )
 
-            val block = evmService.getBlockByNumber(blockNumber, true, evmOptions)
+            val block = evmService.getBlockByNumber(blockNumber, false, evmOptions)
 
+            // NOTE: transactions are hashes only here because fullTransactionObject is false
             val transactionReceipts = block.transactions.map {
                 evmService.getTransactionReceipt(it, evmOptions)
             }

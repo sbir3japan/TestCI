@@ -10,6 +10,7 @@ import net.corda.v5.application.membership.MemberLookup
 import net.corda.v5.ledger.utxo.StateAndRef
 import net.corda.v5.ledger.utxo.UtxoLedgerService
 import net.corda.v5.ledger.utxo.transaction.UtxoSignedTransaction
+import java.time.Instant
 
 class UnlockTransactionAndObtainAssetSubFlow(
     private val lockedAsset: StateAndRef<OwnableState>,
@@ -29,16 +30,22 @@ class UnlockTransactionAndObtainAssetSubFlow(
         val newOwner = memberLookup.lookup(lockState.state.contractState.assetRecipient)
             ?: throw IllegalArgumentException("The specified recipient does not resolve to a known Party")
 
-        val unlockCommand = LockCommand.Unlock(unlockData)
-        val signedTransaction = utxoLedgerService.createTransactionBuilder()
+        val unlockCommand = LockCommand.Unlock//unlockData)
+
+        val builder = utxoLedgerService.createTransactionBuilder()
             .setNotary(lockState.state.notaryName)
-            .addInputState(lockedAsset.ref)
-            .addInputState(lockState.ref)
-            .addSignatories(myInfo.ledgerKeys.first())
+            .setTimeWindowBetween(Instant.now(), Instant.MAX)
+            .addInputStates(lockedAsset.ref, lockState.ref)
             .addOutputState(lockedAsset.state.contractState.withNewOwner(newOwner.ledgerKeys.first()))
             .addCommand(unlockCommand)
-            .toSignedTransaction()
+            .addSignatories(myInfo.ledgerKeys.first())
 
-        return utxoLedgerService.finalize(signedTransaction, emptyList()).transaction
+        val signedTransaction = builder.toSignedTransaction()
+
+        // TODO: @fowlerr need to discuss/understand the implication of emptyList here, it may be correct bu still need to
+        //       check what it means in C5
+        val result = utxoLedgerService.finalize(signedTransaction, emptyList())
+
+        return result.transaction
     }
 }

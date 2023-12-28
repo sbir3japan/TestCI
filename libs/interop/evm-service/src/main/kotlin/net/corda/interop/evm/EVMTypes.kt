@@ -88,6 +88,7 @@ data class EthereumBlock @JsonCreator constructor(
     val result: EthereumBlockResult
 )
 
+// TODO: @ILoomans and @fowlerrr - we need to make sure all nullables are set correctly or we will get a lot of crashes
 @CordaSerializable
 data class EthereumBlockResult @JsonCreator constructor(
     @JsonProperty("number")
@@ -96,11 +97,11 @@ data class EthereumBlockResult @JsonCreator constructor(
     @JsonProperty("hash")
     val hash: String,
 
-    @JsonProperty("parentHash")
-    val parentHash: String,
-
     @JsonProperty("mixHash")
     val mixHash: String,
+
+    @JsonProperty("parentHash")
+    val parentHash: String,
 
     @JsonProperty("nonce")
     val nonce: String,
@@ -132,6 +133,9 @@ data class EthereumBlockResult @JsonCreator constructor(
     @JsonProperty("extraData")
     val extraData: String,
 
+    @JsonProperty("baseFeePerGas")
+    val baseFeePerGas: String?,
+
     @JsonProperty("size")
     val size: String,
 
@@ -144,20 +148,19 @@ data class EthereumBlockResult @JsonCreator constructor(
     @JsonProperty("timestamp")
     val timestamp: String,
 
-    @JsonProperty("transactions")
-    val transactions: List<String>,
-
     @JsonProperty("uncles")
-    val uncles: List<String>
+    val uncles: List<String>,
+
+    @JsonProperty("transactions")
+    val transactions: List<String> // REVIEW: if include transaction false we have only hashes, otherwise we have the complete transaction objects
 )
+
 
 @CordaSerializable
 data class EthereumTransaction @JsonCreator constructor(
-    @JsonProperty("hash")
-    val hash: String,
-
-    @JsonProperty("nonce")
-    val nonce: String,
+    // REVIEW: accessList ignored from EIP-2930 but would cause the objectmapper to throws as there is an unknown field in response
+    // TODO: review nullables further (partially done) and make sure there is either accessList nullable or the objectmapper configured
+    //       not to throw on unmapped fields.
 
     @JsonProperty("blockHash")
     val blockHash: String,
@@ -165,17 +168,11 @@ data class EthereumTransaction @JsonCreator constructor(
     @JsonProperty("blockNumber")
     val blockNumber: String,
 
-    @JsonProperty("transactionIndex")
-    val transactionIndex: String,
+    @JsonProperty("chainId") // EIP-155 (REVIEW: nullable may not be strictly necessary here)
+    val chainId: String?,
 
     @JsonProperty("from")
     val from: String,
-
-    @JsonProperty("to")
-    val to: String?,
-
-    @JsonProperty("value")
-    val value: String,
 
     @JsonProperty("gas")
     val gas: String,
@@ -183,8 +180,35 @@ data class EthereumTransaction @JsonCreator constructor(
     @JsonProperty("gasPrice")
     val gasPrice: String,
 
+    @JsonProperty("maxPriorityFeePerGas") // EIP-1559
+    val maxPriorityFeePerGas: String?,
+
+    @JsonProperty("maxFeePerGas") // EIP-1559
+    val maxFeePerGas: String?,
+
+    @JsonProperty("hash")
+    val hash: String,
+
     @JsonProperty("input")
     val input: String,
+
+    @JsonProperty("nonce")
+    val nonce: String,
+
+    @JsonProperty("to")
+    val to: String?,
+
+    @JsonProperty("transactionIndex")
+    val transactionIndex: String,
+
+    @JsonProperty("type") // EIP-2718
+    val type: String?,
+
+    @JsonProperty("value")
+    val value: String,
+
+    @JsonProperty("yParity") // EIP-1559
+    val yParity: String?,
 
     @JsonProperty("v")
     val v: String,
@@ -194,8 +218,6 @@ data class EthereumTransaction @JsonCreator constructor(
 
     @JsonProperty("s")
     val s: String
-
-
 )
 
 
@@ -225,4 +247,3 @@ data class TransactionObjectData @JsonCreator constructor(
     @JsonProperty("r") val r: String,
     @JsonProperty("s") val s: String,
     )
-

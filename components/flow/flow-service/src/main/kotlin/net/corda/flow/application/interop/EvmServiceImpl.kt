@@ -149,7 +149,7 @@ class EvmServiceImpl @Activate constructor(
                 EvmGetBlockByNumberExternalEventFactory::class.java,
                 EvmGetBlockByNumberParams(
                     options = options!!,
-                    blockNumber = number.toString(),
+                    blockNumber = "0x" + number.toString(16),
                     fullTransactionObjects = fullTransactionObject,
                 )
             )

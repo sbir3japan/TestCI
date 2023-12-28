@@ -21,7 +21,7 @@ class GetBlockByNumber(private val evmConnector: EthereumConnector) : EvmDispatc
         val resp = evmConnector.send<EthereumBlock>(
             evmRequest.rpcUrl,
             ETH_GET_BLOCK_BY_NUMBER,
-            listOf(request.blockNumber.toBigInteger(), request.fullTransactionObjects)
+            listOf(request.blockNumber, request.fullTransactionObjects)
         )
 
         val blockInfo = resp.result
