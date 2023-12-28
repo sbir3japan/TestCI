@@ -1,4 +1,4 @@
-package com.r3.corda.demo.swaps.workflows
+package com.r3.corda.demo.swaps
 
 import net.corda.v5.base.annotations.CordaSerializable
 import net.corda.v5.crypto.SecureHash
@@ -21,8 +21,8 @@ interface IUnlockEventEncoder {
 
 @CordaSerializable
 data class SwapVaultEventEncoder(
-    private val protocolAddress: String,
-    private val commitmentHash: ByteArray
+    val protocolAddress: String,
+    val commitmentHash: ByteArray
 ) : IUnlockEventEncoder {
     companion object {
         fun create(

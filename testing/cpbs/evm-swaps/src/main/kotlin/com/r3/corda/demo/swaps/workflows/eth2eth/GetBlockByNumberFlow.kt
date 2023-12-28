@@ -6,6 +6,7 @@ import net.corda.v5.application.flows.ClientRequestBody
 import net.corda.v5.application.flows.ClientStartableFlow
 import net.corda.v5.application.flows.CordaInject
 import net.corda.v5.application.flows.FlowEngine
+import net.corda.v5.application.flows.InitiatingFlow
 import net.corda.v5.application.flows.SubFlow
 import net.corda.v5.application.interop.evm.Block
 import net.corda.v5.application.interop.evm.EvmService
@@ -23,6 +24,7 @@ data class GetBlockByNumberFlowOutput(
     val block: Block? = null
 )
 
+@InitiatingFlow(protocol = "get-block-by-number-cs")
 class GetBlockByNumberFlow : ClientStartableFlow {
     private companion object {
         private val log = LoggerFactory.getLogger(this::class.java.enclosingClass)
@@ -45,6 +47,7 @@ class GetBlockByNumberFlow : ClientStartableFlow {
 }
 
 @Suppress("unused")
+@InitiatingFlow(protocol = "get-block-by-number-sf")
 class GetBlockByNumberSubFlow(
     private val number: BigInteger,
     private val includeTransactions: Boolean

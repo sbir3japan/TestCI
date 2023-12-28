@@ -1,4 +1,4 @@
-package com.r3.corda.demo.swaps.workflows
+package com.r3.corda.demo.swaps
 
 import net.corda.v5.application.interop.evm.TransactionReceipt
 import net.corda.v5.base.annotations.CordaSerializable

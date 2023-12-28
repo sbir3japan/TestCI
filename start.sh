@@ -84,7 +84,6 @@ echo "VNode 2 Holding ID = "$HOLDING_ID_2
 
 sleep 10
 
-
 export NOTARY_REGISTRATION_CONTEXT='{
   "corda.key.scheme": "CORDA.ECDSA.SECP256R1",
   "corda.roles.0": "notary",
