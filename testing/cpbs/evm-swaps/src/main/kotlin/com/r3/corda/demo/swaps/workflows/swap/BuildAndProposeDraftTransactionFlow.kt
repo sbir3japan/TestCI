@@ -136,7 +136,8 @@ class RequestLockSubFlow(
 
             val sender = stateAndRef.state.contractState.owner
             val ownableState = with(stateAndRef.state.contractState) {
-                withNewOwner(compositeOwnership(owner, recipientKey))
+                //withNewOwner(compositeOwnership(owner, recipientKey))
+                withNewOwner(recipientKey)
             }
 
             val lockState = LockState(

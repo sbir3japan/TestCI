@@ -23,7 +23,7 @@ import net.corda.v5.base.util.ByteArrays
  * Implementation of KeyValueStore using a simple hash map.
  */
 @CordaSerializable
-class SimpleKeyValueStore(private val store: LinkedHashMap<Int, ByteArray>) // : KeyValueStore
+class SimpleKeyValueStore(/*private */val store: LinkedHashMap<Int, ByteArray>) // : KeyValueStore
 {
 
     constructor() : this(LinkedHashMap<Int, ByteArray>())

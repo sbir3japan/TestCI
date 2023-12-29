@@ -10,6 +10,7 @@ import net.corda.v5.application.membership.MemberLookup
 import net.corda.v5.ledger.utxo.StateAndRef
 import net.corda.v5.ledger.utxo.UtxoLedgerService
 import net.corda.v5.ledger.utxo.transaction.UtxoSignedTransaction
+import java.time.Duration
 import java.time.Instant
 
 class UnlockTransactionAndObtainAssetSubFlow(
@@ -30,11 +31,11 @@ class UnlockTransactionAndObtainAssetSubFlow(
         val newOwner = memberLookup.lookup(lockState.state.contractState.assetRecipient)
             ?: throw IllegalArgumentException("The specified recipient does not resolve to a known Party")
 
-        val unlockCommand = LockCommand.Unlock//unlockData)
+        val unlockCommand = LockCommand.Unlock(unlockData)
 
         val builder = utxoLedgerService.createTransactionBuilder()
             .setNotary(lockState.state.notaryName)
-            .setTimeWindowBetween(Instant.now(), Instant.MAX)
+            .setTimeWindowUntil(Instant.now() + Duration.ofHours(1))
             .addInputStates(lockedAsset.ref, lockState.ref)
             .addOutputState(lockedAsset.state.contractState.withNewOwner(newOwner.ledgerKeys.first()))
             .addCommand(unlockCommand)

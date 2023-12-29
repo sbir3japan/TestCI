@@ -36,11 +36,17 @@ import org.rlp.RlpList
 import org.rlp.RlpString
 import org.slf4j.LoggerFactory
 import org.utils.Numeric
+import java.time.Duration
 import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneOffset
 
 @Suppress("unused")
 @InitiatingFlow(protocol = "unlock-asset-flow")
 class UnlockAssetFlow : ClientStartableFlow {
+
+    private val defaultTimeWindowUpperBound: Instant =
+        LocalDate.of(2200, 1, 1).atStartOfDay().toInstant(ZoneOffset.UTC)
 
     data class RequestParams(
         val transactionId: SecureHash,
@@ -84,9 +90,9 @@ class UnlockAssetFlow : ClientStartableFlow {
         try {
             // Get any of the relevant details from the request here
             val (
-                transactionId/*,
+                transactionId,
                 blockNumber,
-                transactionIndex*/
+                transactionIndex
             ) = requestBody.getRequestBodyAs(jsonMarshallingService, RequestParams::class.java)
 
             val signedTransaction = ledgerService.findSignedTransaction(transactionId)
@@ -102,7 +108,7 @@ class UnlockAssetFlow : ClientStartableFlow {
                 outputStateAndRefs.singleOrNull { it.state.contractState is OwnableState } as? StateAndRef<OwnableState>
                     ?: throw IllegalArgumentException("Transaction $transactionId does not have a single asset")
 
-//            val signatures: List<DigitalSignature.WithKeyId> = DraftTxService(persistenceService, serializationService).blockSignatures(blockNumber)
+            val signatures: List<DigitalSignature.WithKeyId> = DraftTxService(persistenceService, serializationService).blockSignatures(blockNumber)
 
 //            require(signatures.count() >= lockState.state.contractState.signaturesThreshold) {
 //                "Insufficient signatures for this transaction"
@@ -110,17 +116,17 @@ class UnlockAssetFlow : ClientStartableFlow {
 
             // TODO: continue testing from here after the GetBlockByNumberSubFlow issue is resolved.
             // Get the block that mined the transaction that generated the designated EVM event
-//            val block = flowEngine.subFlow(GetBlockByNumberSubFlow(blockNumber, false))
+            val block = flowEngine.subFlow(GetBlockByNumberSubFlow(blockNumber, false))
 
             // Get all the transaction receipts from the block to build and verify the transaction receipts root
-//            val receipts = flowEngine.subFlow(GetBlockReceiptsSubFlow(blockNumber))
+            val receipts = flowEngine.subFlow(GetBlockReceiptsSubFlow(blockNumber))
 
             // Get the receipt specifically associated with the transaction that generated the event
-//            val unlockReceipt = receipts[transactionIndex.toInt()]
+            val unlockReceipt = receipts[transactionIndex.toInt()]
 
-//            val merkleProof = generateMerkleProof(receipts, unlockReceipt)
+            val merkleProof = generateMerkleProof(receipts, unlockReceipt)
 
-            //val unlockData = UnlockData(merkleProof, signatures, block.receiptsRoot, SerializableTransactionReceipt.fromTransactionReceipt(unlockReceipt))
+            val unlockData = UnlockData(merkleProof, signatures, block.receiptsRoot, SerializableTransactionReceipt.fromTransactionReceipt(unlockReceipt))
 
 //            val transaction =
 //                flowEngine.subFlow(UnlockTransactionAndObtainAssetSubFlow(assetState, lockState, unlockData))
@@ -128,18 +134,18 @@ class UnlockAssetFlow : ClientStartableFlow {
             /*******************************************************************************************/
             val myInfo = memberLookup.myInfo()
 
-            val newOwner = memberLookup.lookup(lockState.state.contractState.assetRecipient)
-                ?: throw IllegalArgumentException("The specified recipient does not resolve to a known Party")
+//            val newOwner = memberLookup.lookup(lockState.state.contractState.assetRecipient)
+//                ?: throw IllegalArgumentException("The specified recipient does not resolve to a known Party")
 
             // TODO: Unlock is using UnlockData which is not serializing (exception). Definitely the EVM Types must be marked as @CordaSerializable, but there seems to be something also on the Merkle
-            val unlockCommand = LockCommand.Unlock//(unlockData)
+            val unlockCommand = LockCommand.Unlock(unlockData)
 
             val builder = ledgerService.createTransactionBuilder()
                 .setNotary(lockState.state.notaryName)
                 //.setTimeWindowBetween(Instant.now(), Instant.MAX) // TODO: how do I give infinite timeout without overflow error? There is a bug in C5 when using Instant.MAX
-                .setTimeWindowBetween(Instant.now(), Instant.now().plusSeconds(3600))
+                .setTimeWindowUntil(Instant.now() + Duration.ofHours(1))
                 .addInputStates(assetState.ref, lockState.ref)
-                .addOutputState(assetState.state.contractState.withNewOwner(newOwner.ledgerKeys.first()))
+                .addOutputState(assetState.state.contractState)
                 .addCommand(unlockCommand)
                 .addSignatories(myInfo.ledgerKeys.first())
 
@@ -154,6 +160,9 @@ class UnlockAssetFlow : ClientStartableFlow {
             /*******************************************************************************************/
 
             return jsonMarshallingService.format(transaction)
+            // REVIEW: line above is throing exception. Tried adding jackson-datatype-jsr310 reference but still throwing.
+            // Should probably neeed additional step to register JavaTimeModule but I believe it is or should be already
+            // done by some core component
         } catch (e: Exception) {
             log.error("Unexpected error while processing Issue Currency Flow ", e)
             throw e
