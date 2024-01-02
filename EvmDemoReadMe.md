@@ -79,7 +79,7 @@ cd ../../
 ### Deploy the EVM contracts
 
 cd testing/evm-interop-contracts
-npx hardhat run scripts/deploy.js --network localhost
+npx hardhat run scripts/deploy.js --network besu
 cd ../../
 
 #### Copy the contract address 
