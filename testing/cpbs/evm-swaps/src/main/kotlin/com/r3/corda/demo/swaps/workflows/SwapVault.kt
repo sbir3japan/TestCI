@@ -7,8 +7,10 @@ import net.corda.v5.application.interop.evm.Type
 import net.corda.v5.application.interop.evm.options.CallOptions
 import net.corda.v5.application.interop.evm.options.EvmOptions
 import net.corda.v5.application.interop.evm.options.TransactionOptions
+import net.corda.v5.base.annotations.Suspendable
 import java.math.BigInteger
 
+@Suspendable
 class SwapVault(
     private val rpcUrl: String,
     private val evmService: EvmService,
@@ -166,7 +168,7 @@ class SwapVault(
         return receipt.status
     }
 
-
+    @Suspendable
     fun commitWithToken(
         swapId: String,
         tokenAddress: String,

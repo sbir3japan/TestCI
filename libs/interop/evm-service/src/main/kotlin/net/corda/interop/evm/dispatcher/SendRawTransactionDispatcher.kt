@@ -36,21 +36,41 @@ class SendRawTransactionDispatcher(private val evmConnector: EthereumConnector) 
 
 
         val transactionCountResponse = evmConnector.send<GenericResponse>(
-            evmRequest.rpcUrl, GET_TRANSACTION_COUNT, listOf(evmRequest.from, LATEST)
+            evmRequest.rpcUrl, GET_TRANSACTION_COUNT, listOf("0xFE3B557E8Fb62b89F4916B721be55cEb828dBd73", LATEST)
         )
         val nonce = BigInteger.valueOf(Integer.decode(transactionCountResponse.result.toString()).toLong())
         val chainId = evmConnector.send<GenericResponse>(evmRequest.rpcUrl, GET_CHAIN_ID, emptyList<String>())
         val parsedChainId = Numeric.toBigInt(chainId.result.toString()).toLong()
 
-
+//        public static Transaction1559 createTransaction(
+//            long chainId,
+//        BigInteger nonce,
+//        BigInteger gasLimit,
+//        String to,
+//        BigInteger value,
+//        String data,
+//        BigInteger maxPriorityFeePerGas,
+//        BigInteger maxFeePerGas) {
+//
         val transaction = RawTransaction.createTransaction(
+            parsedChainId,
             nonce,
             20000000000.toBigInteger(),
-            6721975.toBigInteger(),
             evmRequest.to,
             BigInteger.valueOf(request.options.value.toLong()),
-            data
+            data,
+            BigInteger.valueOf(request.options.maxPriorityFeePerGas.toLong()),
+            BigInteger.valueOf(request.options.maxFeePerGas.toLong())
         )
+
+//        val transaction = RawTransaction.createTransaction(
+//            nonce,
+//            20000000000.toBigInteger(),
+//            6721975.toBigInteger(),
+//            evmRequest.to,
+//            BigInteger.valueOf(request.options.value.toLong()),
+//            data
+//        )
         val signer = Credentials.create(temporaryPrivateKey)
         val signed = TxSignServiceImpl(signer).sign(transaction, parsedChainId)
         val tReceipt = evmConnector.send<GenericResponse>(

@@ -108,7 +108,7 @@ import org.web3j.abi.datatypes.primitive.Double
 import org.web3j.abi.datatypes.primitive.Float
 import org.web3j.utils.Numeric
 
-
+@Suppress("MaxLineLength")
 class AbiConverter {
 
 

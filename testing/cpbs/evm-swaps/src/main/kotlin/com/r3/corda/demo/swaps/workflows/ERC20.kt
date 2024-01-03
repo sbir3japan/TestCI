@@ -8,7 +8,9 @@ import net.corda.v5.application.interop.evm.Type
 import net.corda.v5.application.interop.evm.options.CallOptions
 import net.corda.v5.application.interop.evm.options.EvmOptions
 import net.corda.v5.application.interop.evm.options.TransactionOptions
+import net.corda.v5.base.annotations.Suspendable
 
+@Suspendable
 class ERC20(
     private val rpcUrl: String,
     private val evmService: EvmService,
@@ -142,6 +144,7 @@ class ERC20(
 
     }
 
+    @Suspendable
     fun approve(spender: String, value: BigInteger): TransactionReceipt {
         val dummyGasNumber = BigInteger("a41c5", 16)
         val transactionOptions = TransactionOptions(
