@@ -8,8 +8,24 @@ const IndexPage: React.FC = () => {
     history.push('/assets');
   };
 
+  const evmSwapsDemoPage = () => {
+    history.push('/harmonia');
+  }
+
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+    <div style={{ display: 'flex', justifyContent: 'space-evenly', alignItems: 'center', height: '100vh' }}>
+      <button
+        style={{
+          backgroundColor: 'blue',
+          color: 'white',
+          fontFamily: 'Roboto',
+          padding: '10px 20px',
+          borderRadius: '5px',
+          cursor: 'pointer',
+        }}
+        onClick={evmSwapsDemoPage}>
+      Harmonia
+      </button>
       <button
         style={{
           backgroundColor: 'red',
@@ -21,7 +37,7 @@ const IndexPage: React.FC = () => {
         }}
         onClick={navigateToAssetsPage}
       >
-        Go to Demo
+        Fractional Asset Demo
       </button>
     </div>
   );
