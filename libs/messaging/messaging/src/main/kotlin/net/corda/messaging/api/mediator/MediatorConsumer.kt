@@ -1,5 +1,6 @@
 package net.corda.messaging.api.mediator
 
+import net.corda.messagebus.api.CordaTopicPartition
 import net.corda.messagebus.api.consumer.CordaConsumerRecord
 import java.time.Duration
 
@@ -29,4 +30,10 @@ interface MediatorConsumer<K : Any, V : Any> : AutoCloseable {
      * Resets consumer's offsets to the last committed positions. Next poll will read from the last committed positions.
      */
     fun resetEventOffsetPosition()
+
+    /**
+     * Get the poll position of the mediator consumer on the topics it is assigned
+     * @return Map of the assigned topic partitions to the offset/position of the consumer on these partitions
+     */
+    fun position(): Map<CordaTopicPartition, Long>
 }

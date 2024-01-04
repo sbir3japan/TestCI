@@ -1,5 +1,6 @@
 package net.corda.messaging.mediator
 
+import net.corda.messagebus.api.CordaTopicPartition
 import net.corda.messagebus.api.consumer.CordaConsumer
 import net.corda.messagebus.api.consumer.CordaConsumerRecord
 import net.corda.messagebus.api.consumer.CordaOffsetResetStrategy
@@ -21,6 +22,11 @@ class MessageBusConsumer<K: Any, V: Any>(
 
     override fun resetEventOffsetPosition() =
         consumer.resetToLastCommittedPositions(CordaOffsetResetStrategy.EARLIEST)
+
+    override fun position(): Map<CordaTopicPartition, Long> {
+        val topicPartitions = consumer.assignment()
+        return topicPartitions.associateWith { consumer.position(it) }
+    }
 
     override fun close() = consumer.close()
 }
