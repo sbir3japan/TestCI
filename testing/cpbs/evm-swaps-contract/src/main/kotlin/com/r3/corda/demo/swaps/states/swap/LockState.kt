@@ -29,11 +29,3 @@ class LockState(
     }
 }
 
-//@BelongsToContract(LockStateContract::class)
-//class LockState(val assetSender: PublicKey,
-//                val assetRecipient: PublicKey,
-//                val notary: PublicKey,
-//                val approvedValidators: List<PublicKey>,
-//                val signaturesThreshold: Int,
-//                val unlockEvent: IUnlockEventEncoder,
-//                override val participants: List<AbstractParty> = emptyList()) : ContractState

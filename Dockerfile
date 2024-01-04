@@ -1,20 +1,27 @@
-# use Ubuntu
+# Use Ubuntu as the base image
 FROM ubuntu:latest
 
-# install dependencies
+# Install dependencies
 RUN apt-get update && \
     apt-get install -y openjdk-17-jdk
 
-# copy the local directory
+# Set the working directory
+WORKDIR /app
+
+# Copy the local directory to the container
 COPY . /app
 
-# set the working directory
-#WORKDIR /app
+# Expose the port on which your application will run
+EXPOSE 8888
 
-# expose port
-#EXPOSE 8888
-#
-# define the command to run your application
+ENV CORDA_ARTIFACTORY_USERNAME=ignace.loomans@r3.com
+ENV CORDA_ARTIFACTORY_PASSWORD=REPLACEME
+
+
+
+# Define the command to run your application
+#CMD ["./gradlew", ":applications:workers:release:combined-worker:build"]
+
 CMD ["java", "-jar", "./applications/workers/release/combined-worker/build/bin/corda-combined-worker-5.1.0-EVMINTEROP.0-SNAPSHOT.jar", \
     "--instance-id=0", \
     "-mbus.busType=DATABASE", \
@@ -22,7 +29,7 @@ CMD ["java", "-jar", "./applications/workers/release/combined-worker/build/bin/c
     "-ssalt=salt", \
     "-ddatabase.user=user", \
     "-ddatabase.pass=password", \
-    "-ddatabase.jdbc.url=jdbc:postgresql://localhost:5432/cordacluster", \
+    "-ddatabase.jdbc.url=jdbc:postgresql://host.docker.internal:5432/cordacluster", \
     "-ddatabase.jdbc.directory=./applications/workers/release/combined-worker/drivers", \
     "-rtls.crt.path=./applications/workers/release/combined-worker/tls/rest/server.crt", \
     "-rtls.key.path=./applications/workers/release/combined-worker/tls/rest/server.key", \

@@ -1,5 +1,5 @@
 # Use an official Node.js runtime as the base image
-FROM node:14
+FROM node:18
 
 # Install ganache-cli globally
 RUN npm install -g ganache-cli

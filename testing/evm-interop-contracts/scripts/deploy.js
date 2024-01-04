@@ -6,8 +6,6 @@
 const hre = require("hardhat");
 
 async function main() {
-
-
   const lock = await hre.ethers.deployContract("FractionalOwnershipToken", []);
 
   await lock.waitForDeployment();
@@ -16,11 +14,9 @@ async function main() {
 
   // instantiate the contract
   // mint 10000 tokens to the deployer
-  const mainAddress = "0xFE3B557E8Fb62b89F4916B721be55cEb828dBd73"
-  const tx = await lock.createToken(mainAddress, 1000000,"DemoToken");
+  const mainAddress = "0xFE3B557E8Fb62b89F4916B721be55cEb828dBd73";
+  const tx = await lock.createToken(mainAddress, 1000000, "DemoToken");
   await tx.wait();
-
-
 }
 
 // We recommend this pattern to be able to use async/await everywhere
