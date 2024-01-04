@@ -14,7 +14,7 @@ const Harmonia = () => {
             "2CD775D033E7",
             "0xF382FA9E9FEDDCCB8AA8A440EE5D47FE6F687B72167384D9265E25B6DDB3F68D",
             "com.r3.corda.demo.swaps.contracts.swap.AssetState",
-            "98BA3D01227D",
+            "CN=Eve, OU=Application, O=NordVPN, L=Athens, C=GR",
             1,
             1337,
             process.env.SWAP_VAULT_ADDRESS,
