@@ -159,7 +159,20 @@ echo $(curl --insecure -u admin:admin -d "$NOTARY_REGISTRATION_REQUEST" https://
 
 sleep 30
 
-
+curl --insecure -u admin:admin \
+  -X 'POST' \
+  https://localhost:8888/api/v1/flow/$HOLDING_ID \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "startFlow": {
+        "clientRequestId": "HelloWorld123",
+        "flowClassName": "com.r3.corda.demo.swaps.workflows.swap.IssueGenericAssetFlow",
+        "requestBody": {
+            "assetName": "Generic Asset"
+        }
+    }
+}'
 
 #curl --insecure -u admin:admin \
 #  -X POST \
