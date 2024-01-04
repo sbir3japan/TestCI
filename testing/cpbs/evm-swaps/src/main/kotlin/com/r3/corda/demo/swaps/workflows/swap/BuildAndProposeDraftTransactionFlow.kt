@@ -75,7 +75,7 @@ class RequestLockFlow : ClientStartableFlow {
         )
 
         val response = flowEngine.subFlow(
-            RequestLockSubFlow(transactionId, assetType, lockToRecipient, signaturesThreshold, validators, unlockEvent)
+            RequestLockSubFlow(transactionId.toString(), assetType, lockToRecipient, signaturesThreshold, validators, unlockEvent)
         )
 
         return jsonMarshallingService.format(RequestLockFlowResponse(response))
