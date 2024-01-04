@@ -87,7 +87,7 @@ class RequestLockFlow : ClientStartableFlow {
  */
 @InitiatingFlow(protocol = "lock-asset-sf")
 class RequestLockSubFlow(
-    val transactionId: SecureHash,
+    val transactionId: String,
     val assetType: String, // the Corda asset type as com.r3.....MyAsset
     val lockToRecipient: String,
     val signaturesThreshold: Int,
@@ -131,7 +131,7 @@ class RequestLockSubFlow(
 
             val stateAndRef =
                 ledgerService.findUnconsumedStatesByExactType(convertToClass(assetType), 100, Instant.now()).results
-                    .singleOrNull { it.ref.transactionId == transactionId }
+                    .singleOrNull { it.ref.transactionId.toString() == transactionId }
                     ?: throw CordaRuntimeException("No unique OwnableState found for transaction $transactionId")
 
             val sender = stateAndRef.state.contractState.owner
@@ -275,16 +275,14 @@ class RequestLockFlowResponderSf : ResponderFlow {
  */
 @CordaSerializable
 data class RequestLockByEventFlowArgs(
-    val transactionId: SecureHash,
+    val transactionId: String,
     val assetType: String, // the Corda asset type as com.r3.....MyAsset
     val lockToRecipient: String,
     val signaturesThreshold: Int,
-    //val validators: List<PublicKey>,
     val chainId: Int, // BigInt?
     val protocolAddress: String,
     val evmSender: String,
     val evmRecipient: String,
-    //val evmSigners: List<String>, // EMV Identities for Oracles to sign-as-evm-id and prove notarization
     val tokenAddress: String,
     val amount: Int, // BigInt?
     val tokenId: Int, // BigInt?

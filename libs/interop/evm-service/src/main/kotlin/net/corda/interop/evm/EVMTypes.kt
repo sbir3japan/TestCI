@@ -88,7 +88,6 @@ data class EthereumBlock @JsonCreator constructor(
     val result: EthereumBlockResult
 )
 
-// TODO: @ILoomans and @fowlerrr - we need to make sure all nullables are set correctly or we will get a lot of crashes
 @CordaSerializable
 data class EthereumBlockResult @JsonCreator constructor(
     @JsonProperty("number")
@@ -152,15 +151,14 @@ data class EthereumBlockResult @JsonCreator constructor(
     val uncles: List<String>,
 
     @JsonProperty("transactions")
-    val transactions: List<String> // REVIEW: if include transaction false we have only hashes, otherwise we have the complete transaction objects
+    val transactions: List<String>
 )
 
 
 @CordaSerializable
 data class EthereumTransaction @JsonCreator constructor(
     // REVIEW: accessList ignored from EIP-2930 but would cause the objectmapper to throws as there is an unknown field in response
-    // TODO: review nullables further (partially done) and make sure there is either accessList nullable or the objectmapper configured
-    //       not to throw on unmapped fields.
+
 
     @JsonProperty("blockHash")
     val blockHash: String,
