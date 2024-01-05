@@ -1,5 +1,6 @@
 package net.corda.messaging.mediator.processor
 
+import net.corda.libs.statemanager.api.Metadata
 import net.corda.libs.statemanager.api.State
 import net.corda.messaging.api.exception.CordaMessageAPIIntermittentException
 import net.corda.messaging.api.mediator.MediatorConsumer
@@ -129,6 +130,14 @@ class ConsumerProcessor<K : Any, S : Any, E : Any>(
             }
         }
         metrics.processorTimer.record(System.nanoTime() - startTimestamp, TimeUnit.NANOSECONDS)
+    }
+
+    private fun addMetadataToState(consumer: MediatorConsumer<K, E>, state: State) : State{
+        val partitionsToPosition = consumer.position().mapKeys { it.key.toString() }
+        val metadataMap = state.metadata.toMutableMap()
+        metadataMap.putAll(partitionsToPosition)
+        val metadata = Metadata(metadataMap)
+        return state.copy(metadata = metadata)
     }
 
     /**
