@@ -103,6 +103,7 @@ rm -rf notary.cpi
 
 CPI=./notary.cpi
 
+
 sleep 1
 read REQUEST_ID <<< $(curl --insecure -u admin:admin  -s -F upload=@$CPI https://localhost:8888/api/v1/cpi/ | jq -r '.id')
 echo "RequestID = "$REQUEST_ID
@@ -110,7 +111,7 @@ echo "RequestID = "$REQUEST_ID
 sleep 25
 
 curl --insecure -u admin:admin -s https://localhost:8888/api/v1/cpi/status/$REQUEST_ID
-sleep 10
+sleep 50
 read STATUS CPI_HASH < <(echo $(curl --insecure -u admin:admin -s https://localhost:8888/api/v1/cpi/status/$REQUEST_ID | jq -r '.status, .cpiFileChecksum'))
 
 printf "\nRequest id = $REQUEST_ID   CPI hash = $CPI_HASH   Status = $STATUS\n\n"
