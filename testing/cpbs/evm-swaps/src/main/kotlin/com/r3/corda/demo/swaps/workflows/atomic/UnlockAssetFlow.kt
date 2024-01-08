@@ -108,13 +108,13 @@ class UnlockAssetFlow : ClientStartableFlow {
                 outputStateAndRefs.singleOrNull { it.state.contractState is OwnableState } as? StateAndRef<OwnableState>
                     ?: throw IllegalArgumentException("Transaction $transactionId does not have a single asset")
 
-            val signatures: List<DigitalSignature.WithKeyId> = DraftTxService(persistenceService, serializationService).blockSignatures(blockNumber)
+            val signatures =
+                DraftTxService(persistenceService, serializationService).blockSignatures(blockNumber)
 
-//            require(signatures.count() >= lockState.state.contractState.signaturesThreshold) {
-//                "Insufficient signatures for this transaction"
-//            }
+            require(signatures.count() >= lockState.state.contractState.signaturesThreshold) {
+                "Insufficient signatures for this transaction"
+            }
 
-            // TODO: continue testing from here after the GetBlockByNumberSubFlow issue is resolved.
             // Get the block that mined the transaction that generated the designated EVM event
             val block = flowEngine.subFlow(GetBlockByNumberSubFlow(blockNumber, false))
 

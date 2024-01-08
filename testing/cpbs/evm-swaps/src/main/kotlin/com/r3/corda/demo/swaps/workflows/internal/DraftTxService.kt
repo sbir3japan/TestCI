@@ -1,6 +1,7 @@
 package com.r3.corda.demo.swaps.workflows.internal
 
 import com.r3.corda.demo.swaps.BlockSignatures
+import com.r3.corda.demo.swaps.DigitalSignatureList
 import com.r3.corda.demo.swaps.EvmSignatures
 import com.r3.corda.demo.swaps.TransactionBytes
 import java.math.BigInteger
@@ -21,11 +22,11 @@ class DraftTxService(
     val serializationService: SerializationService
 ){
     @Suspendable
-    fun saveBlockSignature(blockNumber: BigInteger, signature: DigitalSignature.WithKeyId) {
+    fun saveBlockSignatures(blockNumber: BigInteger, signatures: List<DigitalSignature.WithKeyId>) {
         persistenceService.merge(
             BlockSignatures(
                 blockNumber = blockNumber,
-                signature = serializationService.serialize(signature).bytes
+                signature = serializationService.serialize(DigitalSignatureList(signatures)).bytes
             )
         )
     }
@@ -42,15 +43,15 @@ class DraftTxService(
 
     @Suspendable
     fun blockSignatures(blockNumber: BigInteger): List<DigitalSignature.WithKeyId> {
-        return persistenceService.find(
+
+        val blockSignatures = persistenceService.find(
             BlockSignatures::class.java,
             listOf(blockNumber)
-        ).map {
-            serializationService.deserialize(
-                it.signature,
-                DigitalSignature.WithKeyId::class.java
-            )
-        }
+        ).first()
+
+        val signaturesList = serializationService.deserialize(blockSignatures.signature, DigitalSignatureList::class.java)
+
+        return signaturesList.signatures
     }
 
     @Suspendable
