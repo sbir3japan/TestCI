@@ -46,6 +46,7 @@ class IssueGenericAssetFlow : ClientStartableFlow {
             .addCommand(AssetContract.AssetCommands.Create())
             .addSignatories(asset.participants)
 
+
         val signedTransaction = txBuilder.toSignedTransaction()
 
         val finalizedTransaction = ledgerService.finalize(signedTransaction, emptyList()).transaction

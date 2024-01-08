@@ -175,6 +175,7 @@ class RequestLockSubFlow(
 
             return signedTransaction.id.toString()
         } catch (e: Exception) {
+            log.warn("Failed to build/propose draft transaction.", e)
             throw CordaRuntimeException("Failed to build/propose draft transaction.", e)
         }
     }

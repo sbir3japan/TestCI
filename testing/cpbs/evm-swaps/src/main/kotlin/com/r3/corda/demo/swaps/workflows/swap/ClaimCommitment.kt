@@ -16,7 +16,7 @@ import org.slf4j.LoggerFactory
 data class ClaimCommitmentInput(
     val transactionId: String,
     val rpcUrl: String,
-    val signatures: List<String>,
+    val signatures: List<String>?,
     val contractAddress: String,
     val msgSenderPrivateKey:String,
 )
@@ -51,8 +51,8 @@ class ClaimCommitment : ClientStartableFlow {
             val inputs = requestBody.getRequestBodyAs(jsonMarshallingService, ClaimCommitmentInput::class.java)
 
             val transactionReceipt =
-                SwapVault(inputs.rpcUrl, evmService, inputs.contractAddress, inputs.msgSenderPrivateKey)
-                    .claimCommitment(inputs.transactionId, inputs.signatures)
+                SwapVault(inputs.rpcUrl, evmService, inputs.contractAddress)
+                    .claimCommitment(inputs.transactionId)
 
             return jsonMarshallingService.format(ClaimCommitmentOutput(transactionReceipt))
         } catch (e: Exception) {

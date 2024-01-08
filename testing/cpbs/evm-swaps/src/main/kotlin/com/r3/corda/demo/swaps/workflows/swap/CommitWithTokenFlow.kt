@@ -57,7 +57,7 @@ class CommitWithTokenFlow : ClientStartableFlow {
         try {
             // Get any of the relevant details from te request here
             val inputs = requestBody.getRequestBodyAs(jsonMarshallingService, CommitWithTokenFlowInput::class.java)
-            val erc20 = ERC20(inputs.rpcUrl!!, evmService, inputs.tokenAddress!!, inputs.msgSenderPrivateKey)
+            val erc20 = ERC20(inputs.rpcUrl!!, evmService, inputs.tokenAddress!!)
 
             val swapVault = SwapVault(
                 inputs.rpcUrl,

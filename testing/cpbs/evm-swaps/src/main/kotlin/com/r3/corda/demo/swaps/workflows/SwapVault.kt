@@ -9,6 +9,7 @@ import net.corda.v5.application.interop.evm.options.EvmOptions
 import net.corda.v5.application.interop.evm.options.TransactionOptions
 import net.corda.v5.base.annotations.Suspendable
 import java.math.BigInteger
+import java.security.PrivateKey
 
 @Suspendable
 class SwapVault(
@@ -17,6 +18,7 @@ class SwapVault(
     private val contractAddress: String,
 ) {
 
+    @Suspendable
     fun claimCommitment(swapId: String): TransactionReceipt {
         val dummyGasNumber = BigInteger("a41c5", 16)
         val transactionOptions = TransactionOptions(
@@ -44,7 +46,7 @@ class SwapVault(
         return receipt
     }
 
-    fun claimCommitment(swapId: String, signatures: List<String>): TransactionReceipt {
+    fun claimCommitment(swapId: String, signatures: List<String>, privateKey: String): TransactionReceipt {
         val dummyGasNumber = BigInteger("a41c5", 16)
         val transactionOptions = TransactionOptions(
             dummyGasNumber,                 // gasLimit
@@ -53,12 +55,12 @@ class SwapVault(
             20000000000.toBigInteger(),     // maxPriorityFeePerGas
             rpcUrl,                // rpcUrl
             contractAddress,          // from
-            ""
+            privateKey
         )
 
         val parameters = listOf(
             Parameter.of("swapId", Type.STRING, swapId),
-            Parameter.of("signatures", Type.BYTE_LIST, signatures),
+            Parameter.of("signatures", Type.BYTE_ARRAY, signatures),
         )
 
         val hash = evmService.transaction(
