@@ -28,15 +28,20 @@ class SendRawTransactionDispatcher(private val evmConnector: EthereumConnector) 
     private val temporaryPrivateKey = TEMPORARY_PRIVATE_KEY
     private val log = LoggerFactory.getLogger(SendRawTransactionDispatcher::class.java)
 
+
     override fun dispatch(evmRequest: EvmRequest): EvmResponse {
          val request = evmRequest.payload as Transaction
         val data = TransactionEncoder.encode(request.function, request.parameters)
 
         log.info("Transaction data: $data")
+        val privateKey = request.options.privateKey ?: temporaryPrivateKey
+
+        val address = Credentials.create(privateKey).address
+
 
 
         val transactionCountResponse = evmConnector.send<GenericResponse>(
-            evmRequest.rpcUrl, GET_TRANSACTION_COUNT, listOf("0xFE3B557E8Fb62b89F4916B721be55cEb828dBd73", LATEST)
+            evmRequest.rpcUrl, GET_TRANSACTION_COUNT, listOf(address, LATEST)
         )
         val nonce = BigInteger.valueOf(Integer.decode(transactionCountResponse.result.toString()).toLong())
         val chainId = evmConnector.send<GenericResponse>(evmRequest.rpcUrl, GET_CHAIN_ID, emptyList<String>())
