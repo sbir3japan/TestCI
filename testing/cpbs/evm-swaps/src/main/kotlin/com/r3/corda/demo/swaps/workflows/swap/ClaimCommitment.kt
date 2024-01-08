@@ -14,16 +14,15 @@ import org.slf4j.LoggerFactory
 
 
 data class ClaimCommitmentInput(
-    val transactionId: String?,
-    val rpcUrl: String?,
-    val signatures: List<String>?,
-    val contractAddress: String?
-
+    val transactionId: String,
+    val rpcUrl: String,
+    val signatures: List<String>,
+    val contractAddress: String,
+    val msgSenderPrivateKey:String,
 )
 
 data class ClaimCommitmentOutput(
-    val transactionReceipt: TransactionReceipt?,
-
+    val transactionReceipt: TransactionReceipt,
 )
 
 /**
@@ -51,7 +50,10 @@ class ClaimCommitment : ClientStartableFlow {
             // Get any of the relevant details from te request here
             val inputs = requestBody.getRequestBodyAs(jsonMarshallingService, ClaimCommitmentInput::class.java)
 
-            val transactionReceipt = SwapVault(inputs.rpcUrl!!, evmService, inputs.contractAddress!!).claimCommitment(inputs.transactionId!!, inputs.signatures!!)
+            val transactionReceipt =
+                SwapVault(inputs.rpcUrl, evmService, inputs.contractAddress, inputs.msgSenderPrivateKey)
+                    .claimCommitment(inputs.transactionId, inputs.signatures)
+
             return jsonMarshallingService.format(ClaimCommitmentOutput(transactionReceipt))
         } catch (e: Exception) {
             log.error("Unexpected error while processing the flow", e)
@@ -59,4 +61,3 @@ class ClaimCommitment : ClientStartableFlow {
         }
     }
 }
-

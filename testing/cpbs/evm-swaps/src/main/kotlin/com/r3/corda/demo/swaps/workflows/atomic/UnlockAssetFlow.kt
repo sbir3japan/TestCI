@@ -155,14 +155,9 @@ class UnlockAssetFlow : ClientStartableFlow {
             //       check what it means in C5
             val result = ledgerService.finalize(stx, emptyList())
 
-            //return result.transaction
-            val transaction = result.transaction
             /*******************************************************************************************/
 
-            return jsonMarshallingService.format(transaction)
-            // REVIEW: line above is throing exception. Tried adding jackson-datatype-jsr310 reference but still throwing.
-            // Should probably neeed additional step to register JavaTimeModule but I believe it is or should be already
-            // done by some core component
+            return result.transaction.id.toString()
         } catch (e: Exception) {
             log.error("Unexpected error while processing Issue Currency Flow ", e)
             throw e

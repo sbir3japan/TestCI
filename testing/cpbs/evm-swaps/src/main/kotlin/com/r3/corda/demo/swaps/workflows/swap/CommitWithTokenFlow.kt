@@ -25,6 +25,7 @@ data class CommitWithTokenFlowInput(
     val signatures: List<String>?,
     val senderAddress: String,
     val swapProviderAddress: String,
+    val msgSenderPrivateKey: String,
 )
 
 data class CommitWithTokenFlowOutput(
@@ -56,7 +57,7 @@ class CommitWithTokenFlow : ClientStartableFlow {
         try {
             // Get any of the relevant details from te request here
             val inputs = requestBody.getRequestBodyAs(jsonMarshallingService, CommitWithTokenFlowInput::class.java)
-            val erc20 = ERC20(inputs.rpcUrl!!, evmService, inputs.tokenAddress!!)
+            val erc20 = ERC20(inputs.rpcUrl!!, evmService, inputs.tokenAddress!!, inputs.msgSenderPrivateKey)
 
             val swapVault = SwapVault(
                 inputs.rpcUrl,
@@ -84,4 +85,3 @@ class CommitWithTokenFlow : ClientStartableFlow {
         }
     }
 }
-

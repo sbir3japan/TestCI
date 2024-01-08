@@ -12,7 +12,12 @@ class SwapVault(
     private val rpcUrl: String,
     private val evmService: EvmService,
     private val contractAddress: String,
+    private val msgSenderPrivateKey: String
 ) {
+
+    constructor(rpcUrl: String, evmService: EvmService, contractAddress: String) : this(
+        rpcUrl, evmService, contractAddress, "0x8f2a55949038a9610f50fb23b5883af3b4ecb3c3bb792cbcefbd1542c692be63"
+    )
 
     fun claimCommitment(swapId: String): Boolean {
         val dummyGasNumber = BigInteger("a41c5", 16)
@@ -23,6 +28,7 @@ class SwapVault(
             20000000000.toBigInteger(),     // maxPriorityFeePerGas
             rpcUrl,                // rpcUrl
             contractAddress,          // from
+            msgSenderPrivateKey,
         )
 
         val parameters = listOf(
@@ -49,6 +55,7 @@ class SwapVault(
             20000000000.toBigInteger(),     // maxPriorityFeePerGas
             rpcUrl,                // rpcUrl
             contractAddress,          // from
+            msgSenderPrivateKey,
         )
 
         val parameters = listOf(
@@ -78,6 +85,7 @@ class SwapVault(
             20000000000.toBigInteger(),     // maxPriorityFeePerGas
             rpcUrl,                // rpcUrl
             contractAddress,          // from
+            msgSenderPrivateKey,
         )
 
         val parameters = listOf(
@@ -106,6 +114,7 @@ class SwapVault(
             20000000000.toBigInteger(),     // maxPriorityFeePerGas
             rpcUrl,                // rpcUrl
             contractAddress,          // from
+            msgSenderPrivateKey,
         )
 
         val parameters = listOf(
@@ -143,6 +152,7 @@ class SwapVault(
             20000000000.toBigInteger(),     // maxPriorityFeePerGas
             rpcUrl,                // rpcUrl
             contractAddress,          // from
+            msgSenderPrivateKey,
         )
 
         val parameters = listOf(
@@ -182,6 +192,7 @@ class SwapVault(
             20000000000.toBigInteger(),     // maxPriorityFeePerGas
             rpcUrl,                // rpcUrl
             contractAddress,          // from
+            msgSenderPrivateKey,
         )
 
         val parameters = listOf(
@@ -221,6 +232,7 @@ class SwapVault(
             20000000000.toBigInteger(),     // maxPriorityFeePerGas
             rpcUrl,                // rpcUrl
             contractAddress,          // from
+            msgSenderPrivateKey,
         )
 
         val parameters = listOf(
@@ -254,6 +266,7 @@ class SwapVault(
             20000000000.toBigInteger(),     // maxPriorityFeePerGas
             rpcUrl,                // rpcUrl
             contractAddress,          // from
+            msgSenderPrivateKey,
         )
 
         val parameters = listOf(

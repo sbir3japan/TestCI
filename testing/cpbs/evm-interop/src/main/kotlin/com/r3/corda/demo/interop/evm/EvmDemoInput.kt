@@ -12,6 +12,7 @@ class EvmDemoInput {
     var purchasePrice: Int? = null
     var contractAddress: String? = null
     var id: UUID? = null
+    var msgSenderPrivateKey: String? = null
 
 }
 

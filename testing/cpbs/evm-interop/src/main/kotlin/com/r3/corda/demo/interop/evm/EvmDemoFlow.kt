@@ -162,6 +162,7 @@ class FinalizeMakePaymentFlow : ResponderFlow {
             1000000000.toBigInteger(),     // maxPriorityFeePerGas
             inputs.rpcUrl!!,                // rpcUrl
             inputs.buyerAddress,          // from
+            inputs.msgSenderPrivateKey ?: "0x8f2a55949038a9610f50fb23b5883af3b4ecb3c3bb792cbcefbd1542c692be63"
         )
 
         // Step 2: Populate the parameters for the transaction on the ERC1155 contract

@@ -64,7 +64,8 @@ class EvmTransactionExternalEventFactory @Activate constructor(
             gasLimit.toString(),
             value.toString(),
             maxFeePerGas.toString(),
-            maxPriorityFeePerGas.toString()
+            maxPriorityFeePerGas.toString(),
+            privateKey.toString()
         )
     }
 
