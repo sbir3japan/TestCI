@@ -39,8 +39,8 @@ class TransactionEncoderTester : ClientStartableFlow {
                 20000000000.toBigInteger(),     // maxFeePerGas
                 1000000000.toBigInteger(),     // maxPriorityFeePerGas
                 "http://127.0.0.1:8545",                // rpcUrl
-                "",         // from
-                "0x8f2a55949038a9610f50fb23b5883af3b4ecb3c3bb792cbcefbd1542c692be63" // hardcoded pvt key
+                "" ,        // from
+                ""
             )
             val receipt = evmService.transaction(
                 "claimCommitment",
@@ -59,3 +59,4 @@ class TransactionEncoderTester : ClientStartableFlow {
         }
     }
 }
+

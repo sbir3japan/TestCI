@@ -29,7 +29,7 @@ class QueryGenericAssetFlow : ClientStartableFlow {
         val flowArgs = requestBody.getRequestBodyAs(jsonMarshallingService, Args::class.java)
 
         val assets = ledgerService.query(GenericAssetQuery.GENERIC_ASSET_QUERY, AssetState::class.java)
-            .setParameter("assetName", flowArgs.assetName).setLimit(Int.MAX_VALUE)
+            .setParameter("assetName", flowArgs.assetName).setLimit(20)
             .execute()
 
         return assets.results.toString()

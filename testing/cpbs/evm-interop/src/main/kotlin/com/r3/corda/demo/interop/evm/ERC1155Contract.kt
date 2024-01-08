@@ -9,17 +9,7 @@ import net.corda.v5.application.interop.evm.options.TransactionOptions
 import net.corda.v5.base.annotations.Suspendable
 import java.math.BigInteger
 
-class ERC1155Contract(
-    private val rpcUrl: String,
-    private val evmService: EvmService,
-    private val contractAddress: String,
-    private val msgSenderPrivateKey: String
-) {
-
-    constructor(rpcUrl: String, evmService: EvmService, contractAddress: String) : this(
-        rpcUrl, evmService, contractAddress, "0x8f2a55949038a9610f50fb23b5883af3b4ecb3c3bb792cbcefbd1542c692be63"
-    )
-
+class ERC1155Contract(private val rpcUrl: String, private val evmService: EvmService, private val contractAddress: String) {
     @Suspendable
     fun safeTransferFrom(from: String, to: String, amount: BigInteger): String {
         val dummyGasNumber = BigInteger("a41c5", 16)
@@ -29,8 +19,8 @@ class ERC1155Contract(
             20000000000.toBigInteger(),     // maxFeePerGas
             20000000000.toBigInteger(),     // maxPriorityFeePerGas
             this.rpcUrl,                // rpcUrl
-            from,          // from
-            msgSenderPrivateKey,
+            from,          // from,
+            ""
         )
 
         val parameters = listOf(
@@ -58,7 +48,7 @@ class ERC1155Contract(
             20000000000.toBigInteger(),     // maxPriorityFeePerGas
             this.rpcUrl,                // rpcUrl
             from,          // from
-            msgSenderPrivateKey,
+            ""
         )
 
         val parameters = listOf(
@@ -108,7 +98,7 @@ class ERC1155Contract(
             20000000000.toBigInteger(),     // maxPriorityFeePerGas
             this.rpcUrl,                // rpcUrl
             from,          // from
-            msgSenderPrivateKey,
+            ""
         )
 
         val parameters = listOf(

@@ -65,7 +65,7 @@ class EvmTransactionExternalEventFactory @Activate constructor(
             value.toString(),
             maxFeePerGas.toString(),
             maxPriorityFeePerGas.toString(),
-            privateKey.toString()
+            privateKey,
         )
     }
 

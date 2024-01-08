@@ -34,7 +34,8 @@ class SendRawTransactionDispatcher(private val evmConnector: EthereumConnector) 
         val data = TransactionEncoder.encode(request.function, request.parameters)
 
         log.info("Transaction data: $data")
-        val privateKey = request.options.privateKey ?: temporaryPrivateKey
+
+        val privateKey = if (request.options.privateKey.isEmpty()) temporaryPrivateKey else request.options.privateKey
 
         val address = Credentials.create(privateKey).address
 
@@ -47,16 +48,7 @@ class SendRawTransactionDispatcher(private val evmConnector: EthereumConnector) 
         val chainId = evmConnector.send<GenericResponse>(evmRequest.rpcUrl, GET_CHAIN_ID, emptyList<String>())
         val parsedChainId = Numeric.toBigInt(chainId.result.toString()).toLong()
 
-//        public static Transaction1559 createTransaction(
-//            long chainId,
-//        BigInteger nonce,
-//        BigInteger gasLimit,
-//        String to,
-//        BigInteger value,
-//        String data,
-//        BigInteger maxPriorityFeePerGas,
-//        BigInteger maxFeePerGas) {
-//
+
         val transaction = RawTransaction.createTransaction(
             parsedChainId,
             nonce,
@@ -68,14 +60,7 @@ class SendRawTransactionDispatcher(private val evmConnector: EthereumConnector) 
             BigInteger.valueOf(request.options.maxFeePerGas.toLong())
         )
 
-//        val transaction = RawTransaction.createTransaction(
-//            nonce,
-//            20000000000.toBigInteger(),
-//            6721975.toBigInteger(),
-//            evmRequest.to,
-//            BigInteger.valueOf(request.options.value.toLong()),
-//            data
-//        )
+
         val signer = Credentials.create(temporaryPrivateKey)
         val signed = TxSignServiceImpl(signer).sign(transaction, parsedChainId)
         val tReceipt = evmConnector.send<GenericResponse>(

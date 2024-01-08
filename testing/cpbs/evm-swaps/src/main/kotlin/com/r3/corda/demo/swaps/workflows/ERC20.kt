@@ -15,12 +15,7 @@ class ERC20(
     private val rpcUrl: String,
     private val evmService: EvmService,
     private val contractAddress: String,
-    private val msgSenderPrivateKey: String
 ) {
-
-    constructor(rpcUrl: String, evmService: EvmService, contractAddress: String) : this(
-        rpcUrl, evmService, contractAddress, "0x8f2a55949038a9610f50fb23b5883af3b4ecb3c3bb792cbcefbd1542c692be63"
-    )
 
     fun name(): String {
         return evmService.call(
@@ -102,7 +97,7 @@ class ERC20(
             20000000000.toBigInteger(),     // maxPriorityFeePerGas
             rpcUrl,                // rpcUrl
             contractAddress,          // from
-            msgSenderPrivateKey,
+            ""
         )
 
         val parameters = listOf(
@@ -129,7 +124,7 @@ class ERC20(
             20000000000.toBigInteger(),     // maxPriorityFeePerGas
             rpcUrl,                // rpcUrl
             contractAddress,          // from
-            msgSenderPrivateKey,
+            ""
         )
 
         // REVIEW: cannot set transaction options inside the contract functions?
@@ -161,7 +156,7 @@ class ERC20(
             20000000000.toBigInteger(),     // maxPriorityFeePerGas
             rpcUrl,                // rpcUrl
             contractAddress,          // from
-            msgSenderPrivateKey,
+            ""
         )
 
         val parameters = listOf(
