@@ -138,7 +138,11 @@ const postFlowData = async (price, id, amount, activeHoldingId) => {
   return JSON.parse(output.flowResult);
 };
 
-const buildTransaction = async (flowClassName,activeHoldingId, requestBody) => {
+const buildTransaction = async (
+  flowClassName,
+  activeHoldingId,
+  requestBody
+) => {
   const username = "admin";
   const password = "admin";
   const clientRequestId = uuid.v4();
@@ -154,7 +158,7 @@ const buildTransaction = async (flowClassName,activeHoldingId, requestBody) => {
     body: JSON.stringify({
       clientRequestId,
       flowClassName: flowClassName,
-      requestBody
+      requestBody,
     }),
   };
 
@@ -190,78 +194,123 @@ const buildTransaction = async (flowClassName,activeHoldingId, requestBody) => {
   let output = {};
   while (!found) {
     try {
-    const res = await getResponse(
-      `https://localhost:8888/api/v1/flow/${activeHoldingId}/${clientRequestId}`,
-      fetchRequestOptions
-    );
-    console.log("📱 PINGING STATUS: ", res);
-    if (res.flowStatus !== "RUNNING" && res.flowStatus !== "START_REQUESTED") {
-      found = true;
-      output = res;
+      const res = await getResponse(
+        `https://localhost:8888/api/v1/flow/${activeHoldingId}/${clientRequestId}`,
+        fetchRequestOptions
+      );
+      console.log("📱 PINGING STATUS: ", res);
+      if (
+        res.flowStatus !== "RUNNING" &&
+        res.flowStatus !== "START_REQUESTED"
+      ) {
+        found = true;
+        output = res;
+      }
+    } catch (e) {
+      console.log("📱 PINGING STATUS: ", e);
     }
-  } catch (e) {
-    console.log("📱 PINGING STATUS: ", e);
-  }
     await new Promise((r) => setTimeout(r, 500));
   }
-  return output.flowResult
+  return output.flowResult;
 };
-
-
 
 const SignDraftTransactionByIdFlow = async (activeHoldingId, transactionId) => {
   const requestBody = JSON.stringify({
-    transactionId
-  })
-  return await buildTransaction("com.r3.corda.demo.swaps.workflows.atomic.SignDraftTransactionByIdFlow",activeHoldingId, requestBody)
-}
+    transactionId,
+  });
+  return await buildTransaction(
+    "com.r3.corda.demo.swaps.workflows.atomic.SignDraftTransactionByIdFlow",
+    activeHoldingId,
+    requestBody
+  );
+};
 
-
-
-const collectBlockSignatures = async (activeHoldingId, transactionId, blockNumber, blocking) => {
+const collectBlockSignatures = async (
+  activeHoldingId,
+  transactionId,
+  blockNumber,
+  blocking
+) => {
   const requestBody = JSON.stringify({
     transactionId,
     blockNumber,
-    blocking
-  })
-  return await buildTransaction("com.r3.corda.demo.swaps.workflows.atomic.CollectBlockSignaturesFlow",activeHoldingId, requestBody)
-}
+    blocking,
+  });
+  return await buildTransaction(
+    "com.r3.corda.demo.swaps.workflows.atomic.CollectBlockSignaturesFlow",
+    activeHoldingId,
+    requestBody
+  );
+};
 
-const unlockAssetFlow = async (activeHoldingId, transactionId, blockNumber, transactionIndex) => {
+const unlockAssetFlow = async (
+  activeHoldingId,
+  transactionId,
+  blockNumber,
+  transactionIndex
+) => {
   const requestBody = JSON.stringify({
     transactionId,
     blockNumber,
-    transactionIndex
-  })
-  return await buildTransaction("com.r3.corda.demo.swaps.workflows.atomic.UnlockAssetFlow",activeHoldingId, requestBody)
-}
-
+    transactionIndex,
+  });
+  return await buildTransaction(
+    "com.r3.corda.demo.swaps.workflows.atomic.UnlockAssetFlow",
+    activeHoldingId,
+    requestBody
+  );
+};
 
 // DemoDraftAssetSwapFlow
 
 // flow start DemoDraftAssetSwapFlow transactionId: "F382FA9E9FEDDCCB8AA8A440EE5D47FE6F687B72167384D9265E25B6DDB3F68D", outputIndex: 0, recipient: Alice, validator: Charlie, signer: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
 
-const DemoDraftAssetSwapFlow = async (activeHoldingId, transactionId, outputIndex, recipient, validator, signer) => {
+const DemoDraftAssetSwapFlow = async (
+  activeHoldingId,
+  transactionId,
+  outputIndex,
+  recipient,
+  validator,
+  signer
+) => {
   const requestBody = JSON.stringify({
     transactionId,
     outputIndex,
     recipient,
     validator,
-    signer
-  })
-  return await buildTransaction("com.r3.corda.demo.swaps.workflows.atomic.DemoDraftAssetSwapFlow",activeHoldingId, requestBody)
-}
-
+    signer,
+  });
+  return await buildTransaction(
+    "com.r3.corda.demo.swaps.workflows.atomic.DemoDraftAssetSwapFlow",
+    activeHoldingId,
+    requestBody
+  );
+};
 
 const IssueGenericAssetFlow = async (activeHoldingId, assetName) => {
   const requestBody = JSON.stringify({
-    assetName
-  })
-  return await buildTransaction("com.r3.corda.demo.swaps.workflows.swap.IssueGenericAssetFlow",activeHoldingId, requestBody)
-}
+    assetName,
+  });
+  return await buildTransaction(
+    "com.r3.corda.demo.swaps.workflows.swap.IssueGenericAssetFlow",
+    activeHoldingId,
+    requestBody
+  );
+};
 
-
-const CommitWithTokenFlow = async (activeHoldingId, transactionId, rpcUrl, tokenAddress, recipient, amount, signaturesThreshold, signatures, senderAddress, swapProviderAddress, msgSenderPrivateKey) => {
+const CommitWithTokenFlow = async (
+  activeHoldingId,
+  transactionId,
+  rpcUrl,
+  tokenAddress,
+  recipient,
+  amount,
+  signaturesThreshold,
+  signatures,
+  senderAddress,
+  swapProviderAddress,
+  msgSenderPrivateKey
+) => {
   const requestBody = JSON.stringify({
     transactionId,
     rpcUrl,
@@ -272,11 +321,14 @@ const CommitWithTokenFlow = async (activeHoldingId, transactionId, rpcUrl, token
     signatures,
     senderAddress,
     swapProviderAddress,
-    msgSenderPrivateKey
-  })
-  return await buildTransaction("com.r3.corda.demo.swaps.workflows.swap.CommitWithTokenFlow",activeHoldingId, requestBody)
-}
-
+    msgSenderPrivateKey,
+  });
+  return await buildTransaction(
+    "com.r3.corda.demo.swaps.workflows.swap.CommitWithTokenFlow",
+    activeHoldingId,
+    requestBody
+  );
+};
 
 // "flowClassName": "com.r3.corda.demo.swaps.workflows.swap.RequestLockByEventFlow",
 // "requestBody": {
@@ -294,7 +346,20 @@ const CommitWithTokenFlow = async (activeHoldingId, transactionId, rpcUrl, token
 // }
 // }
 
-const RequestLockByEventFlow = async (activeHoldingId, transactionId, assetType, lockToRecipient, signaturesThreshold, chainId, protocolAddress, evmSender, evmRecipient, tokenAddress, amount, tokenId) => {
+const RequestLockByEventFlow = async (
+  activeHoldingId,
+  transactionId,
+  assetType,
+  lockToRecipient,
+  signaturesThreshold,
+  chainId,
+  protocolAddress,
+  evmSender,
+  evmRecipient,
+  tokenAddress,
+  amount,
+  tokenId
+) => {
   const requestBody = JSON.stringify({
     transactionId,
     assetType,
@@ -306,13 +371,14 @@ const RequestLockByEventFlow = async (activeHoldingId, transactionId, assetType,
     evmRecipient,
     tokenAddress,
     amount,
-    tokenId
-  })
-  return await buildTransaction("com.r3.corda.demo.swaps.workflows.swap.RequestLockByEventFlow",activeHoldingId, requestBody)
-}
-
-
-
+    tokenId,
+  });
+  return await buildTransaction(
+    "com.r3.corda.demo.swaps.workflows.swap.RequestLockByEventFlow",
+    activeHoldingId,
+    requestBody
+  );
+};
 
 // fetch this: https://localhost:8888/api/v1/virtualnode
 const fetchNetworkParticipants = async () => {
@@ -336,26 +402,45 @@ const fetchNetworkParticipants = async () => {
   return data.virtualNodes;
 };
 
-
-const claimCommitment =  async (activeHoldingId, transactionId, rpcUrl, signatures, contractAddress, msgSenderPrivateKey) => {
+const claimCommitment = async (
+  activeHoldingId,
+  transactionId,
+  rpcUrl,
+  signatures,
+  contractAddress,
+  msgSenderPrivateKey
+) => {
   const requestBody = JSON.stringify({
     transactionId,
     rpcUrl,
     signatures,
     contractAddress,
-    msgSenderPrivateKey
-  })
-  return await buildTransaction("com.r3.corda.demo.swaps.workflows.swap.ClaimCommitment",activeHoldingId, requestBody)
-}
+    msgSenderPrivateKey,
+  });
+  return await buildTransaction(
+    "com.r3.corda.demo.swaps.workflows.swap.ClaimCommitment",
+    activeHoldingId,
+    requestBody
+  );
+};
 
-const RequestBlockHeadersProofsFlow = async (activeHoldingId, blockNumber, validators, rpcUrl) => {
+const RequestBlockHeadersProofsFlow = async (
+  activeHoldingId,
+  blockNumber,
+  validators,
+  rpcUrl
+) => {
   const requestBody = JSON.stringify({
     blockNumber,
     validators,
-    rpcUrl
-  })
-  return await buildTransaction("com.r3.corda.demo.swaps.workflows.swap.RequestBlockHeaderProofsFlow",activeHoldingId, requestBody)
-}
+    rpcUrl,
+  });
+  return await buildTransaction(
+    "com.r3.corda.demo.swaps.workflows.swap.RequestBlockHeaderProofsFlow",
+    activeHoldingId,
+    requestBody
+  );
+};
 // const unlockAssetFlow = async (activeHoldingId, blockNumber, transactionIndex) => {
 //   const requestBody = JSON.stringify({
 //     blockNumber,
@@ -363,9 +448,6 @@ const RequestBlockHeadersProofsFlow = async (activeHoldingId, blockNumber, valid
 //   })
 //   return await buildTransaction("com.r3.corda.demo.swaps.workflows.atomic.UnlockAssetFlow",activeHoldingId, requestBody)
 // }
-
-
-
 
 module.exports = {
   postFlowData,
@@ -379,5 +461,5 @@ module.exports = {
   IssueGenericAssetFlow,
   CommitWithTokenFlow,
   claimCommitment,
-  RequestBlockHeadersProofsFlow
+  RequestBlockHeadersProofsFlow,
 };
