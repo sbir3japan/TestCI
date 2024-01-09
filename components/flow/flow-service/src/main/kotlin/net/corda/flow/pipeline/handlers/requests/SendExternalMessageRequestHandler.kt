@@ -11,11 +11,10 @@ import net.corda.flow.pipeline.factory.FlowRecordFactory
 import net.corda.libs.external.messaging.entities.InactiveResponseType
 import net.corda.messaging.api.records.Record
 import org.osgi.service.component.annotations.Activate
-import org.osgi.service.component.annotations.Component
 import org.osgi.service.component.annotations.Reference
 
 @Suppress("Unused")
-@Component(service = [FlowRequestHandler::class])
+//@Component(service = [FlowRequestHandler::class])
 class SendExternalMessageRequestHandler @Activate constructor(
     @Reference(service = ExternalMessagingRoutingService::class)
     private val externalMessagingRoutingService: ExternalMessagingRoutingService,

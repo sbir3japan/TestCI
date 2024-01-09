@@ -70,7 +70,8 @@ class FlowEventPipelineFactoryImplTest {
         flowIORequestTypeConverter,
         listOf(flowEventHandler),
         listOf(flowWaitingForHandler),
-        listOf(flowRequestHandler)
+        listOf(flowRequestHandler),
+        mock()
     )
 
     @Test

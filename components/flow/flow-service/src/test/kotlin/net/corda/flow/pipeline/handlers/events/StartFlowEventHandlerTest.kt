@@ -35,7 +35,7 @@ class StartFlowEventHandlerTest {
             holdingIdentity.toCorda(),
             contextExpected.checkpoint
         )
-        val handler = StartFlowEventHandler(fakeCheckpointInitializer)
+        val handler = StartFlowEventHandler(fakeCheckpointInitializer, mock())
         val actualContext = handler.preProcess(contextExpected)
         assertThat(actualContext).isEqualTo(contextExpected)
     }

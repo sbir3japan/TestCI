@@ -11,13 +11,12 @@ import net.corda.v5.application.flows.FlowContextProperties
 import net.corda.v5.application.messaging.FlowInfo
 import net.corda.v5.application.messaging.FlowSession
 import net.corda.v5.base.types.MemberX500Name
-import org.osgi.service.component.annotations.Component
 import org.osgi.service.component.propertytypes.ServiceRanking
 import java.time.Duration
 
 @Suppress("Unused")
 @ServiceRanking(Int.MAX_VALUE)
-@Component(service = [FlowFactory::class, FakeFlowFactory::class])
+//@Component(service = [FlowFactory::class, FakeFlowFactory::class])
 class FakeFlowFactory : FlowFactory {
 
     override fun createFlow(startFlowEvent: StartFlow, sandboxGroupContext: SandboxGroupContext): FlowLogicAndArgs {

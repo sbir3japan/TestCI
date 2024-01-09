@@ -10,14 +10,13 @@ import net.corda.flow.fiber.FlowIORequest
 import net.corda.flow.fiber.FlowLogicAndArgs
 import net.corda.flow.fiber.Interruptable
 import net.corda.flow.fiber.factory.FlowFiberFactory
-import org.osgi.service.component.annotations.Component
 import org.osgi.service.component.propertytypes.ServiceRanking
 import java.util.UUID
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Future
 
 @ServiceRanking(Int.MAX_VALUE)
-@Component(service = [FlowFiberFactory::class, FakeFlowFiberFactory::class])
+//@Component(service = [FlowFiberFactory::class, FakeFlowFiberFactory::class])
 class FakeFlowFiberFactory : FlowFiberFactory {
 
     private class FakeInterruptable : Interruptable {

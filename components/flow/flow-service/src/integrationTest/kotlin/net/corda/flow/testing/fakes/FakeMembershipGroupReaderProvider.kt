@@ -12,12 +12,11 @@ import net.corda.v5.membership.MGMContext
 import net.corda.v5.membership.MemberContext
 import net.corda.v5.membership.MemberInfo
 import net.corda.virtualnode.HoldingIdentity
-import org.osgi.service.component.annotations.Component
 import org.osgi.service.component.propertytypes.ServiceRanking
 import java.security.PublicKey
 
 @ServiceRanking(Int.MAX_VALUE)
-@Component(service = [MembershipGroupReaderProvider::class, FakeMembershipGroupReaderProvider::class])
+//@Component(service = [MembershipGroupReaderProvider::class, FakeMembershipGroupReaderProvider::class])
 class FakeMembershipGroupReaderProvider : MembershipGroupReaderProvider {
     private val groupReaders = mutableMapOf<HoldingIdentity, MembershipGroupReader>()
 

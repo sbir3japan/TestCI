@@ -6,6 +6,7 @@ import net.corda.flow.pipeline.CheckpointInitializer
 import net.corda.flow.pipeline.events.FlowEventContext
 import net.corda.flow.pipeline.handlers.waiting.WaitingForStartFlow
 import net.corda.virtualnode.toCorda
+import org.osgi.framework.BundleContext
 import org.osgi.service.component.annotations.Activate
 import org.osgi.service.component.annotations.Component
 import org.osgi.service.component.annotations.Reference
@@ -14,7 +15,8 @@ import org.slf4j.LoggerFactory
 @Component(service = [FlowEventHandler::class])
 class StartFlowEventHandler @Activate constructor(
     @Reference(service = CheckpointInitializer::class)
-    private val checkpointInitializer: CheckpointInitializer
+    private val checkpointInitializer: CheckpointInitializer,
+    private val bundleContext: BundleContext
 ) : FlowEventHandler<StartFlow> {
 
     private companion object {
@@ -22,6 +24,10 @@ class StartFlowEventHandler @Activate constructor(
     }
 
     override val type = StartFlow::class.java
+
+    init {
+        println("$bundleContext: BundleContext")
+    }
 
     override fun preProcess(context: FlowEventContext<StartFlow>): FlowEventContext<StartFlow> {
         log.info("Flow [${context.checkpoint.flowId}] started")

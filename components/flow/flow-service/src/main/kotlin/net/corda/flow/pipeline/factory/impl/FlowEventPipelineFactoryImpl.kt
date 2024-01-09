@@ -23,6 +23,7 @@ import net.corda.messaging.api.processor.StateAndEventProcessor.State
 import net.corda.schema.configuration.ConfigKeys.FLOW_CONFIG
 import net.corda.tracing.TraceContext
 import net.corda.virtualnode.read.VirtualNodeInfoReadService
+import org.osgi.framework.BundleContext
 import org.osgi.service.component.annotations.Activate
 import org.osgi.service.component.annotations.Component
 import org.osgi.service.component.annotations.Reference
@@ -41,7 +42,8 @@ class FlowEventPipelineFactoryImpl(
     private val flowIORequestTypeConverter: FlowIORequestTypeConverter,
     flowEventHandlers: List<FlowEventHandler<out Any>>,
     flowWaitingForHandlers: List<FlowWaitingForHandler<out Any>>,
-    flowRequestHandlers: List<FlowRequestHandler<out FlowIORequest<*>>>
+    flowRequestHandlers: List<FlowRequestHandler<out FlowIORequest<*>>>,
+    private val bundleContext: BundleContext
 ) : FlowEventPipelineFactory {
 
     // We cannot use constructor injection with DYNAMIC policy.
@@ -83,7 +85,8 @@ class FlowEventPipelineFactoryImpl(
         @Reference(service = FlowMetricsFactory::class)
         flowMetricsFactory: FlowMetricsFactory,
         @Reference(service = FlowIORequestTypeConverter::class)
-        flowIORequestTypeConverter: FlowIORequestTypeConverter
+        flowIORequestTypeConverter: FlowIORequestTypeConverter,
+        bundleContext: BundleContext
     ) : this(
         flowRunner,
         flowGlobalPostProcessor,
@@ -94,8 +97,13 @@ class FlowEventPipelineFactoryImpl(
         flowIORequestTypeConverter,
         mutableListOf(),
         mutableListOf(),
-        mutableListOf()
+        mutableListOf(),
+        bundleContext
     )
+
+    init {
+        println("$bundleContext")
+    }
 
     override fun create(
         state: State<Checkpoint>?,

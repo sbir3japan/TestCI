@@ -74,7 +74,6 @@ import net.corda.virtualnode.read.fake.VirtualNodeInfoReadServiceFake
 import net.corda.virtualnode.toCorda
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.osgi.service.component.annotations.Activate
-import org.osgi.service.component.annotations.Component
 import org.osgi.service.component.annotations.Reference
 import org.slf4j.LoggerFactory
 import java.nio.ByteBuffer
@@ -82,7 +81,7 @@ import java.time.Instant
 import java.util.UUID
 
 @Suppress("Unused", "TooManyFunctions", "LongParameterList")
-@Component(service = [FlowServiceTestContext::class])
+//@Component(service = [FlowServiceTestContext::class])
 class FlowServiceTestContext @Activate constructor(
     @Reference(service = CordaAvroSerializationFactory::class)
     val cordaAvroSerializationFactory: CordaAvroSerializationFactory,

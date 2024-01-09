@@ -12,7 +12,6 @@ import net.corda.sandboxgroupcontext.SandboxGroupContext
 import net.corda.sandboxgroupcontext.SandboxGroupContextInitializer
 import net.corda.sandboxgroupcontext.SandboxGroupType
 import net.corda.sandboxgroupcontext.VirtualNodeContext
-import net.corda.sandboxgroupcontext.service.CacheEviction
 import net.corda.sandboxgroupcontext.service.EvictionListener
 import net.corda.sandboxgroupcontext.service.SandboxDependencyInjector
 import net.corda.sandboxgroupcontext.service.SandboxGroupContextComponent
@@ -23,7 +22,6 @@ import net.corda.v5.crypto.SecureHash
 import net.corda.v5.serialization.SerializedBytes
 import net.corda.v5.serialization.SingletonSerializeAsToken
 import org.osgi.framework.Bundle
-import org.osgi.service.component.annotations.Component
 import org.osgi.service.component.propertytypes.ServiceRanking
 import java.time.Duration
 import java.util.UUID
@@ -31,8 +29,8 @@ import java.util.concurrent.CompletableFuture
 
 @Suppress("TooManyFunctions")
 @ServiceRanking(Int.MAX_VALUE)
-@Component(
-    service = [SandboxGroupContextComponent::class, FakeSandboxGroupContextComponent::class, CacheEviction::class])
+//@Component(
+//    service = [SandboxGroupContextComponent::class, FakeSandboxGroupContextComponent::class, CacheEviction::class])
 class FakeSandboxGroupContextComponent : SandboxGroupContextComponent {
 
     private val availableCpk = mutableSetOf<SecureHash>()
