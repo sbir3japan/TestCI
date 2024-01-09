@@ -20,32 +20,27 @@ class TestLoadGenerator(
     private val flowStartArgs: String,
 ) : TestMessageBus {
 
-    private var count = 0
     @Suppress("UNCHECKED_CAST")
     override fun <K, V> poll(topic: String, pollRecords: Int): List<CordaConsumerRecord<K, V>> {
         return when (topic) {
-             FLOW_START ->
-                 if (count == 0) {
-                     count++
-                (1..pollRecords).map {
-                    val flowId = UUID.randomUUID().toString()
-                    val flowEvent = createStartFlowEvent(
-                        "clientId",
-                        cpiName,
-                        holdingIdentity,
-                        flowClassName,
-                        flowStartArgs,
-                    )
-                    CordaConsumerRecord(
-                        topic = "",
-                        partition = -1,
-                        offset = -1,
-                        key = flowId as K,
-                        value = flowEvent as V,
-                        timestamp = 0
-                    )
-                }
-            } else emptyList()
+            FLOW_START -> (1..pollRecords).map {
+                val flowId = UUID.randomUUID().toString()
+                val flowEvent = createStartFlowEvent(
+                    "clientId",
+                    cpiName,
+                    holdingIdentity,
+                    flowClassName,
+                    flowStartArgs,
+                )
+                CordaConsumerRecord(
+                    topic = "",
+                    partition = -1,
+                    offset = -1,
+                    key = flowId as K,
+                    value = flowEvent as V,
+                    timestamp = 0
+                )
+            }
 
             else -> emptyList()
         }

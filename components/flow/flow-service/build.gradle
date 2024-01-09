@@ -105,12 +105,10 @@ dependencies {
     integrationTestRuntimeOnly project(':components:membership:membership-group-read-impl')
     integrationTestRuntimeOnly project(':components:virtual-node:cpk-read-service-impl')
 
-    integrationTestRuntimeOnly "org.apache.felix:org.apache.felix.configadmin:$felixConfigAdminVersion"
-
     integrationTestRuntimeOnly "org.apache.aries.spifly:org.apache.aries.spifly.dynamic.framework.extension:$ariesDynamicFrameworkExtensionVersion"
 
     // Gather locations of CPIs to add into `resources`
-    cpis project(path: ':testing:cpbs:calculator', configuration: 'cordaCPB')
+    cpis project(path: ':testing:cpbs:test-cordapp', configuration: 'cordaCPB')
 
     def integrationTestResources = tasks.named('processIntegrationTestResources', ProcessResources) {
         from(configurations.cpis) {
