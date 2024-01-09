@@ -1,10 +1,12 @@
 import React from "react"
-import { CommitWithTokenFlow, IssueGenericAssetFlow, RequestLockByEventFlow,SignDraftTransactionByIdFlow, claimCommitment, unlockAssetFlow } from "@/api/gateway"
+import { CommitWithTokenFlow, IssueGenericAssetFlow, RequestLockByEventFlow,SignDraftTransactionByIdFlow, claimCommitment, unlockAssetFlow, RequestBlockHeadersProofsFlow } from "@/api/gateway"
 import {Web3} from "web3"
 import {abi} from "@/assets/erc20"
 import { ethers } from "ethers";
 import toast, { Toaster } from "react-hot-toast";
 import Layout from "@/components/Layout";
+import { useSpring, animated } from '@react-spring/web'
+
 
 const Harmonia = () => {
 
@@ -20,12 +22,17 @@ const Harmonia = () => {
     const [evmBalanceAccount2, setEvmBalanceAccount2] = React.useState(0)
     const [swapContractBalance, setSwapContractBalance] = React.useState(0)
 
+    const [highlighted,setHighlighted] = React.useState<String[]>([])
+
     const [step, setStep] = React.useState(0)
 
 
     const walletAddress1 = "0xFE3B557E8Fb62b89F4916B721be55cEb828dBd73"
     const walletAddress2 = "0x627306090abaB3A6e1400e9345bC60c78a8BEf57"
 
+
+    const holdingId1 = "2CD775D033E7"
+    const holdingId2 = "98BA3D01227D"
 
     const StringToHex = (str) => {
         const web3 = new Web3()
@@ -67,27 +74,29 @@ const Harmonia = () => {
         return result;
     }
 
-    const holdingId1 = "C04E17844E72"
 
     const issueGenericAsset = async () => {
+        setHighlighted(["ownerOfCordaAsset"])
         const assetId = randomString(10)
         const res = await IssueGenericAssetFlow(
             holdingId1,
             randomString(10),
         )
         setAssetId(assetId)
-        setOwner("Alice")
+        setOwner("Bob")
         setTransactionId(res)
         setStep(1)
+
     }
 
 
     const requestLockByEvent = async () => {
+        setHighlighted([])
         const output = await RequestLockByEventFlow(
             holdingId1,
             transactionId,
             "com.r3.corda.demo.swaps.contracts.swap.AssetState",
-            "CN=EVM, OU=Application, O=Ethereum, L=Brussels, C=BE",
+            "CN=Eve, OU=Application, O=NordVPN, L=Athens, C=GR",
             1,
             1337,
             process.env.SWAP_VAULT_ADDRESS,
@@ -104,8 +113,9 @@ const Harmonia = () => {
     }
 
     const commitWithTokenFlow = async () => {
+        setHighlighted([...["aliceEvmBalance","swapContractBalance"]])
         const output2 = await CommitWithTokenFlow(
-            holdingId1,
+            holdingId2,
             lockTransactionId,
             "http://host.docker.internal:8545",
             process.env.ERC20_ADDRESS,
@@ -126,13 +136,15 @@ const Harmonia = () => {
 
 
     const signDraftTransactionById = async () => {
+        setHighlighted([])
         const draftTxOutput = await SignDraftTransactionByIdFlow(holdingId1, lockTransactionId)
         console.log("draftTxOutput: ",draftTxOutput)
         setStep(4)
     }
 
     const claimCommitmentFlow = async () => {
-        const commitment = await claimCommitment(holdingId1, lockTransactionId, "http://host.docker.internal:8545",["0xFE3B557E8Fb62b89F4916B721be55cEb828dBd73"],process.env.SWAP_VAULT_ADDRESS,"")
+        setHighlighted(["bobEvmBalance","swapContractBalance"])
+        const commitment = await claimCommitment(holdingId2, lockTransactionId, "http://host.docker.internal:8545",["0xFE3B557E8Fb62b89F4916B721be55cEb828dBd73"],process.env.SWAP_VAULT_ADDRESS,"")
         console.log("commitment: ",commitment)
         const jsonCommitment = JSON.parse(commitment)
         const transactionReceipt = jsonCommitment.transactionReceipt
@@ -146,15 +158,27 @@ const Harmonia = () => {
     }
 
 
-    const unlockAsset = async () => {  
-        const unlockAssetOutput = await  unlockAssetFlow(holdingId1,lockTransactionId, blockNumber, transactionIndex)
+    const unlockAsset = async () => { 
+        setHighlighted(["ownerOfCordaAsset"]) 
+        const unlockAssetOutput = await  unlockAssetFlow(holdingId2,lockTransactionId, blockNumber, transactionIndex)
         console.log("unlockAssetOutput: ",unlockAssetOutput)
-        setOwner("Bob")
+        setOwner("Alice")
     }
 
 
 
+    const RequestBlockProofs = async () => {
+        setHighlighted([])
+        await RequestBlockHeadersProofsFlow(
+            holdingId2,
+            blockNumber,
+            ["CN=Testing, OU=Application, O=R3, L=London, C=GB"],
+            "http://host.docker.internal:8545"
+        )
+        setStep(6)
 
+        
+    }
 
     const reset = async () => {
         setTransactionId("")
@@ -163,6 +187,7 @@ const Harmonia = () => {
         setLockTransactionId("")
         setBlockNumber(0)
         setTransactionIndex(0)
+        setHighlighted([])
 
         setStep(0)
     }
@@ -176,6 +201,38 @@ const Harmonia = () => {
     React.useEffect(() => {
         getInfo()
     }, [])
+
+
+    const aliceEvmBalanceProps = useSpring({
+        fontSize: highlighted.includes("aliceEvmBalance") ? 25 : 15,
+        fontFamily:"Roboto",
+        // backgroundColor: highlighted.includes("aliceEvmBalance") ? "yellow" : "transparent",
+        color: highlighted.includes("aliceEvmBalance") ? "red" : "black",
+    })
+
+    const bobEvmBalanceProps = useSpring({
+        fontSize: highlighted.includes("bobEvmBalance") ? 25 : 15,
+        fontFamily:"Roboto",
+        color: highlighted.includes("bobEvmBalance") ? "red" : "black",
+
+        // backgroundColor: highlighted.includes("bobEvmBalance") ? "yellow" : "transparent",
+    })
+
+    const swapContractBalanceProps = useSpring({
+        fontSize: highlighted.includes("swapContractBalance") ? 25 : 15,
+        fontFamily:"Roboto",
+        color: highlighted.includes("swapContractBalance") ? "red" : "black",
+
+        // backgroundColor: highlighted.includes("swapContractBalance") ? "yellow" : "transparent",
+    })
+
+    const ownerOfCordaAssetProps = useSpring({
+        fontSize: highlighted.includes("ownerOfCordaAsset") ? 30 : 20,
+        fontFamily:"Roboto",
+        color: highlighted.includes("ownerOfCordaAsset") ? "red" : "black",
+
+        // backgroundColor: highlighted.includes("ownerOfCordaAsset") ? "yellow" : "transparent",
+    })
     return (
         <Layout>
         <div style={{minHeight:'100vh',paddingTop:150,paddingLeft:50}}>
@@ -184,7 +241,55 @@ const Harmonia = () => {
             <Toaster />
             <div style={{width: 300,borderRight:"1px solid black",marginRight:50}}>
                 <h3 style={{fontFamily:"Roboto"}}>Alice</h3>
-                {step==0 && <button onClick={()=>{toast.promise(
+ 
+
+                {step ==2  && <button onClick={()=>{
+                toast.promise(
+                    commitWithTokenFlow(),
+                    {
+                        loading: 'Committing With Token',
+                        success: 'Committed With Token',
+                        error: 'Error Committing With Token',
+
+                    })
+            }}>Commit With Token Flow</button>}
+            {step==4 &&<button onClick={()=>toast.promise(
+                claimCommitmentFlow(),
+                {
+                    loading: 'Claiming Commitment',
+                    success: 'Claimed Commitment',
+                    error: 'Error Claiming Commitment',
+                }
+            
+            )}>Claim Commitment Flow</button>}
+
+            {step ==5 &&<button onClick={()=>toast.promise(
+                RequestBlockProofs(),
+                {
+                    loading: 'Requesting Block Proofs',
+                    success: 'Requested Block Proofs',
+                    error: 'Error Requesting Block Proofs',
+                })
+            }
+                > Request Block Proofs</button>
+
+                }
+            {step==6 &&<button onClick={()=>{
+                toast.promise(
+                    unlockAsset(),
+                    {
+                        loading: 'Unlocking Asset',
+                        success: 'Unlocked Asset',
+                        error: 'Error Unlocking Asset',
+                    }
+                )
+            
+            }}>Unlock Asset</button>}
+            </div>
+        <div>
+            <h3 style={{fontFamily:"Roboto"}}>Bob</h3>
+
+            {step==0 && <button onClick={()=>{toast.promise(
                     issueGenericAsset(),
                     {
                         loading: 'Issuing Asset',
@@ -213,39 +318,8 @@ const Harmonia = () => {
                 
                 }}>Sign Draft Transaction By Id</button>}
 
-            </div>
-        <div>
-            <h3 style={{fontFamily:"Roboto"}}>Bob</h3>
-            {step ==2  && <button onClick={()=>{
-                toast.promise(
-                    commitWithTokenFlow(),
-                    {
-                        loading: 'Committing With Token',
-                        success: 'Committed With Token',
-                        error: 'Error Committing With Token',
 
-                    })
-            }}>Commit With Token Flow</button>}
-            {step==4 &&<button onClick={()=>toast.promise(
-                claimCommitmentFlow(),
-                {
-                    loading: 'Claiming Commitment',
-                    success: 'Claimed Commitment',
-                    error: 'Error Claiming Commitment',
-                }
-            
-            )}>Claim Commitment Flow</button>}
-            {step==5 &&<button onClick={()=>{
-                toast.promise(
-                    unlockAsset(),
-                    {
-                        loading: 'Unlocking Asset',
-                        success: 'Unlocked Asset',
-                        error: 'Error Unlocking Asset',
-                    }
-                )
-            
-            }}>Unlock Asset</button>}
+
         </div>
 
         </div>
@@ -254,16 +328,18 @@ const Harmonia = () => {
             Balances (EVM): 
             </h4>
             <ul>
-                <li>Alice: {evmBalanceAccount2}</li>
-                <li>Bob: {evmBalanceAccount1}</li>
-                <li>Swap Contract: {swapContractBalance}</li>
+            <li >Alice: <animated.span style={aliceEvmBalanceProps}>{evmBalanceAccount1}</animated.span></li>
+
+                <li >Bob: <animated.span style={bobEvmBalanceProps}>{evmBalanceAccount2}</animated.span></li>
+                <li >Swap Contract:<animated.span style={swapContractBalanceProps}> {swapContractBalance}</animated.span></li>
             </ul>
         </div>
 
         <div>
-            <h4 style={{fontFamily:"Roboto"}}>
-            Owner of Corda Asset: <b>{owner}</b>
-            </h4>
+            Owner of Corda Asset: 
+            <animated.h4 style={ownerOfCordaAssetProps}>
+<b>{owner}</b>
+            </animated.h4>
 
         </div>
 

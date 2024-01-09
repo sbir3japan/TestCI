@@ -348,7 +348,14 @@ const claimCommitment =  async (activeHoldingId, transactionId, rpcUrl, signatur
   return await buildTransaction("com.r3.corda.demo.swaps.workflows.swap.ClaimCommitment",activeHoldingId, requestBody)
 }
 
-
+const RequestBlockHeadersProofsFlow = async (activeHoldingId, blockNumber, validators, rpcUrl) => {
+  const requestBody = JSON.stringify({
+    blockNumber,
+    validators,
+    rpcUrl
+  })
+  return await buildTransaction("com.r3.corda.demo.swaps.workflows.swap.RequestBlockHeaderProofsFlow",activeHoldingId, requestBody)
+}
 // const unlockAssetFlow = async (activeHoldingId, blockNumber, transactionIndex) => {
 //   const requestBody = JSON.stringify({
 //     blockNumber,
@@ -371,5 +378,6 @@ module.exports = {
   RequestLockByEventFlow,
   IssueGenericAssetFlow,
   CommitWithTokenFlow,
-  claimCommitment
+  claimCommitment,
+  RequestBlockHeadersProofsFlow
 };

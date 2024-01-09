@@ -4,7 +4,7 @@ contract Token is ERC20 {
 
     address owner;
     constructor () ERC20("Token", "TKN") {
-        _mint(msg.sender, 1000000 * (10 ** uint256(decimals())));
+        _mint(msg.sender, 1000000) ;
         owner = msg.sender;
     }
 
