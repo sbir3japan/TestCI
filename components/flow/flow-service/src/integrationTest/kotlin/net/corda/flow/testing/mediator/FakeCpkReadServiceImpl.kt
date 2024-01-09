@@ -39,7 +39,7 @@ class FakeCpkReadServiceImpl @Activate constructor(
     private val logger = LoggerFactory.getLogger(this::class.java)
 
     private val cpkDir =
-        "/Users/miljenko.brkic/projects/test/corda-runtime-os/components/flow/flow-service/build/tmp/".let { Paths.get(it) }
+        "C:/dev/corda-runtime-os-2/tmp/".let { Paths.get(it) }
         //(properties[CpiLoader.BASE_DIRECTORY_KEY] as? String)?.let { Paths.get(it) }
         ?: throw IllegalStateException("Base directory not configured")
 
@@ -100,7 +100,7 @@ class FakeCpkReadServiceImpl @Activate constructor(
 
     @Deactivate
     override fun stop() {
-        ArrayList(cpis.keys).forEach(::removeCpiMetadata)
+      //  ArrayList(cpis.keys).forEach(::removeCpiMetadata)
         logger.info("Stopped")
     }
 }

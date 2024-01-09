@@ -58,16 +58,18 @@ class FlowEventPipelineFactoryImpl(
     @Reference(service = FlowRequestHandler::class, cardinality = MULTIPLE, policy = DYNAMIC)
     private val flowRequestHandlers: List<FlowRequestHandler<out FlowIORequest<*>>> = flowRequestHandlers
 
+    @Suppress("unchecked_cast")
     private val flowEventHandlerMap: Map<Class<*>, FlowEventHandler<out Any>> by lazy {
-        flowEventHandlers.associateBy(FlowEventHandler<*>::type)
+        getFlowEventHandlers().associateBy { it.type } as   Map<Class<*>, FlowEventHandler<out Any>>
     }
 
+    @Suppress("unchecked_cast")
     private val flowWaitingForHandlerMap: Map<Class<*>, FlowWaitingForHandler<out Any>> by lazy {
-        flowWaitingForHandlers.associateBy(FlowWaitingForHandler<*>::type)
+        getFlowWaitingForHandlers().associateBy(FlowWaitingForHandler<*>::type) as Map<Class<*>, FlowWaitingForHandler<out Any>>
     }
 
     private val flowRequestHandlerMap: Map<Class<out FlowIORequest<*>>, FlowRequestHandler<out FlowIORequest<*>>> by lazy {
-        flowRequestHandlers.associateBy(FlowRequestHandler<*>::type)
+        getFlowRequestHandlers().associateBy(FlowRequestHandler<*>::type)
     }
 
     @Activate
@@ -150,4 +152,24 @@ class FlowEventPipelineFactoryImpl(
             virtualNodeInfoReadService
         )
     }
+
+
+    private fun getFlowEventHandlers() =
+        bundleContext.getServiceReferences(FlowEventHandler::class.java,null)
+            .mapNotNullTo(linkedSetOf()) { ref ->
+                bundleContext.getService(ref)
+            }
+
+    private fun getFlowWaitingForHandlers() =
+        bundleContext.getServiceReferences(FlowWaitingForHandler::class.java,null)
+            .mapNotNullTo(linkedSetOf()) { ref ->
+                bundleContext.getService(ref)
+            }
+
+    private fun getFlowRequestHandlers() =
+        bundleContext.getServiceReferences(FlowRequestHandler::class.java,null)
+            .mapNotNullTo(linkedSetOf()) { ref ->
+                bundleContext.getService(ref)
+            }
+
 }

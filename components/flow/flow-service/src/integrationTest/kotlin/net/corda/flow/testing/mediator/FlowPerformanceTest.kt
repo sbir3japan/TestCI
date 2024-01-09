@@ -8,22 +8,23 @@ import net.corda.flow.testing.tests.ALICE_HOLDING_IDENTITY
 import net.corda.libs.configuration.SmartConfigImpl
 import net.corda.libs.packaging.core.CpiIdentifier
 import net.corda.testing.sandboxes.CpiLoader
+import net.corda.testing.sandboxes.SandboxSetup
 import net.corda.virtualnode.VirtualNodeInfo
 import net.corda.virtualnode.read.fake.VirtualNodeInfoReadServiceFake
 import net.corda.virtualnode.toCorda
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.extension.ExtendWith
-import org.junit.jupiter.api.parallel.Execution
-import org.junit.jupiter.api.parallel.ExecutionMode
-import org.osgi.test.junit5.service.ServiceExtension
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.extension.ExtendWith
 import org.junit.jupiter.api.io.TempDir
+import org.junit.jupiter.api.parallel.Execution
+import org.junit.jupiter.api.parallel.ExecutionMode
 import org.osgi.framework.BundleContext
 import org.osgi.service.cm.ConfigurationAdmin
 import org.osgi.test.common.annotation.InjectBundleContext
 import org.osgi.test.common.annotation.InjectService
+import org.osgi.test.junit5.service.ServiceExtension
 import org.slf4j.LoggerFactory
 import java.nio.file.Path
 import java.time.Instant
@@ -37,7 +38,7 @@ class FlowPerformanceTest {
         private val logger = LoggerFactory.getLogger(this::class.java.enclosingClass)
 
         private const val TIMEOUT_MILLIS = 5000L
-        private const val CPB1 = "META-INF/test-cordapp.cpb"
+        private const val CPB1 = "META-INF/calculator.cpb"
     }
 
     private val stateManagerFactory = TestStateManagerFactoryImpl()
@@ -60,6 +61,9 @@ class FlowPerformanceTest {
     @InjectService(timeout = TIMEOUT_MILLIS)
     lateinit var flowEventMediatorFactory: TestFlowEventMediatorFactory
 
+    @InjectService(timeout = 1000)
+    lateinit var sandboxSetup: SandboxSetup
+
     @BeforeAll
     fun setup(
         @InjectService
@@ -74,17 +78,15 @@ class FlowPerformanceTest {
         virtualNodeInfoReadService.waitUntilRunning()
         cpiInfoReadService.waitUntilRunning()
 
+
         val testBundle = bundleContext.bundle
         logger.info("Configuring sandboxes for ${testBundle.symbolicName}")
         logger.info("configAdmin = $configAdmin")
         logger.info("testDirectory = $testDirectory")
 
-        configAdmin.getConfiguration(CpiLoader.COMPONENT_NAME)?.also { config ->
-            val properties = Hashtable<String, Any?>()
-            properties[CpiLoader.BASE_DIRECTORY_KEY] = testDirectory.toString()
-            properties[CpiLoader.TEST_BUNDLE_KEY] = testBundle.location
-            config.update(properties)
-        }
+        logger.info("setting up sandbox")
+
+        sandboxSetup.configure(bundleContext, Path.of("C:/dev/corda-runtime-os-2/tmp/"))
     }
 
     @Test
@@ -107,7 +109,7 @@ class FlowPerformanceTest {
         val messageBus = TestLoadGenerator(
             "cpiName",
             ALICE_HOLDING_IDENTITY,
-            "com.r3.corda.testing.testflows.TestFlow",
+            "com.r3.corda.testing.calculator.CalculatorFlow",
             "flowStartArgs",
         )
 
@@ -115,9 +117,9 @@ class FlowPerformanceTest {
         val eventMediator = flowEventMediatorFactory.create(configs, messageBus, stateManager)
         assertNotNull(eventMediator)
 
-        Thread.sleep(1 * 60000L)
+        Thread.sleep(2000L)
         eventMediator.start()
-        Thread.sleep(5 * 60000L)
+        Thread.sleep(60000L)
         eventMediator.close()
     }
 
