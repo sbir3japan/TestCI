@@ -1,9 +1,6 @@
-package net.corda.flow.testing.context
+package net.corda.flow.testing.mediator
 
 import com.typesafe.config.ConfigValueFactory.fromAnyRef
-import net.corda.flow.testing.mediator.TestMediatorConsumerFactoryFactory
-import net.corda.flow.testing.mediator.TestMessagingClientFactoryFactory
-import net.corda.flow.testing.mediator.TestRpcClientFactory
 import net.corda.libs.configuration.SmartConfig
 import net.corda.libs.configuration.SmartConfigImpl
 import net.corda.schema.configuration.ConfigKeys

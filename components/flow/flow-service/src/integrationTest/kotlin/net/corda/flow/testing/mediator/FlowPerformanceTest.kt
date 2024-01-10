@@ -3,7 +3,6 @@ package net.corda.flow.testing.mediator
 import net.corda.configuration.read.ConfigurationReadService
 import net.corda.cpiinfo.read.fake.CpiInfoReadServiceFake
 import net.corda.data.identity.HoldingIdentity
-import net.corda.flow.testing.context.TestConfig
 import net.corda.flow.testing.tests.ALICE_HOLDING_IDENTITY
 import net.corda.libs.configuration.SmartConfigImpl
 import net.corda.libs.packaging.core.CpiIdentifier
