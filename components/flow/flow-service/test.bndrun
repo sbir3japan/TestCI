@@ -16,11 +16,12 @@
     javax.xml.stream;version=1.0.0,\
     javax.xml.stream.events;version=1.0.0,\
     javax.xml.stream.util;version=1.0.0,\
-    co.paralleluniverse.*,\
     sun.security.x509
 
 -runproperties: \
-    co.paralleluniverse.quasar.verbose=false
+    co.paralleluniverse.quasar.suspendableAnnotation=net.corda.v5.base.annotations.Suspendable,\
+    co.paralleluniverse.quasar.excludePackages='aQute.**,kotlin**,org.osgi.**,org.apache.felix.**,org.slf4j**,org.junit.**,org.assertj.**,org.opentest4j**',\
+    org.osgi.framework.bundle.parent=framework
 
 -runrequires: \
     bnd.identity;id='flow-service-tests',\

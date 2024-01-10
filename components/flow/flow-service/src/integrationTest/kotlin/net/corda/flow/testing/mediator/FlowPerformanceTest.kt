@@ -116,9 +116,8 @@ class FlowPerformanceTest {
         val eventMediator = flowEventMediatorFactory.create(configs, messageBus, stateManager)
         assertNotNull(eventMediator)
 
-        Thread.sleep(2000L)
         eventMediator.start()
-        Thread.sleep(60000L)
+        Thread.sleep(15000L)
         eventMediator.close()
     }
 
