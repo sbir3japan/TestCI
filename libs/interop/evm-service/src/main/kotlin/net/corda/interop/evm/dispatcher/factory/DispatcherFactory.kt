@@ -58,12 +58,16 @@ interface DispatcherFactory {
 
     /**
      * Dispatcher user to get a transaction by hash
+     *
+     * @param evmConnector the evmConnector class used to make rpc calls to the node
      */
 
     fun getTransactionByHash(evmConnector: EthereumConnector): EvmDispatcher
 
     /**
      * Dispatcher used to wait for a transaction to finish
+     *
+     * @param evmConnector the evmConnector class used to make rpc calls to the node
      */
 
     fun waitForTransactionDispatcher(evmConnector: EthereumConnector): EvmDispatcher

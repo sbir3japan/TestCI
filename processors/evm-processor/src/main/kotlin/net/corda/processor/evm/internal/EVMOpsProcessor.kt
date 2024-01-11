@@ -53,7 +53,6 @@ class EVMOpsProcessor(
 
     private val maxRetries = config.getIntOrDefault("maxRetryAttempts", 3)
     private val retryDelayMs = config.getLongOrDefault("maxRetryDelay", 3000)
-    private val fixedThreadPool = Executors.newFixedThreadPool(config.getIntOrDefault("threadPoolSize", 3))
 
 
     init {

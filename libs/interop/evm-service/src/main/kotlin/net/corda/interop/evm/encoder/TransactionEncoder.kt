@@ -31,7 +31,8 @@ class TransactionEncoder {
         /**
          * Starts the encoding process by encoding the function signature and its inputs
          *
-         * @param params Takes the Parameter specified in the Corda API.
+         * @param function is the function name
+         * @param params is the list of parameters for the function
          * @return The encoded function data that can be sending a transaction
          */
         fun encode(function: String, params: List<Parameter>): String {

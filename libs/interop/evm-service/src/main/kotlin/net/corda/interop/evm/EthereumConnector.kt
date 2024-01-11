@@ -27,6 +27,7 @@ class EthereumConnector(
      * @param rpcUrl The URL of the Ethereum RPC endpoint.
      * @param method The RPC method to call.
      * @param params The parameters for the RPC call.
+     * @param clazz The class of the response object.
      * @return A Response object representing the result of the RPC call.
      */
     fun <T> send(
