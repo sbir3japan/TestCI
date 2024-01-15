@@ -1,7 +1,6 @@
 package com.r3.corda.demo.swaps.workflows.eth2eth
 
 import com.r3.corda.demo.swaps.workflows.Constants
-import com.r3.corda.demo.swaps.workflows.ERC20
 import net.corda.v5.application.flows.ClientRequestBody
 import net.corda.v5.application.flows.ClientStartableFlow
 import net.corda.v5.application.flows.CordaInject

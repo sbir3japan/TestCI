@@ -40,7 +40,7 @@ class Erc20TransferFlow: ClientStartableFlow {
             val inputs = requestBody.getRequestBodyAs(jsonMarshallingService, Erc20TransferFlowInput::class.java)
 
             // Instantiate the erc20 token
-            val erc20 = ERC20(Constants.RPC_URL, evmService, inputs.tokenAddress!!)
+            val erc20 = ERC20(Constants.RPC_URL, evmService, inputs.tokenAddress!!,"")
 
             // Transfer the tokens
             val output = erc20.transfer(inputs.receiverAddress!!, inputs.amount!!)

@@ -52,7 +52,8 @@ class RevertCommitment : ClientStartableFlow {
             val transactionReceipt = SwapVault(
                 inputs.rpcUrl!!,
                 evmService,
-                inputs.contractAddress!!
+                inputs.contractAddress!!,
+                ""
             ).revertCommitment(inputs.transactionId!!)
             return jsonMarshallingService.format(RevertCommitmentOutput(transactionReceipt.transactionHash))
         } catch (e: Exception) {

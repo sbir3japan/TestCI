@@ -15,8 +15,11 @@ class ERC20(
     private val rpcUrl: String,
     private val evmService: EvmService,
     private val contractAddress: String,
+    private val privateKey: String,
 ) {
 
+
+    @Suspendable
     fun name(): String {
         return evmService.call(
             "name",
@@ -31,6 +34,7 @@ class ERC20(
         )
     }
 
+    @Suspendable
     fun symbol(): String {
         return evmService.call(
             "symbol",
@@ -45,6 +49,7 @@ class ERC20(
         )
     }
 
+    @Suspendable
     fun decimals(): Byte {
         return evmService.call(
             "decimals",
@@ -59,6 +64,7 @@ class ERC20(
         )
     }
 
+    @Suspendable
     fun totalSupply(): BigInteger {
         return evmService.call(
             "totalSupply",
@@ -73,6 +79,7 @@ class ERC20(
         )
     }
 
+    @Suspendable
     fun balanceOf(owner: String): BigInteger {
         return evmService.call(
             "balanceOf",
@@ -88,6 +95,7 @@ class ERC20(
         )
     }
 
+    @Suspendable
     fun transfer(to: String, value: BigInteger): TransactionReceipt {
         val dummyGasNumber = BigInteger("a41c5", 16)
         val transactionOptions = TransactionOptions(
@@ -97,7 +105,7 @@ class ERC20(
             20000000000.toBigInteger(),     // maxPriorityFeePerGas
             rpcUrl,                // rpcUrl
             contractAddress,          // from
-            ""
+            privateKey
         )
 
         val parameters = listOf(
@@ -115,6 +123,7 @@ class ERC20(
         return evmService.waitForTransaction(hash, transactionOptions)
     }
 
+    @Suspendable
     fun transferFrom(from: String, to: String, value: BigInteger): TransactionReceipt {
         val dummyGasNumber = BigInteger("a41c5", 16)
         val transactionOptions = TransactionOptions(
@@ -124,7 +133,7 @@ class ERC20(
             20000000000.toBigInteger(),     // maxPriorityFeePerGas
             rpcUrl,                // rpcUrl
             contractAddress,          // from
-            ""
+            privateKey
         )
 
         // REVIEW: cannot set transaction options inside the contract functions?
@@ -156,7 +165,7 @@ class ERC20(
             20000000000.toBigInteger(),     // maxPriorityFeePerGas
             rpcUrl,                // rpcUrl
             contractAddress,          // from
-            ""
+            privateKey
         )
 
         val parameters = listOf(
@@ -174,6 +183,7 @@ class ERC20(
         return evmService.waitForTransaction(hash, transactionOptions)
     }
 
+    @Suspendable
     fun allowance(owner: String, spender: String): BigInteger {
         return evmService.call(
             "allowance",

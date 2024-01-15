@@ -39,7 +39,7 @@ class ERC20TokensAllowanceFlow: ClientStartableFlow {
             val inputs = requestBody.getRequestBodyAs(jsonMarshallingService, Erc20TokensAllowanceFlowInput::class.java)
 
             // Instantiate the erc20 token
-            val erc20 = ERC20(Constants.RPC_URL, evmService, inputs.tokenAddress!!)
+            val erc20 = ERC20(Constants.RPC_URL, evmService, inputs.tokenAddress!!,"")
 
             // Get the allowance
             val output = erc20.allowance(inputs.ownerAddress!!, inputs.spenderAddress!!)

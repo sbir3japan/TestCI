@@ -37,7 +37,7 @@ class Erc20TokensTotalSupplyFlow: ClientStartableFlow {
             val inputs = requestBody.getRequestBodyAs(jsonMarshallingService, Erc20TokensTotalSupplyFlowInput::class.java)
 
             // Instantiate the erc20 token
-            val erc20 = ERC20(Constants.RPC_URL, evmService, inputs.tokenAddress!!)
+            val erc20 = ERC20(Constants.RPC_URL, evmService, inputs.tokenAddress!!,"")
 
             // Get the total supply
             val output = erc20.totalSupply()

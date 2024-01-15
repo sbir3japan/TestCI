@@ -40,7 +40,7 @@ class GetTokenMetadataByAddressFlow: ClientStartableFlow {
             val inputs = requestBody.getRequestBodyAs(jsonMarshallingService, GetTokenMetadataByAddressFlowInput::class.java)
 
             // Instantiate the erc20 token
-            val erc20 = ERC20(Constants.RPC_URL, evmService, inputs.address!!)
+            val erc20 = ERC20(Constants.RPC_URL, evmService, inputs.address!!,"")
 
             // Get the token name
             val name = erc20.name()

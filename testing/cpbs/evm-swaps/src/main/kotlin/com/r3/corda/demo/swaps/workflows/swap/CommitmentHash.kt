@@ -48,7 +48,7 @@ class CommitmentHash : ClientStartableFlow {
             // Get any of the relevant details from te request here
             val inputs = requestBody.getRequestBodyAs(jsonMarshallingService, CommitmentHashInput::class.java)
 
-            val transactionHash = SwapVault(inputs.rpcUrl!!, evmService, inputs.contractAddress!!).commitmentHash(inputs.transactionId!!)
+            val transactionHash = SwapVault(inputs.rpcUrl!!, evmService, inputs.contractAddress!!,"").commitmentHash(inputs.transactionId!!)
             return jsonMarshallingService.format(CommitmentHashOutput(transactionHash))
         } catch (e: Exception) {
             log.error("Unexpected error while processing the flow", e)

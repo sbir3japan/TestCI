@@ -6,9 +6,7 @@ import net.corda.v5.application.flows.ClientStartableFlow
 import net.corda.v5.application.flows.CordaInject
 import net.corda.v5.application.interop.evm.EvmService
 import net.corda.v5.application.interop.evm.TransactionReceipt
-import net.corda.v5.application.interop.evm.options.EvmOptions
 import net.corda.v5.application.marshalling.JsonMarshallingService
-import net.corda.v5.application.membership.MemberLookup
 import net.corda.v5.base.annotations.Suspendable
 import org.slf4j.LoggerFactory
 
@@ -51,7 +49,7 @@ class ClaimCommitment : ClientStartableFlow {
             val inputs = requestBody.getRequestBodyAs(jsonMarshallingService, ClaimCommitmentInput::class.java)
 
             val transactionReceipt =
-                SwapVault(inputs.rpcUrl, evmService, inputs.contractAddress)
+                SwapVault(inputs.rpcUrl, evmService, inputs.contractAddress,"")
                     .claimCommitment(inputs.transactionId)
 
             return jsonMarshallingService.format(ClaimCommitmentOutput(transactionReceipt))

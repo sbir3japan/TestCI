@@ -9,13 +9,13 @@ import net.corda.v5.application.interop.evm.options.EvmOptions
 import net.corda.v5.application.interop.evm.options.TransactionOptions
 import net.corda.v5.base.annotations.Suspendable
 import java.math.BigInteger
-import java.security.PrivateKey
 
 @Suspendable
 class SwapVault(
     private val rpcUrl: String,
     private val evmService: EvmService,
     private val contractAddress: String,
+    private val privateKey: String,
 ) {
 
     @Suspendable
@@ -28,7 +28,7 @@ class SwapVault(
             20000000000.toBigInteger(),     // maxPriorityFeePerGas
             rpcUrl,                // rpcUrl
             contractAddress,          // from
-            ""
+            privateKey
         )
 
         val parameters = listOf(
@@ -42,11 +42,11 @@ class SwapVault(
             parameters
         )
 
-        val receipt = evmService.waitForTransaction(hash, transactionOptions)
-        return receipt
+        return evmService.waitForTransaction(hash, transactionOptions)
     }
 
-    fun claimCommitment(swapId: String, signatures: List<String>, privateKey: String): TransactionReceipt {
+    @Suspendable
+    fun claimCommitment(swapId: String, signatures: List<String>): TransactionReceipt {
         val dummyGasNumber = BigInteger("a41c5", 16)
         val transactionOptions = TransactionOptions(
             dummyGasNumber,                 // gasLimit
@@ -70,12 +70,11 @@ class SwapVault(
             parameters
         )
 
-        val receipt = evmService.waitForTransaction(hash, transactionOptions)
-        return receipt
+        return evmService.waitForTransaction(hash, transactionOptions)
     }
 
 
-
+    @Suspendable
     fun commit(swapId: String, recipient: String, signaturesThreshold: BigInteger): Boolean {
         val dummyGasNumber = BigInteger("a41c5", 16)
         val transactionOptions = TransactionOptions(
@@ -85,7 +84,7 @@ class SwapVault(
             20000000000.toBigInteger(),     // maxPriorityFeePerGas
             rpcUrl,                // rpcUrl
             contractAddress,          // from
-            ""
+            privateKey
         )
 
         val parameters = listOf(
@@ -105,6 +104,8 @@ class SwapVault(
         return receipt.status
     }
 
+
+    @Suspendable
     fun commit(swapId: String, recipient: String, signaturesThreshold: BigInteger, signatures: List<String>): Boolean {
         val dummyGasNumber = BigInteger("a41c5", 16)
         val transactionOptions = TransactionOptions(
@@ -114,7 +115,7 @@ class SwapVault(
             20000000000.toBigInteger(),     // maxPriorityFeePerGas
             rpcUrl,                // rpcUrl
             contractAddress,          // from
-            ""
+            privateKey
         )
 
         val parameters = listOf(
@@ -136,6 +137,7 @@ class SwapVault(
     }
 
 
+    @Suspendable
     fun commitWithToken(
         swapId: String,
         tokenAddress: String,
@@ -152,7 +154,7 @@ class SwapVault(
             20000000000.toBigInteger(),     // maxPriorityFeePerGas
             rpcUrl,                // rpcUrl
             contractAddress,          // from
-            ""
+            privateKey
         )
 
         val parameters = listOf(
@@ -192,7 +194,7 @@ class SwapVault(
             20000000000.toBigInteger(),     // maxPriorityFeePerGas
             rpcUrl,                // rpcUrl
             contractAddress,          // from
-            ""
+            privateKey
         )
 
         val parameters = listOf(
@@ -211,10 +213,10 @@ class SwapVault(
             parameters
         )
 
-        val receipt = evmService.waitForTransaction(hash, transactionOptions)
-        return receipt
+        return evmService.waitForTransaction(hash, transactionOptions)
     }
 
+    @Suspendable
     fun commitWithToken(
         swapId: String,
         tokenAddress: String,
@@ -232,7 +234,7 @@ class SwapVault(
             20000000000.toBigInteger(),     // maxPriorityFeePerGas
             rpcUrl,                // rpcUrl
             contractAddress,          // from
-            ""
+            privateKey
         )
 
         val parameters = listOf(
@@ -256,7 +258,7 @@ class SwapVault(
         return receipt.status
     }
 
-
+    @Suspendable
     fun revertCommitment(swapId: String): TransactionReceipt {
         val dummyGasNumber = BigInteger("a41c5", 16)
         val transactionOptions = TransactionOptions(
@@ -266,7 +268,7 @@ class SwapVault(
             20000000000.toBigInteger(),     // maxPriorityFeePerGas
             rpcUrl,                // rpcUrl
             contractAddress,          // from
-            ""
+            privateKey
         )
 
         val parameters = listOf(
@@ -280,11 +282,10 @@ class SwapVault(
             parameters
         )
 
-        val receipt = evmService.waitForTransaction(hash, transactionOptions)
-        return receipt
+        return evmService.waitForTransaction(hash, transactionOptions)
     }
 
-
+    @Suspendable
     fun commitmentHash(swapId: String): String {
         val parameters = listOf(
             Parameter.of("swapId", Type.STRING, swapId),
@@ -305,7 +306,7 @@ class SwapVault(
         return hash
     }
 
-
+    @Suspendable
     fun recoverSigner(messageHash: String, signature: String): String {
         val parameters = listOf(
             Parameter.of("messageHash", Type.BYTES, messageHash),
