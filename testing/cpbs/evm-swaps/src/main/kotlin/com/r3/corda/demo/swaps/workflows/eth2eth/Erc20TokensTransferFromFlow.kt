@@ -21,6 +21,16 @@ class Erc20TokensTransferFromFlowInput {
 data class Erc20TokensTransferFromFlowOutput (
     val transactionReceipt: TransactionReceipt? = null
 )
+
+/**
+ * Transfers ERC20 tokens from the specified sender address to the recipient address.
+ *
+ * @param tokenAddress the address of the ERC20 contract representing the token being transferred.
+ * @param receiverAddress the sender address of the transfer.
+ * @param receiverAddress the recipient address of the transfer.
+ * @param amount the amount to transfer.
+ * @return the ethereum transaction receipt of the transfer.
+ */
 @Suppress("unused")
 class Erc20TokensTransferFromFlow: ClientStartableFlow {
     private companion object {

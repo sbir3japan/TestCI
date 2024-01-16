@@ -17,6 +17,13 @@ class Erc20TokensTotalSupplyFlowInput {
 data class Erc20TokensTotalSupplyFlowOutput (
     val balance: BigInteger? = null
 )
+
+/**
+ * Query ERC20 tokens for total supply.
+ *
+ * @param tokenAddress the address of the ERC20 contract representing the token being queried.
+ * @return the ERC20's total supply.
+ */
 @Suppress("unused")
 class Erc20TokensTotalSupplyFlow: ClientStartableFlow {
     private companion object {

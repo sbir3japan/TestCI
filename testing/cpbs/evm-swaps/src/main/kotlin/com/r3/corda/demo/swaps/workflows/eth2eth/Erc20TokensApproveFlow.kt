@@ -1,4 +1,5 @@
 package com.r3.corda.demo.swaps.workflows.eth2eth
+
 import com.r3.corda.demo.swaps.workflows.Constants
 import com.r3.corda.demo.swaps.workflows.ERC20
 import net.corda.v5.application.flows.ClientRequestBody
@@ -18,8 +19,17 @@ class Erc20TokensApproveFlowInput {
 }
 
 data class Erc20TokensApproveFlowOutput (
-    val transacitonReceipt: TransactionReceipt? = null
+    val transactionReceipt: TransactionReceipt? = null
 )
+
+/**
+ * Sets amount of ERC20 tokens as the allowance of spenderAddress over the owner's (signerAddress) tokens.
+ *
+ * @param tokenAddress the address of the ERC20 contract representing the token for which the allowance is set.
+ * @param spenderAddress the address of the ERC20 recipient whose receiving the spend allowance.
+ * @param amount the allowance amount.
+ * @return the ERC20's total supply.
+ */
 @Suppress("unused")
 class Erc20TokensApproveFlow: ClientStartableFlow {
     private companion object {

@@ -1,4 +1,5 @@
 package com.r3.corda.demo.swaps.workflows.eth2eth
+
 import com.r3.corda.demo.swaps.workflows.Constants
 import com.r3.corda.demo.swaps.workflows.ERC20
 import net.corda.v5.application.flows.ClientRequestBody
@@ -18,6 +19,14 @@ class Erc20TokensBalanceFlowInput {
 data class Erc20TokensBalanceFlowOutput (
     val balance: BigInteger? = null
 )
+
+/**
+ * Query an address for ERC20 tokens balance.
+ *
+ * @property tokenAddress the address of the ERC20 contract representing the token for which the balance is queried.
+ * @property holderAddress the address of the ERC20 holder whose balance is being queried for.
+ * @return the ERC20's total supply.
+ */
 @Suppress("unused")
 class Erc20TokensBalanceFlow: ClientStartableFlow {
     private companion object {

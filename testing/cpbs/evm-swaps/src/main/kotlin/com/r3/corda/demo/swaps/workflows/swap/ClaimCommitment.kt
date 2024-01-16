@@ -10,7 +10,6 @@ import net.corda.v5.application.marshalling.JsonMarshallingService
 import net.corda.v5.base.annotations.Suspendable
 import org.slf4j.LoggerFactory
 
-
 data class ClaimCommitmentInput(
     val transactionId: String,
     val rpcUrl: String,
@@ -33,7 +32,6 @@ class ClaimCommitment : ClientStartableFlow {
         private val log = LoggerFactory.getLogger(this::class.java.enclosingClass)
 
     }
-
 
     @CordaInject
     lateinit var jsonMarshallingService: JsonMarshallingService

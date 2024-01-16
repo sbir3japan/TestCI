@@ -12,7 +12,6 @@ import net.corda.v5.ledger.utxo.UtxoLedgerService
 import org.slf4j.LoggerFactory
 import java.math.BigInteger
 
-
 class CollectBlockSignaturesParams(
     val recipient: MemberX500Name,
     val blockNumber: BigInteger?,

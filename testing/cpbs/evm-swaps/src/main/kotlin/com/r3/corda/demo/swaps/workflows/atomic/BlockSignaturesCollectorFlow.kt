@@ -18,7 +18,8 @@ import org.slf4j.LoggerFactory
 import java.math.BigInteger
 
 class RequestParams(
-    val blockNumber: BigInteger?, val blocking: Boolean?
+    val blockNumber: BigInteger?,
+    val blocking: Boolean?
 )
 
 class BlockSignaturesCollectorFlowInputs {
@@ -27,6 +28,13 @@ class BlockSignaturesCollectorFlowInputs {
     val transactionId: SecureHash? = null
 }
 
+/**
+ * For a given Draft Transaction ID, query the lock-state defined Oracles to receive the signatures over the given block.
+ *
+ * @param blockNumber the block to request signatures for
+ * @param blocking whether the call should be blocking or return immediately
+ * @param transactionId the draft transaction id for the lock state requiring signatures threshold to unlock
+ */
 @Suppress("unused")
 @InitiatingFlow(protocol = "block-signatures-collector-flow")
 class BlockSignaturesCollectorFlow : ClientStartableFlow {
@@ -91,8 +99,5 @@ class BlockSignaturesCollectorFlow : ClientStartableFlow {
             log.error("Unexpected error while processing Issue Currency Flow ", e)
             throw e
         }
-
     }
 }
-
-

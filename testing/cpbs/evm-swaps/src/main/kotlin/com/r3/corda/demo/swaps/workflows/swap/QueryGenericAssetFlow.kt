@@ -11,9 +11,15 @@ import net.corda.v5.ledger.utxo.UtxoLedgerService
 import java.time.Instant
 import java.util.UUID
 
-
+/**
+ * IssueGenericAssetFlow input parameters.
+ */
 data class CreateAssetFlowOutput(val assetName: String, val linearId: UUID)
 
+/**
+ * Query the generic asset state on the ledger.
+ */
+@Suppress("unused")
 @InitiatingFlow(protocol = "generic-asset-query")
 class QueryGenericAssetFlow : ClientStartableFlow {
 
@@ -30,7 +36,6 @@ class QueryGenericAssetFlow : ClientStartableFlow {
     @Suspendable
     override fun call(requestBody: ClientRequestBody): String {
 
-
         val assets = ledgerService.findUnconsumedStatesByExactType(AssetState::class.java,100, Instant.now())
         val formattedOutput = assets.results.map {
             CreateAssetFlowOutput(
@@ -40,6 +45,4 @@ class QueryGenericAssetFlow : ClientStartableFlow {
         }
         return jsonMarshallingService.format(formattedOutput)
     }
-
-
 }

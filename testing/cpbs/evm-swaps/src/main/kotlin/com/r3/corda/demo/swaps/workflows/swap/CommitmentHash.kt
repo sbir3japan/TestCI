@@ -12,28 +12,25 @@ import org.slf4j.LoggerFactory
 
 
 data class CommitmentHashInput(
-    val transactionId: String?,
-    val rpcUrl: String?,
-    val contractAddress: String?
+    val transactionId: String,
+    val rpcUrl: String,
+    val contractAddress: String
 
 )
 
 data class CommitmentHashOutput(
-    val transactionReceipt: String?,
-
-    )
+    val transactionReceipt: String?
+)
 
 /**
- * The Evm Demo Flow is solely for demoing access to the EVM from Corda.
+ * Retrieve the commit hash for the given swap id from the swap vault contract.
  */
 @Suppress("unused")
 class CommitmentHash : ClientStartableFlow {
 
     private companion object {
         private val log = LoggerFactory.getLogger(this::class.java.enclosingClass)
-
     }
-
 
     @CordaInject
     lateinit var jsonMarshallingService: JsonMarshallingService
@@ -48,7 +45,7 @@ class CommitmentHash : ClientStartableFlow {
             // Get any of the relevant details from te request here
             val inputs = requestBody.getRequestBodyAs(jsonMarshallingService, CommitmentHashInput::class.java)
 
-            val transactionHash = SwapVault(inputs.rpcUrl!!, evmService, inputs.contractAddress!!,"").commitmentHash(inputs.transactionId!!)
+            val transactionHash = SwapVault(inputs.rpcUrl, evmService, inputs.contractAddress,"").commitmentHash(inputs.transactionId)
             return jsonMarshallingService.format(CommitmentHashOutput(transactionHash))
         } catch (e: Exception) {
             log.error("Unexpected error while processing the flow", e)
@@ -56,4 +53,3 @@ class CommitmentHash : ClientStartableFlow {
         }
     }
 }
-

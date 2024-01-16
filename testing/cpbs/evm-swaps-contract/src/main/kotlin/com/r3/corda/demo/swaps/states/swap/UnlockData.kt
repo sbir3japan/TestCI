@@ -7,7 +7,9 @@ import net.corda.v5.base.annotations.CordaSerializable
 import net.corda.v5.crypto.DigitalSignature
 import java.math.BigInteger
 
-
+/**
+ * Defines the data structure containing the parameters required to unlock a Corda transaction using an EVM event proofs
+ */
 @CordaSerializable
 data class UnlockData(
     val merkleProof: SimpleKeyValueStore,

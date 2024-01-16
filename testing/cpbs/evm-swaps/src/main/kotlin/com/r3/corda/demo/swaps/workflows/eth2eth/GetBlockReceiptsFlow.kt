@@ -22,6 +22,12 @@ data class GetBlockReceiptsFlowOutput(
     val blockReceipts: List<TransactionReceipt>
 )
 
+/**
+ * Get all transaction receipts from a block
+ *
+ * @property blockNumber the number of the block
+ * @return the ethereum transaction receipts of a block.
+ */
 class GetBlockReceiptsFlow : ClientStartableFlow {
     private companion object {
         private val log = LoggerFactory.getLogger(this::class.java.enclosingClass)
@@ -50,6 +56,12 @@ class GetBlockReceiptsFlow : ClientStartableFlow {
     }
 }
 
+/**
+ * Get all transaction receipts from a block
+ *
+ * @property blockNumber the number of the block
+ * @return the ethereum transaction receipts of a block.
+ */
 class GetBlockReceiptsSubFlow(
     private val blockNumber: BigInteger,
 ) : SubFlow<List<TransactionReceipt>> {

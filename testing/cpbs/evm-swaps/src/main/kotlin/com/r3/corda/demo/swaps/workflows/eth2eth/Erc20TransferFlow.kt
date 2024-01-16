@@ -1,4 +1,5 @@
 package com.r3.corda.demo.swaps.workflows.eth2eth
+
 import com.r3.corda.demo.swaps.workflows.Constants
 import com.r3.corda.demo.swaps.workflows.ERC20
 import net.corda.v5.application.flows.ClientRequestBody
@@ -20,6 +21,15 @@ class Erc20TransferFlowInput {
 data class Erc20TransferFlowOutput (
     val transactionReceipt: TransactionReceipt? = null
 )
+
+/**
+ * Transfers ERC20 tokens from the current node's wallet to the recipient address.
+ *
+ * @param tokenAddress the address of the ERC20 contract representing the token being transferred.
+ * @param receiverAddress the recipient address of the transfer.
+ * @param amount the amount to transfer.
+ * @return the ethereum transaction receipt of the transfer.
+ */
 @Suppress("unused")
 class Erc20TransferFlow: ClientStartableFlow {
     private companion object {

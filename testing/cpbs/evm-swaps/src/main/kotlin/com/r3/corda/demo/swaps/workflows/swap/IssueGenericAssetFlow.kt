@@ -13,8 +13,18 @@ import net.corda.v5.ledger.utxo.UtxoLedgerService
 import java.time.Duration
 import java.time.Instant
 
+/**
+ * IssueGenericAssetFlow input parameters.
+ */
 data class CreateAssetFlowArgs(val assetName: String)
 
+/**
+ * Create a new generic asset on the ledger.
+ *
+ * @param assetName the name of the asset to create
+ *
+ * @return the transaction id of the created asset that can be used to create the draft transaction.
+ */
 class IssueGenericAssetFlow : ClientStartableFlow {
 
     @CordaInject

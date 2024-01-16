@@ -16,7 +16,6 @@ import net.corda.v5.ledger.utxo.transaction.UtxoSignedTransaction
  * Simple [CordaService] used to store and retrieve swap transaction information
  * TODO: Current implementation is suitable only for testing. A more robust approach is needed
  */
-//object DraftTxService : SingletonSerializeAsToken {
 class DraftTxService(
     val persistenceService: PersistenceService,
     val serializationService: SerializationService

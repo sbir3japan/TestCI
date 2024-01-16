@@ -22,6 +22,11 @@ import java.awt.color.ICC_ColorSpace
 
 data class SignDraftTransactionByIdArgs(val transactionId: SecureHash)
 
+/**
+ * Initiating flow which takes a draft transaction and attempts to sign and notarize it.
+ *
+ * @param transactionId the Draft Transaction ID to sign
+ */
 @Suppress("unused")
 @InitiatingFlow(protocol = "sign-draft-transaction-by-id-flow")
 class SignDraftTransactionByIdFlow : ClientStartableFlow {
@@ -94,6 +99,9 @@ class SignDraftTransactionByIdFlow : ClientStartableFlow {
     }
 }
 
+/**
+ * Responder flow which receives a finalized transaction
+ */
 @Suppress("unused")
 @InitiatedBy(protocol = "sign-draft-transaction-by-id-flow")
 class SignDraftTransactionByIdResponder : ResponderFlow {
@@ -134,6 +142,8 @@ class SignDraftTransactionByIdResponder : ResponderFlow {
                 // TODO: add required checks
 
                 tx.signatories
+
+                // TODO: remove draft
 //                val transactionData = persistenceService.find(
 //                    TransactionBytes::class.java,
 //                    listOf(tx.id)

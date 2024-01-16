@@ -17,6 +17,13 @@ class GetTransactionsFlowInput {
 data class GetTransactionsFlowOutput (
     val transaction: TransactionObject? = null
 )
+
+/**
+ * Get a transaction by its hash
+ *
+ * @param hash the hash of the transaction
+ * @return the ethereum transaction receipt of the transfer.
+ */
 @Suppress("unused")
 class GetTransactionsFlow: ClientStartableFlow {
     private companion object {

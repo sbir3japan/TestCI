@@ -1,6 +1,7 @@
 package com.r3.corda.demo.swaps.workflows.swap
 
 import com.r3.corda.demo.swaps.workflows.internal.DraftTxService
+import com.r3.corda.demo.swaps.workflows.internal.signReceiptRoot
 import net.corda.v5.application.crypto.SignatureSpecService
 import net.corda.v5.application.crypto.SigningService
 import net.corda.v5.application.flows.*
@@ -128,27 +129,4 @@ class RequestBlockHeaderProofsFlowResponder : ResponderFlow {
 
         session.send(signatures)
     }
-}
-
-@Suspendable
-fun Flow.signReceiptRoot(
-    evmService: EvmService,
-    signingService: SigningService,
-    signatureSpecService: SignatureSpecService,
-    memberLookup: MemberLookup,
-    rpcUrl: String,
-    blockNumber: Int
-) : DigitalSignature.WithKeyId {
-
-    val block = evmService.getBlockByNumber(
-        blockNumber.toBigInteger(),
-        false,
-        EvmOptions(rpcUrl,"")
-    )
-
-    val receiptsRootHash = Numeric.hexStringToByteArray(block.receiptsRoot)
-
-    val myKey = memberLookup.myInfo().ledgerKeys.first()
-
-    return signingService.sign(receiptsRootHash, myKey, signatureSpecService.defaultSignatureSpec(myKey)!!)
 }

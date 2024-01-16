@@ -24,6 +24,12 @@ data class GetBlockByNumberFlowOutput(
     val block: Block? = null
 )
 
+/**
+ * Get a block by its number
+ *
+ * @param number the number of the block to request
+ * @return the ethereum block with the given hash.
+ */
 @InitiatingFlow(protocol = "get-block-by-number-cs")
 class GetBlockByNumberFlow : ClientStartableFlow {
     private companion object {
@@ -46,6 +52,12 @@ class GetBlockByNumberFlow : ClientStartableFlow {
     }
 }
 
+/**
+ * Get a block by its number
+ *
+ * @param number the number of the block to request
+ * @return the ethereum block with the given hash.
+ */
 @Suppress("unused")
 @InitiatingFlow(protocol = "get-block-by-number-sf")
 class GetBlockByNumberSubFlow(

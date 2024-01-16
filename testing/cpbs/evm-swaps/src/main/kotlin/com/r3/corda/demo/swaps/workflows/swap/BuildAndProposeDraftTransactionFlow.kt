@@ -23,15 +23,13 @@ import net.corda.v5.crypto.SecureHash
 import net.corda.v5.ledger.utxo.ContractState
 import net.corda.v5.ledger.utxo.UtxoLedgerService
 import net.corda.v5.ledger.utxo.transaction.UtxoSignedTransaction
-import org.abi.datatypes.Address
 import org.slf4j.LoggerFactory
-import java.math.BigInteger
 import java.security.PublicKey
 import java.time.Duration
 import java.time.Instant
 
 /**
- *
+ * RequestLockFlow input parameters
  */
 @CordaSerializable
 data class RequestLockFlowArgs(
@@ -44,7 +42,7 @@ data class RequestLockFlowArgs(
 )
 
 /**
- *
+ * RequestLockFlow outputs parameters
  */
 @CordaSerializable
 data class RequestLockFlowResponse(
@@ -52,7 +50,19 @@ data class RequestLockFlowResponse(
 )
 
 /**
- * (Client Startable) RequestLockFlow
+ * Initiating flow which builds a draft transaction that puts the Corda asset in a locked state.
+ * The locking works by encumbering the asset represented by an [OwnableState] with a [LockState].
+ * In this locked state, the asset is owned by a composite key built from the original owner and the
+ * intended new owner.
+ *
+ * The draft transaction is sent to the counterparty together with its dependencies for verification.
+ *
+ * @param transactionId The transaction that holds the Ownable state at output index 0 (probably stateref would be best)
+ * @param assetType the data type of the asset (e.g. com.r3.corda.demo.swaps.contracts.swap.AssetState)
+ * @param lockToRecipient the recipient of the asset being locked
+ * @param signaturesThreshold the minimum number of validators that should produce a valid signature to allow unlock
+ * @param validators the identity of the Oracles whose signature will be requested to
+ * @param unlockEvent the partially encoded event that will be used by the lock-state when validating unlock conditions
  */
 @InitiatingFlow(protocol = "lock-asset-cs")
 class RequestLockFlow : ClientStartableFlow {
@@ -83,7 +93,19 @@ class RequestLockFlow : ClientStartableFlow {
 }
 
 /**
- * (SubFlow) RequestLockFlow
+ * Initiating flow which builds a draft transaction that puts the Corda asset in a locked state.
+ * The locking works by encumbering the asset represented by an [OwnableState] with a [LockState].
+ * In this locked state, the asset is owned by a composite key built from the original owner and the
+ * intended new owner.
+ *
+ * The draft transaction is sent to the counterparty together with its dependencies for verification.
+ *
+ * @param transactionId The transaction that holds the Ownable state at output index 0 (probably stateref would be best)
+ * @param assetType the data type of the asset (e.g. com.r3.corda.demo.swaps.contracts.swap.AssetState)
+ * @param lockToRecipient the recipient of the asset being locked
+ * @param signaturesThreshold the minimum number of validators that should produce a valid signature to allow unlock
+ * @param validators the identity of the Oracles whose signature will be requested to
+ * @param unlockEvent the partially encoded event that will be used by the lock-state when validating unlock conditions
  */
 @InitiatingFlow(protocol = "lock-asset-sf")
 class RequestLockSubFlow(
@@ -180,9 +202,6 @@ class RequestLockSubFlow(
         }
     }
 
-    /**
-     *
-     */
     private fun <T : OwnableState> convertToClass(typeAsString: String): Class<T> {
         return try {
             val clazz = Class.forName(typeAsString)
@@ -207,6 +226,7 @@ class RequestLockSubFlow(
     }
 }
 
+@Suppress("UNUSED")
 @InitiatedBy(protocol = "lock-asset-cs")
 class RequestLockFlowResponderCs : ResponderFlow {
 
@@ -239,6 +259,7 @@ class RequestLockFlowResponderCs : ResponderFlow {
     }
 }
 
+@Suppress("UNUSED")
 @InitiatedBy(protocol = "lock-asset-sf")
 class RequestLockFlowResponderSf : ResponderFlow {
 
@@ -272,7 +293,7 @@ class RequestLockFlowResponderSf : ResponderFlow {
 }
 
 /**
- *
+ * RequestLockByEventFlow input parameters
  */
 @CordaSerializable
 data class RequestLockByEventFlowArgs(
@@ -280,6 +301,8 @@ data class RequestLockByEventFlowArgs(
     val assetType: String, // the Corda asset type as com.r3.....MyAsset
     val lockToRecipient: String,
     val signaturesThreshold: Int,
+    val evmSigners: List<String>, // e.g.: [ "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266", "0x70997970C51812dc3A010C7d01b50e0d17dc79C8" ]
+    val validators: List<String>, // e.g.: [ "CN=Testing, OU=Application, O=R3, L=London, C=GB", "CN=EVM, OU=Application, O=Ethereum, L=Brussels, C=BE" ]
     val chainId: Int, // BigInt?
     val protocolAddress: String,
     val evmSender: String,
@@ -290,7 +313,34 @@ data class RequestLockByEventFlowArgs(
 )
 
 /**
+ * Initiating flow which builds a draft transaction that puts the Corda asset in a locked state.
+ * The locking works by encumbering the asset represented by an [OwnableState] with a [LockState].
+ * In this locked state, the asset is owned by a composite key built from the original owner and the
+ * intended new owner.
  *
+ * Compared to the RequestLockFlow, this flow builds the encoded event internally form the flow's input parameters.
+ *
+ * The draft transaction is sent to the counterparty together with its dependencies for verification.
+ *
+ * @param transactionId The transaction that holds the Ownable state at output index 0 (probably stateref would be best)
+ * @param assetType the data type of the asset (e.g. com.r3.corda.demo.swaps.contracts.swap.AssetState)
+ * @param lockToRecipient the recipient of the asset being locked
+ * @param signaturesThreshold the minimum number of validators that should produce a valid signature to allow unlock
+ *
+ * @param evmSigners the EVM identity of the Oracles whose signature will be requested to (proof of notarization)
+ *                   e.g.: [ "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266", "0x70997970C51812dc3A010C7d01b50e0d17dc79C8" ]
+ *
+ * @param validators the Corda X500 identity of the Oracles whose signature will be requested to (proof of claim/revert)
+ *                   e.g.: [ "CN=Testing, OU=Application, O=R3, L=London, C=GB",
+ *                           "CN=EVM, OU=Application, O=Ethereum, L=Brussels, C=BE" ]
+ *
+ * @param chainId the chainId that will be hash encoded into the expected event
+ * @param protocolAddress the EVM Swap Contract deployment address
+ * @param evmSender the EVM account that commits the asset to the Swap Protocol
+ * @param evmRecipient the EVM account of the recipient of the asset that is committed to the Swap Protocol
+ * @param tokenAddress the EVM contract address of the asset committed to the Swap Protocol
+ * @param amount the amount of asset committed to the Swap Protocol
+ * @param tokenId the token ID for ERC712 / ERC1155 tokens, 0 for ERC20 tokens.
  */
 @InitiatingFlow(protocol = "lock-asset-by-event")
 class RequestLockByEventFlow : ClientStartableFlow {
@@ -324,25 +374,22 @@ class RequestLockByEventFlow : ClientStartableFlow {
             tokenId = args.tokenId.toBigInteger(),
             tokenAddress = args.tokenAddress,
             signaturesThreshold = args.signaturesThreshold.toBigInteger(),
-            //signers = args.evmSigners // same as validators but the EVM identity instead
-            signers =  listOf("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266", "0x70997970C51812dc3A010C7d01b50e0d17dc79C8")
+            signers = args.evmSigners // same as validators but their EVM identity instead
         )
 
-        val validators = listOf(
-            memberLookup.lookup(MemberX500Name.parse("CN=Testing, OU=Application, O=R3, L=London, C=GB"))?.ledgerKeys?.first() ?: throw CordaRuntimeException("Member not found"),
-            memberLookup.lookup(MemberX500Name.parse("CN=EVM, OU=Application, O=Ethereum, L=Brussels, C=BE"))?.ledgerKeys?.first() ?: throw CordaRuntimeException("Member not found")
-        )
+        val validators = args.validators.map {
+            memberLookup.lookup(MemberX500Name.parse(it))?.ledgerKeys?.first() ?: throw CordaRuntimeException("Member $it not found")
+        }
 
         val flowParas = RequestLockSubFlow(
             args.transactionId,
             args.assetType,
             args.lockToRecipient,
             args.signaturesThreshold,
-            validators,//args.validators,
+            validators,
             swapVaultEventEncoder
         )
 
-        MemberX500Name.parse("CN=Testing, OU=Application, O=R3, L=London, C=GB")
         return flowEngine.subFlow(flowParas)
     }
 }

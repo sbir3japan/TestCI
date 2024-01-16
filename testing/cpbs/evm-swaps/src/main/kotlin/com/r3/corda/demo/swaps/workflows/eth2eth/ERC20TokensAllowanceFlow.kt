@@ -19,6 +19,15 @@ class Erc20TokensAllowanceFlowInput {
 data class Erc20TokensAllowanceFlowOutput (
     val allowance: BigInteger? = null
     )
+
+/**
+ * Query amount of ERC20 tokens a spenderAddress is allowed to spend from the owner's balance.
+ *
+ * @property tokenAddress the address of the ERC20 contract representing the token for which the allowance is set.
+ * @property ownerAddress the address of the ERC20 owner whose allowance is being queried.
+ * @property spenderAddress the address of the ERC20 spender the allowance is being queried.
+ * @return the ERC20's total supply.
+ */
 @Suppress("unused")
 class ERC20TokensAllowanceFlow: ClientStartableFlow {
     private companion object {

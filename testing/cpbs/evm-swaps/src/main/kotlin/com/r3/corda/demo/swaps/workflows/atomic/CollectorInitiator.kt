@@ -19,13 +19,11 @@ import org.utils.Numeric
 import java.math.BigInteger
 import java.security.PublicKey
 
-
 object Keccak256SignatureSpec : SignatureSpec {
     override fun getSignatureName(): String {
         return "Keccak256"
     }
 }
-
 
 @Suspendable
 @InitiatedBy(protocol = "collect-block-signatures-responder-flow")

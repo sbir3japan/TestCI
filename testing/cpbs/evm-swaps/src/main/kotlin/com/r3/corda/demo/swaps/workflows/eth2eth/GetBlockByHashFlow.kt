@@ -22,6 +22,13 @@ data class GetBlockByHashFlowOutput(
     val block: Block? = null
 )
 
+/**
+ * Get a block by its hash
+ *
+ * @param hash the hash of the block to request
+ * @param includeTransactions whether to include all transactions in the block (not supported!) or not
+ * @return the ethereum block with the given hash.
+ */
 class GetBlockByHashFlow : ClientStartableFlow {
     private companion object {
         private val log = LoggerFactory.getLogger(this::class.java.enclosingClass)
@@ -43,6 +50,13 @@ class GetBlockByHashFlow : ClientStartableFlow {
     }
 }
 
+/**
+ * Get a block by its hash
+ *
+ * @param hash the hash of the block to request
+ * @param includeTransactions whether to include all transactions in the block (not supported!) or not
+ * @return the ethereum block with the given hash.
+ */
 @Suppress("unused")
 class GetBlockByHashSubFlow(
     private val hash: String,
