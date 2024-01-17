@@ -5,8 +5,10 @@ import com.r3.corda.demo.swaps.states.swap.LockState
 import com.r3.corda.demo.swaps.states.swap.OwnableState
 import com.r3.corda.demo.swaps.states.swap.UnlockData
 import net.corda.v5.application.flows.CordaInject
+import net.corda.v5.application.flows.InitiatingFlow
 import net.corda.v5.application.flows.SubFlow
 import net.corda.v5.application.membership.MemberLookup
+import net.corda.v5.base.annotations.Suspendable
 import net.corda.v5.crypto.SecureHash
 import net.corda.v5.ledger.utxo.StateAndRef
 import net.corda.v5.ledger.utxo.UtxoLedgerService
@@ -21,6 +23,7 @@ import java.time.Instant
  * @param lockState the lock state which contains the proofs
  * @param unlockData the unlock data which contains the proofs
  */
+@InitiatingFlow(protocol = "unlock-tx-obtain-asset-flow")
 class UnlockTransactionAndObtainAssetSubFlow(
     private val lockedAsset: StateAndRef<OwnableState>,
     private val lockState: StateAndRef<LockState>,
@@ -33,6 +36,7 @@ class UnlockTransactionAndObtainAssetSubFlow(
     @CordaInject
     lateinit var ledgerService: UtxoLedgerService
 
+    @Suspendable
     override fun call(): SecureHash {
 
         val myInfo = memberLookup.myInfo()

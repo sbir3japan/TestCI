@@ -31,11 +31,27 @@ const Harmonia = () => {
 
   const [step, setStep] = React.useState(0);
 
-  const walletAddress1 = "0xFE3B557E8Fb62b89F4916B721be55cEb828dBd73";
-  const walletAddress2 = "0x627306090abaB3A6e1400e9345bC60c78a8BEf57";
+  const walletAddress1 = "0xFE3B557E8Fb62b89F4916B721be55cEb828dBd73"; // alice
+  const walletAddress2 = "0x627306090abaB3A6e1400e9345bC60c78a8BEf57"; // bob
+  const walletAddress3 = "0xf17f52151EbEF6C7334FAD080c5704D77216b732"; // charlie
 
-  const holdingId1 = "2CD775D033E7";
-  const holdingId2 = "98BA3D01227D";
+  const privateKey1 = "0x8f2a55949038a9610f50fb23b5883af3b4ecb3c3bb792cbcefbd1542c692be63"; // alice
+  const privateKey2 = "0xc87509a1c067bbde78beb793e6fa76530b6382a4c0241e5e4a9ec0a0f44dc0d3"; // bob
+  const privateKey3 = "0xae6ae8e5ccbfb04590405997ee2d52d2b330726137b875053c36d94e974d162f"; // charlie
+
+  const holdingId1 = "C04E17844E72"; // alice
+  const holdingId2 = "2CD775D033E7"; // bob
+  const holdingId3 = "5C2E431FCADD"; // charlie
+  const holdingId4 = "98BA3D01227D"; // eve (unused, either remove or add walletAddress4 and privateKey4 to get an extra validator)
+  const notaryHoldingId = "607742431B9C";
+
+  const x500Name1 = "CN=Testing, OU=Application, O=R3, L=London, C=GB"; // alice
+  const x500Name2 = "CN=EVM, OU=Application, O=Ethereum, L=Brussels, C=BE"; // bob
+  const x500Name3 = "CN=Charlie, OU=Application, O=NordVPN, L=Vilnius, C=LT"; // charlie
+  const x500Name4 = "CN=Eve, OU=Application, O=NordVPN, L=Athens, C=GR"; // eve (unused, either remove or add walletAddress4 and privateKey4 to get an extra validator)
+
+//   const holdingId1 = "2CD775D033E7";
+//   const holdingId2 = "98BA3D01227D";
 
   const StringToHex = (str) => {
     const web3 = new Web3();
@@ -44,11 +60,9 @@ const Harmonia = () => {
 
   const RPC_URL = process.env.DEMO_RPC_URL || "http://host.docker.internal:8545";
 
-
-
   const GetErc20BalanceOf = async () => {
     const provider = new ethers.providers.JsonRpcProvider(
-      `http://127.0.0.1:8545`
+        `http://127.0.0.1:8545`
     );
 
     // Connect to the ERC-20 contract
@@ -60,8 +74,6 @@ const Harmonia = () => {
 
     // Get the balance of the specified address
     const balance = await contract.balanceOf(walletAddress1);
-
-    // Print the balance
     console.log(`Balance of ${walletAddress1}: ${balance.toString()}`);
     setEvmBalanceAccount1(balance.toString());
 
@@ -76,7 +88,7 @@ const Harmonia = () => {
     setSwapContractBalance(balance3.toString());
    };
 
-  // rrandom string funciton
+  // random string funciton
   const randomString = (length) => {
     let result = "";
     const characters =
@@ -93,7 +105,8 @@ const Harmonia = () => {
   const issueGenericAsset = async () => {
     setHighlighted(["ownerOfCordaAsset"]);
     const assetId = randomString(10);
-    const res = await IssueGenericAssetFlow(holdingId1, randomString(10));
+    const res = await IssueGenericAssetFlow(holdingId2, randomString(10));
+    console.log("output: ", res);
     setAssetId(assetId);
     setOwner("Bob");
     setTransactionId(res);
@@ -103,18 +116,20 @@ const Harmonia = () => {
   const requestLockByEvent = async () => {
     setHighlighted([]);
     const output = await RequestLockByEventFlow(
-      holdingId1,
-      transactionId,
-      "com.r3.corda.demo.swaps.contracts.swap.AssetState",
-      "CN=Eve, OU=Application, O=NordVPN, L=Athens, C=GR",
-      1,
-      1337,
-      process.env.SWAP_VAULT_ADDRESS,
-      "0xFE3B557E8Fb62b89F4916B721be55cEb828dBd73",
-      "0x627306090abaB3A6e1400e9345bC60c78a8BEf57",
-      process.env.ERC20_ADDRESS,
-      100,
-      0
+      holdingId2, // i.e. BOB vNode
+      /* transactionId = */ transactionId,
+      /* assetType = */ "com.r3.corda.demo.swaps.contracts.swap.AssetState",
+      /* lockToRecipient = */ x500Name1, // i.e. to ALICE
+      /* signaturesThreshold = */ 1,
+      /* evmSigners = */ [ walletAddress3 ], // i.e. CHARLIE
+      /* validators = */ [ x500Name3 ], // i.e. CHARLIE
+      /* chainId = */ 1337,
+      /* protocolAddress = */ process.env.SWAP_VAULT_ADDRESS,
+      /* evmSender = */ walletAddress1, // evm asset sender ALICE
+      /* evmRecipient = */ walletAddress2, // evm asset recipient BOB
+      /* tokenAddress = */ process.env.ERC20_ADDRESS,
+      /* amount = */ 100,
+      /* tokenId = */ 0
     );
     console.log("output: ", output);
     setLockTransactionId(output);
@@ -124,17 +139,16 @@ const Harmonia = () => {
   const commitWithTokenFlow = async () => {
     setHighlighted([...["aliceEvmBalance", "swapContractBalance"]]);
     const output2 = await CommitWithTokenFlow(
-      holdingId2,
-      lockTransactionId,
-      RPC_URL,
-      process.env.ERC20_ADDRESS,
-      "0x627306090abaB3A6e1400e9345bC60c78a8BEf57",
-      100,
-      1,
-      ["0xFE3B557E8Fb62b89F4916B721be55cEb828dBd73"],
-      "0xFE3B557E8Fb62b89F4916B721be55cEb828dBd73",
-      process.env.SWAP_VAULT_ADDRESS,
-      ""
+      holdingId1, // i.e. ALICE
+      /* transactionId = */ lockTransactionId,
+      /* rpcUrl = */ RPC_URL,
+      /* tokenAddress = */ process.env.ERC20_ADDRESS,
+      /* recipient = */ walletAddress2, // i.e. BOB (recipient of the ERC-20 token)
+      /* amount = */ 100,
+      /* signaturesThreshold = */ 1,
+      /* signers = */ [ walletAddress3 ], // i.e. CHARLIE
+      /* swapProviderAddress = */ process.env.SWAP_VAULT_ADDRESS,
+      /* msgSenderPrivateKey = */ privateKey1, // i.e. ALICE
     );
 
     await GetErc20BalanceOf();
@@ -145,8 +159,8 @@ const Harmonia = () => {
   const signDraftTransactionById = async () => {
     setHighlighted([]);
     const draftTxOutput = await SignDraftTransactionByIdFlow(
-      holdingId1,
-      lockTransactionId
+      holdingId2, // i.e. BOB
+      /* transactionId = */ lockTransactionId
     );
     console.log("draftTxOutput: ", draftTxOutput);
     setStep(4);
@@ -155,12 +169,12 @@ const Harmonia = () => {
   const claimCommitmentFlow = async () => {
     setHighlighted(["bobEvmBalance", "swapContractBalance"]);
     const commitment = await claimCommitment(
-      holdingId2,
-      lockTransactionId,
-      RPC_URL,
-      ["0xFE3B557E8Fb62b89F4916B721be55cEb828dBd73"],
-      process.env.SWAP_VAULT_ADDRESS,
-      ""
+      holdingId1, // i.e. ALICE
+      /* transactionId = */ lockTransactionId,
+      /* rpcUrl = */ RPC_URL,
+      /* signatures = */ [], // walletAddress3's signature required only if BOB needs to claim the commitment
+      /* contractAddress = */ process.env.SWAP_VAULT_ADDRESS,
+      /* msgSenderPrivateKey = */ privateKey1, // i.e. ALICE
     );
     console.log("commitment: ", commitment);
     const jsonCommitment = JSON.parse(commitment);
@@ -177,10 +191,10 @@ const Harmonia = () => {
   const unlockAsset = async () => {
     setHighlighted(["ownerOfCordaAsset"]);
     const unlockAssetOutput = await unlockAssetFlow(
-      holdingId2,
-      lockTransactionId,
-      blockNumber,
-      transactionIndex
+      holdingId1, // i.e. ALICE
+      /* transactionId = */ lockTransactionId,
+      /* blockNumber = */ blockNumber,
+      /* transactionIndex = */ transactionIndex
     );
     console.log("unlockAssetOutput: ", unlockAssetOutput);
     setOwner("Alice");
@@ -189,10 +203,10 @@ const Harmonia = () => {
   const RequestBlockProofs = async () => {
     setHighlighted([]);
     await RequestBlockHeadersProofsFlow(
-      holdingId2,
-      blockNumber,
-      ["CN=Testing, OU=Application, O=R3, L=London, C=GB"],
-      RPC_URL
+      holdingId1, // i.e. ALICE
+      /* blockNumber = */ blockNumber, // i.e. block number where claim commitment transaction was included
+      /* validators = */ [ x500Name3 ],
+      /* rpcUrl = */ RPC_URL
     );
     setStep(6);
   };
@@ -211,7 +225,7 @@ const Harmonia = () => {
 
   const getInfo = async () => {
     const output = await GetErc20BalanceOf();
-    console.log("output: ", output);
+    console.log("output: ", output); // TODO: undefined, GetErc20BalanceOf returns nothing
   };
   React.useEffect(() => {
     getInfo();

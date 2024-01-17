@@ -306,8 +306,7 @@ const CommitWithTokenFlow = async (
   recipient,
   amount,
   signaturesThreshold,
-  signatures,
-  senderAddress,
+  signers,
   swapProviderAddress,
   msgSenderPrivateKey
 ) => {
@@ -318,8 +317,7 @@ const CommitWithTokenFlow = async (
     recipient,
     amount,
     signaturesThreshold,
-    signatures,
-    senderAddress,
+    signers,
     swapProviderAddress,
     msgSenderPrivateKey,
   });
@@ -330,28 +328,14 @@ const CommitWithTokenFlow = async (
   );
 };
 
-// "flowClassName": "com.r3.corda.demo.swaps.workflows.swap.RequestLockByEventFlow",
-// "requestBody": {
-//     "transactionId": "",
-// "assetType": "com.r3.corda.demo.swaps.contracts.swap.AssetState",
-// "lockToRecipient": "$HOLDING_ID",
-// "signaturesThreshold": "1",
-// "chainId": "",
-// "protocolAddress": "",
-// "evmSender": "",
-// "evmRecipient": "",
-// "tokenAddress": "",
-// "amount": "",
-// "tokenId": ""
-// }
-// }
-
 const RequestLockByEventFlow = async (
   activeHoldingId,
   transactionId,
   assetType,
   lockToRecipient,
   signaturesThreshold,
+  evmSigners,
+  validators,
   chainId,
   protocolAddress,
   evmSender,
@@ -365,6 +349,8 @@ const RequestLockByEventFlow = async (
     assetType,
     lockToRecipient,
     signaturesThreshold,
+    evmSigners,
+    validators,
     chainId,
     protocolAddress,
     evmSender,

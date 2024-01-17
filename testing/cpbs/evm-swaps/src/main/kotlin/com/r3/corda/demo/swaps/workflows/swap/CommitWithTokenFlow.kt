@@ -44,7 +44,7 @@ data class CommitWithTokenFlowOutput(
  * @param amount the amount of the ERC20 token
  * @param signaturesThreshold the minimum number of oracle signatures required for the swap (swap parameter)
  * @param signers the EVM identity of the Oracles whose signature will be requested to (proof of notarization)
- *                   e.g.: [ "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266", "0x70997970C51812dc3A010C7d01b50e0d17dc79C8" ]
+ *                e.g.: [ "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266", "0x70997970C51812dc3A010C7d01b50e0d17dc79C8" ]
  * @param swapProviderAddress the EVM deployment address of the swap contract
  * @param msgSenderPrivateKey the private key of the EVM identity that will be used to sign the transaction
  *
