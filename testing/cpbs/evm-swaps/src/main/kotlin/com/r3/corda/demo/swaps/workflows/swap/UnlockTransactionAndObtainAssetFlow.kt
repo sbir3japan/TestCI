@@ -1,6 +1,7 @@
 package com.r3.corda.demo.swaps.workflows.swap
 
 import com.r3.corda.demo.swaps.contracts.swap.LockCommand
+import com.r3.corda.demo.swaps.contracts.swap.LockStateContract
 import com.r3.corda.demo.swaps.states.swap.LockState
 import com.r3.corda.demo.swaps.states.swap.OwnableState
 import com.r3.corda.demo.swaps.states.swap.UnlockData
@@ -44,7 +45,7 @@ class UnlockTransactionAndObtainAssetSubFlow(
         val newOwner = memberLookup.lookup(lockState.state.contractState.assetRecipient)
             ?: throw IllegalArgumentException("The specified recipient does not resolve to a known Party")
 
-        val unlockCommand = LockCommand.Unlock(unlockData)
+        val unlockCommand = LockStateContract.LockCommands.Unlock(unlockData)
 
         val builder = ledgerService.createTransactionBuilder()
             .setNotary(lockState.state.notaryName)

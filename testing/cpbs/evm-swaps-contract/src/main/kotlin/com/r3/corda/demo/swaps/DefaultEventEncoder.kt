@@ -1,5 +1,6 @@
 package com.r3.corda.demo.swaps
 
+import com.r3.corda.demo.swaps.states.swap.SerializableTransactionReceipt
 import net.corda.v5.application.interop.evm.TransactionReceipt
 import net.corda.v5.base.annotations.CordaSerializable
 import org.abi.TypeEncoder
@@ -113,12 +114,13 @@ data class EncodedEvent(
      * @param receipt The [receipt] that contains the logs to look up into.
      * @return True if any log matches this [EncodedEvent] instance.
      */
-    fun isFoundIn(receipt: TransactionReceipt): Boolean {
+    fun isFoundIn(receipt: SerializableTransactionReceipt): Boolean {
+    //fun isFoundIn(receipt: TransactionReceipt): Boolean {
         // NOTE: while generally speaking there may be multiple events with the same parameters, our use cases expects
         //       it to be unique due to the presence of Draft Transaction ID and the rules of the contract that does not
         //       allow its reuse
         return receipt.status && receipt.logs.count {
-            !it.isRemoved &&
+            // !it.isRemoved && // TODO: Add isRemoved to transaction receipt it is fundamental as it tells if the event was added or removed and should always be added
                     address.equals(it.address, ignoreCase = true) &&
                     areTopicsEqual(it.topics, topics) &&
                     data.equals(it.data, ignoreCase = true)
