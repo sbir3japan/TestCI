@@ -80,7 +80,7 @@ abstract class DbAdmin {
 
         withDbConnection { connection ->
             connection.createStatement().execute(sql)
-//            connection.commit()
+            connection.commit()
         }
     }
 
