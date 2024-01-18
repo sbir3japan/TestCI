@@ -69,6 +69,7 @@ open class JPABackingStoreImpl @Activate constructor(
 
         val sessionStartTime = System.nanoTime()
 
+        val emfCreationStartTime = System.nanoTime()
         val entityManagerFactory = dbConnectionManager.getOrCreateEntityManagerFactory(
             VirtualNodeDbType.UNIQUENESS.getSchemaName(holdingIdentity.shortHash),
             DbPrivilege.DML,
@@ -78,6 +79,7 @@ open class JPABackingStoreImpl @Activate constructor(
                             "${CordaDb.Uniqueness.persistenceUnitName} is not registered."
                 )
         )
+        log.info("MY_LOGGING - emf creation time = ${System.nanoTime() - emfCreationStartTime}")
 
         val entityManager = entityManagerFactory.createEntityManager()
         // Enable Hibernate JDBC batch and set the batch size on a per-session basis.
@@ -86,13 +88,14 @@ open class JPABackingStoreImpl @Activate constructor(
         @Suppress("TooGenericExceptionCaught")
         try {
             block(SessionImpl(holdingIdentity, entityManager))
-            entityManager.close()
+            log.info("MY_LOGGING - successful session time = ${System.nanoTime() - sessionStartTime}")
         } catch (e: Exception) {
+            log.info("MY_LOGGING - failed session time = ${System.nanoTime() - sessionStartTime}")
             // TODO: Need to figure out what exceptions can be thrown when using JPA directly
             // instead of Hibernate and how to handle
-            entityManager.close()
             throw e
         } finally {
+            entityManager.close()
             CordaMetrics.Metric.UniquenessBackingStoreSessionExecutionTime
                 .builder()
                 .withTag(CordaMetrics.Tag.SourceVirtualNode, holdingIdentity.shortHash.toString())
@@ -108,6 +111,48 @@ open class JPABackingStoreImpl @Activate constructor(
 
         protected open val transactionOps = TransactionOpsImpl()
         private val hibernateSession = entityManager.unwrap(Session::class.java)
+
+        override fun getStateDetails(
+            states: Collection<UniquenessCheckStateRef>
+        ): Map<UniquenessCheckStateRef, UniquenessCheckStateDetails> {
+
+            val queryStartTime = System.nanoTime()
+
+            val results = HashMap<
+                    UniquenessCheckStateRef, UniquenessCheckStateDetails>()
+
+            val statePks = states.map{
+                UniquenessTxAlgoStateRefKey(it.txHash.algorithm, it.txHash.bytes, it.stateIndex)
+            }
+
+            // Use Hibernate Session to fetch multiple state entities by their primary keys.
+            val multiLoadAccess =
+                hibernateSession.byMultipleIds(UniquenessStateDetailEntity::class.java)
+
+            // multiLoad will return [null] for each ID that was not found in the DB.
+            // However, we don't want to keep those.
+            val existing = multiLoadAccess.multiLoad(statePks).filterNotNull()
+
+            existing.forEach { stateEntity ->
+                val consumingTxId =
+                    if (stateEntity.consumingTxId != null) {
+                        SecureHashImpl(stateEntity.consumingTxIdAlgo!!, stateEntity.consumingTxId!!)
+                    } else null
+                val returnedState = UniquenessCheckStateRefImpl(
+                    SecureHashImpl(stateEntity.issueTxIdAlgo, stateEntity.issueTxId),
+                    stateEntity.issueTxOutputIndex)
+                results[returnedState] = UniquenessCheckStateDetailsImpl(returnedState, consumingTxId)
+            }
+
+            CordaMetrics.Metric.UniquenessBackingStoreDbReadTime
+                .builder()
+                .withTag(CordaMetrics.Tag.SourceVirtualNode, holdingIdentity.shortHash.toString())
+                .withTag(CordaMetrics.Tag.OperationName, "getStateDetails")
+                .build()
+                .record(Duration.ofNanos(System.nanoTime() - queryStartTime))
+
+            return results
+        }
 
         @Suppress("NestedBlockDepth")
         override fun executeTransaction(
@@ -201,48 +246,6 @@ open class JPABackingStoreImpl @Activate constructor(
                     .build()
                     .record(Duration.ofNanos(System.nanoTime() - transactionStartTime))
             }
-        }
-
-        override fun getStateDetails(
-            states: Collection<UniquenessCheckStateRef>
-        ): Map<UniquenessCheckStateRef, UniquenessCheckStateDetails> {
-
-            val queryStartTime = System.nanoTime()
-
-            val results = HashMap<
-                    UniquenessCheckStateRef, UniquenessCheckStateDetails>()
-
-            val statePks = states.map{
-                UniquenessTxAlgoStateRefKey(it.txHash.algorithm, it.txHash.bytes, it.stateIndex)
-            }
-
-            // Use Hibernate Session to fetch multiple state entities by their primary keys.
-            val multiLoadAccess =
-                hibernateSession.byMultipleIds(UniquenessStateDetailEntity::class.java)
-
-            // multiLoad will return [null] for each ID that was not found in the DB.
-            // However, we don't want to keep those.
-            val existing = multiLoadAccess.multiLoad(statePks).filterNotNull()
-
-            existing.forEach { stateEntity ->
-                val consumingTxId =
-                    if (stateEntity.consumingTxId != null) {
-                        SecureHashImpl(stateEntity.consumingTxIdAlgo!!, stateEntity.consumingTxId!!)
-                    } else null
-                val returnedState = UniquenessCheckStateRefImpl(
-                    SecureHashImpl(stateEntity.issueTxIdAlgo, stateEntity.issueTxId),
-                    stateEntity.issueTxOutputIndex)
-                results[returnedState] = UniquenessCheckStateDetailsImpl(returnedState, consumingTxId)
-            }
-
-            CordaMetrics.Metric.UniquenessBackingStoreDbReadTime
-                .builder()
-                .withTag(CordaMetrics.Tag.SourceVirtualNode, holdingIdentity.shortHash.toString())
-                .withTag(CordaMetrics.Tag.OperationName, "getStateDetails")
-                .build()
-                .record(Duration.ofNanos(System.nanoTime() - queryStartTime))
-
-            return results
         }
 
         override fun getTransactionDetails(
