@@ -1,6 +1,5 @@
 package com.r3.corda.demo.swaps.workflows.swap
 
-import com.r3.corda.demo.swaps.contracts.swap.LockCommand
 import com.r3.corda.demo.swaps.contracts.swap.LockStateContract
 import com.r3.corda.demo.swaps.states.swap.LockState
 import com.r3.corda.demo.swaps.states.swap.OwnableState

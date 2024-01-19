@@ -1,13 +1,16 @@
 package com.r3.corda.demo.swaps.contracts.swap
 
-import com.r3.corda.demo.swaps.states.swap.LockState
-import com.r3.corda.demo.swaps.states.swap.OwnableState
+import com.r3.corda.demo.swaps.states.swap.*
 import com.r3.corda.demo.swaps.states.swap.SerializableTransactionReceipt
-import com.r3.corda.demo.swaps.states.swap.UnlockData
+import com.r3.corda.demo.swaps.states.swap.SerializableLog
 import com.r3.corda.demo.swaps.utils.trie.PatriciaTrie
-import net.corda.v5.application.interop.evm.TransactionReceipt
-import net.corda.v5.crypto.CompositeKey
+import net.corda.v5.application.crypto.DigestService
+import net.corda.v5.application.crypto.DigitalSignatureVerificationService
+import net.corda.v5.application.crypto.SignatureSpecService
+import net.corda.v5.application.flows.CordaInject
+import net.corda.v5.crypto.DigestAlgorithmName
 import net.corda.v5.crypto.DigitalSignature
+import net.corda.v5.crypto.SecureHash
 import net.corda.v5.ledger.utxo.Command
 import net.corda.v5.ledger.utxo.Contract
 import net.corda.v5.ledger.utxo.transaction.UtxoLedgerTransaction
@@ -73,9 +76,9 @@ class LockStateContract: Contract {
             "The transaction receipts merkle proof failed to validate"
         }
 
-        // Verify validator signatures for block inclusion
-        require(verifyValidatorSignatures(cmd.proof.validatorSignatures, receiptsRoot, lockState.approvedValidators)) {
-            "One or more validator signatures failed to verify block inclusion"
+        // Verify EVM Transfer event validation by minimum number of validators
+        require(cmd.proof.validatorSignatures.size >= lockState.signaturesThreshold) {
+            "EVM Transfer event has not been validated by the minimum number of validators"
         }
 
         // Ensure only two input states exist
@@ -86,11 +89,6 @@ class LockStateContract: Contract {
         // Check if the recipient is valid
         require(unlockedAssetState.owner == lockState.assetRecipient) {
             "Invalid recipient for this command"
-        }
-
-        // Verify EVM Transfer event validation by minimum number of validators
-        require(cmd.proof.validatorSignatures.size >= lockState.signaturesThreshold) {
-            "EVM Transfer event has not been validated by the minimum number of validators"
         }
 
         // Ensure the transaction receipt contains the expected unlock event
@@ -104,25 +102,95 @@ class LockStateContract: Contract {
         }
 
         // Verify validator signatures for block inclusion
-        require(verifyValidatorSignatures(cmd.proof.validatorSignatures, receiptsRoot, lockState.approvedValidators)) {
-            "One or more validator signatures failed to verify block inclusion"
+        require(verifyValidatorSignatures(cmd.proof.validatorSignatures, receiptsRoot, lockState.approvedValidators) >= lockState.signaturesThreshold) {
+            "Consensus not reached: too many validator signatures failed to verify block inclusion"
         }
-
     }
 
-    private fun verifyValidatorSignatures(sigs: List<DigitalSignature.WithKeyId>, signableData: ByteArray, approvedValidators: List<PublicKey>): Boolean {
-        // TODO: convert to C5 code
-//        sigs.forEach {
-//            val validator = it.by
-//            if (!approvedValidators.contains(validator) || !it.verify(signableData))
-//                return false
-//        }
+    @CordaInject
+    private lateinit var digestService: DigestService
 
-        return true
+    @CordaInject
+    private lateinit var signatureSpecService: SignatureSpecService
+
+    @CordaInject
+    private lateinit var signatureVerificationService: DigitalSignatureVerificationService
+
+    private fun verifyValidatorSignatures(
+        sigs: List<DigitalSignature.WithKeyId>,
+        signableData: ByteArray,
+        approvedValidators: List<PublicKey>
+    ): Int {
+
+        val validatorIdsToPublicKeys = approvedValidators.associateBy { getIdOfPublicKey(it, it.algorithm) }
+
+        var successfulVerifications = 0
+
+        sigs.forEach { sig ->
+            val validatorPublicKey = validatorIdsToPublicKeys[sig.by] ?: return@forEach
+            val signatureSpec = signatureSpecService.defaultSignatureSpec(validatorPublicKey) ?: return@forEach
+
+            try {
+                signatureVerificationService.verify(signableData, sig.bytes, validatorPublicKey, signatureSpec)
+                successfulVerifications++
+            } catch (e: Exception) {
+                // Handle verification failure (e.g., logging)
+            }
+        }
+
+        return successfulVerifications
+    }
+
+    private fun getIdOfPublicKey(publicKey: PublicKey, digestAlgorithmName: String): SecureHash {
+        return digestService.hash(
+            publicKey.encoded,
+            DigestAlgorithmName(digestAlgorithmName)
+        )
     }
 
     private fun verifyRevertCommand(tx: UtxoLedgerTransaction, cmd: LockCommands.Revert) {
-        TODO("Not yet implemented")
+        val inputsTxHash = tx.inputStateRefs.map { it.transactionId }.distinct().singleOrNull()
+            ?: throw IllegalArgumentException("Inputs from multiple transactions is not supported")
+
+        val revertedAssetState = tx.outputContractStates.filterIsInstance<OwnableState>().single()
+        val lockState = tx.inputContractStates.filterIsInstance<LockState>().single()
+        val txIndexKey = RlpEncoder.encode(
+            RlpString.create(
+                cmd.proof.transactionReceipt.transactionIndex.toLong()
+            )
+        )
+        val receiptsRoot = Numeric.hexStringToByteArray(cmd.proof.receiptsRootHash)
+        val leafData = cmd.proof.transactionReceipt.encoded()
+
+        // Ensure only two input states exist
+        require(tx.inputContractStates.size == 2) {
+            "Only two input states can exist"
+        }
+
+        // Check if the recipient is valid
+        require(revertedAssetState.owner == lockState.assetSender) {
+            "Invalid recipient for this command"
+        }
+
+        // Verify EVM Transfer event validation by minimum number of validators
+        require(cmd.proof.validatorSignatures.size >= lockState.signaturesThreshold) {
+            "EVM Transfer event has not been validated by the minimum number of validators"
+        }
+
+        // Ensure the transaction receipt contains the expected revert event
+        require(lockState.unlockEvent.revertEvent(inputsTxHash).isFoundIn(cmd.proof.transactionReceipt)) {
+            "The transaction receipt does not contain the expected revert event"
+        }
+
+        // Validate the transaction receipts merkle proof
+        require(PatriciaTrie.verifyMerkleProof(receiptsRoot, txIndexKey, leafData, cmd.proof.merkleProof)) {
+            "The transaction receipts merkle proof failed to validate"
+        }
+
+        // Verify validator signatures for block inclusion
+        require(verifyValidatorSignatures(cmd.proof.validatorSignatures, receiptsRoot, lockState.approvedValidators) >= lockState.signaturesThreshold) {
+            "Consensus not reached: too many validator signatures failed to verify block inclusion"
+        }
     }
 
     private fun verifyLockCommand(tx: UtxoLedgerTransaction) {
@@ -143,7 +211,7 @@ class LockStateContract: Contract {
         }
 
         // Fetch the single instances of locked asset state and lock state
-        val lockedAssetState = tx.outputContractStates.filterIsInstance<OwnableState>().single()
+//        val lockedAssetState = tx.outputContractStates.filterIsInstance<OwnableState>().single()
         val lockState = outputLockStates.single()
 
         // Ensure the asset state is owned by the correct composite key
@@ -171,7 +239,8 @@ class LockStateContract: Contract {
 
 fun SerializableTransactionReceipt.encoded() : ByteArray {
 //fun TransactionReceipt.encoded() : ByteArray {
-    fun serializeLog(log: net.corda.v5.application.interop.evm.Log): RlpList {
+    fun serializeLog(log: SerializableLog): RlpList {
+    //fun serializeLog(log: net.corda.v5.application.interop.evm.Log): RlpList {
         val address = Numeric.hexStringToByteArray(log.address)
         val topics = log.topics.map { topic -> Numeric.hexStringToByteArray(topic) }
 

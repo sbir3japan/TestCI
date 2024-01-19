@@ -1,6 +1,5 @@
 package com.r3.corda.demo.swaps.workflows.atomic
 
-import com.r3.corda.demo.swaps.contracts.swap.LockCommand
 import com.r3.corda.demo.swaps.states.swap.LockState
 import com.r3.corda.demo.swaps.states.swap.OwnableState
 import com.r3.corda.demo.swaps.states.swap.SerializableTransactionReceipt
@@ -10,7 +9,6 @@ import com.r3.corda.demo.swaps.utils.trie.SimpleKeyValueStore
 import com.r3.corda.demo.swaps.workflows.eth2eth.GetBlockByNumberSubFlow
 import com.r3.corda.demo.swaps.workflows.eth2eth.GetBlockReceiptsSubFlow
 import com.r3.corda.demo.swaps.workflows.internal.DraftTxService
-//import com.r3.corda.demo.swaps.workflows.internal.DraftTxService
 import com.r3.corda.demo.swaps.workflows.swap.UnlockTransactionAndObtainAssetSubFlow
 import java.math.BigInteger
 import net.corda.v5.application.flows.ClientRequestBody
