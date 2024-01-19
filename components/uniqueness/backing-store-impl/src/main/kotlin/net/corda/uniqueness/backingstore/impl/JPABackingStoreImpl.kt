@@ -79,7 +79,11 @@ open class JPABackingStoreImpl @Activate constructor(
                             "${CordaDb.Uniqueness.persistenceUnitName} is not registered."
                 )
         )
-        log.info("MY_LOGGING - emf creation time = ${System.nanoTime() - emfCreationStartTime}")
+        log.info(
+            "MY_LOGGING - emf creation time (in millis) = ${
+                Duration.ofNanos(System.nanoTime() - emfCreationStartTime).toMillis()
+            }"
+        )
 
         val entityManager = entityManagerFactory.createEntityManager()
         // Enable Hibernate JDBC batch and set the batch size on a per-session basis.
@@ -88,7 +92,11 @@ open class JPABackingStoreImpl @Activate constructor(
         @Suppress("TooGenericExceptionCaught")
         try {
             block(SessionImpl(holdingIdentity, entityManager))
-            log.info("MY_LOGGING - successful session time = ${System.nanoTime() - sessionStartTime}")
+            log.info(
+                "MY_LOGGING - successful session time (in millis) = ${
+                    Duration.ofNanos(System.nanoTime() - sessionStartTime).toMillis()
+                }"
+            )
         } catch (e: Exception) {
             log.info("MY_LOGGING - failed session time = ${System.nanoTime() - sessionStartTime}")
             // TODO: Need to figure out what exceptions can be thrown when using JPA directly
