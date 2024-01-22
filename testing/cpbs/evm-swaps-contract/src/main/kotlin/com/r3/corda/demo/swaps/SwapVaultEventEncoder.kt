@@ -10,6 +10,7 @@ import org.abi.datatypes.Type
 import org.abi.datatypes.generated.Bytes32
 import org.abi.datatypes.generated.Uint256
 import org.crypto.Hash
+import org.slf4j.LoggerFactory
 import org.utils.Numeric
 import java.math.BigInteger
 
@@ -25,6 +26,8 @@ data class SwapVaultEventEncoder(
     val commitmentHash: ByteArray
 ) : IUnlockEventEncoder {
     companion object {
+        val log = LoggerFactory.getLogger(this::class.java.enclosingClass)
+
         fun create(
             chainId: BigInteger,
             protocolAddress: String,
@@ -36,18 +39,20 @@ data class SwapVaultEventEncoder(
             signaturesThreshold: BigInteger,
             signers: List<String>
         ) : SwapVaultEventEncoder {
+            val commitHash = commitmentHash(
+                chainId,
+                owner,
+                recipient,
+                amount,
+                tokenId,
+                tokenAddress,
+                signaturesThreshold,
+                signers
+            )
+            log.info("[DBG] Creating SwapVaultEventEncoder: chainId=$chainId, protocolAddress=$protocolAddress, owner=$owner, recipient=$recipient, amount=$amount, tokenId=$tokenId, tokenAddress=$tokenAddress, signaturesThreshold=$signaturesThreshold, signers=$signers, commitHash=$commitHash")
             return SwapVaultEventEncoder(
                 protocolAddress,
-                commitmentHash(
-                    chainId,
-                    owner,
-                    recipient,
-                    amount,
-                    tokenId,
-                    tokenAddress,
-                    signaturesThreshold,
-                    signers
-                )
+                commitHash
             )
         }
 

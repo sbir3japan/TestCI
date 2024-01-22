@@ -58,7 +58,11 @@ class UnlockAssetFlow : ClientStartableFlow {
         val transactionId: SecureHash,
         val blockNumber: BigInteger,
         val transactionIndex: BigInteger
-    )
+    ) {
+        override fun toString(): String {
+            return "RequestParams(transactionId=$transactionId, blockNumber=$blockNumber, transactionIndex=$transactionIndex)"
+        }
+    }
 
     private companion object {
         private val log = LoggerFactory.getLogger(this::class.java.enclosingClass)
@@ -101,6 +105,8 @@ class UnlockAssetFlow : ClientStartableFlow {
                 transactionIndex
             ) = requestBody.getRequestBodyAs(jsonMarshallingService, RequestParams::class.java)
 
+            log.info("[DBG] UnlockAssetFlow.call transactionId=$transactionId, blockNumber=$blockNumber, transactionIndex=$transactionIndex")
+
             val signedTransaction = ledgerService.findSignedTransaction(transactionId)
                 ?: throw IllegalArgumentException("Transaction not found for ID: $transactionId")
 
@@ -109,6 +115,8 @@ class UnlockAssetFlow : ClientStartableFlow {
             @Suppress("UNCHECKED_CAST") val lockState =
                 outputStateAndRefs.singleOrNull { it.state.contractState is LockState } as? StateAndRef<LockState>
                     ?: throw IllegalArgumentException("Transaction $transactionId does not have a lock state")
+
+            log.info("[DBG] UnlockAssetFlow.call ${lockState.state.contractState}")
 
             @Suppress("UNCHECKED_CAST") val assetState =
                 outputStateAndRefs.singleOrNull { it.state.contractState is OwnableState } as? StateAndRef<OwnableState>
@@ -129,6 +137,8 @@ class UnlockAssetFlow : ClientStartableFlow {
 
             // Get the receipt specifically associated with the transaction that generated the event
             val unlockReceipt = receipts[transactionIndex.toInt()]
+            log.info("[DBG] UnlockAssetFlow.call unlockReceipt=$unlockReceipt")
+            log.info("[DBG] UnlockAssetFlow.call unlockReceipt.logs=${unlockReceipt.logs.dump()}")
 
             val merkleProof = generateMerkleProof(receipts, unlockReceipt)
 
@@ -194,4 +204,11 @@ fun TransactionReceipt.encoded(): ByteArray {
             )
         )
     )
+}
+fun Log.dump(): String {
+    return "Log(address='$address', topics=$topics, data='$data', blockNumber=$blockNumber, transactionHash='$transactionHash', transactionIndex=$transactionIndex, blockHash='$blockHash', logIndex=$logIndex, isRemoved=$isRemoved)"
+}
+
+fun List<Log>.dump(): String {
+    return joinToString("; ") { it.dump() }
 }

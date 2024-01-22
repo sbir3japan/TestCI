@@ -27,5 +27,8 @@ class LockState(
     override fun getParticipants(): List<PublicKey> {
         return listOf(assetSender, assetRecipient)
     }
-}
 
+    override fun toString(): String {
+        return "LockState(assetSender=$assetSender, assetRecipient=$assetRecipient, notary=$notary, approvedValidators=$approvedValidators, signaturesThreshold=$signaturesThreshold, unlockEvent=$unlockEvent, linearId=$linearId)"
+    }
+}

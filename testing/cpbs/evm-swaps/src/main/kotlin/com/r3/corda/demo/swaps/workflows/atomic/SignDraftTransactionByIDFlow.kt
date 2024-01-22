@@ -67,6 +67,8 @@ class SignDraftTransactionByIdFlow : ClientStartableFlow {
                 SignDraftTransactionByIdArgs::class.java
             )
 
+            log.info("[DBG] SignDraftTransactionByIdFlow.call transactionId=$transactionId")
+
             val transactionData = persistenceService.find(
                 TransactionBytes::class.java,
                 listOf(transactionId.toString())

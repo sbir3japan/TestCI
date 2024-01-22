@@ -25,7 +25,11 @@ data class CommitWithTokenFlowInput(
     val signers: List<String>,
     val swapProviderAddress: String,
     val msgSenderPrivateKey: String,
-)
+) {
+    override fun toString(): String {
+        return "CommitWithTokenFlowInput(transactionId='$transactionId', rpcUrl='$rpcUrl', tokenAddress='$tokenAddress', recipient='$recipient', amount=$amount, signaturesThreshold=$signaturesThreshold, signers=$signers, swapProviderAddress='$swapProviderAddress', msgSenderPrivateKey='$msgSenderPrivateKey')"
+    }
+}
 
 /**
  * CommitWithTokenFlow output parameters
@@ -68,6 +72,8 @@ class CommitWithTokenFlow : ClientStartableFlow {
         try {
             // Get any of the relevant details from te request here
             val inputs = requestBody.getRequestBodyAs(jsonMarshallingService, CommitWithTokenFlowInput::class.java)
+
+            log.info("[DBG] Flow inputs: $inputs")
 
             val erc20 = ERC20(inputs.rpcUrl, evmService, inputs.tokenAddress, inputs.msgSenderPrivateKey)
 

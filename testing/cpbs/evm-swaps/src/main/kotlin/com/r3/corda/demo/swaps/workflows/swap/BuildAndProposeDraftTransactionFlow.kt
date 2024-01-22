@@ -23,6 +23,7 @@ import net.corda.v5.crypto.SecureHash
 import net.corda.v5.ledger.utxo.ContractState
 import net.corda.v5.ledger.utxo.UtxoLedgerService
 import net.corda.v5.ledger.utxo.transaction.UtxoSignedTransaction
+import org.bouncycastle.asn1.x500.style.RFC4519Style.owner
 import org.slf4j.LoggerFactory
 import java.security.PublicKey
 import java.time.Duration
@@ -310,7 +311,11 @@ data class RequestLockByEventFlowArgs(
     val tokenAddress: String,
     val amount: Int, // BigInt?
     val tokenId: Int, // BigInt?
-)
+) {
+    override fun toString(): String {
+        return "RequestLockByEventFlowArgs(transactionId='$transactionId', assetType='$assetType', lockToRecipient='$lockToRecipient', signaturesThreshold=$signaturesThreshold, evmSigners=$evmSigners, validators=$validators, chainId=$chainId, protocolAddress='$protocolAddress', evmSender='$evmSender', evmRecipient='$evmRecipient', tokenAddress='$tokenAddress', amount=$amount, tokenId=$tokenId)"
+    }
+}
 
 /**
  * Initiating flow which builds a draft transaction that puts the Corda asset in a locked state.
@@ -364,6 +369,8 @@ class RequestLockByEventFlow : ClientStartableFlow {
             jsonMarshallingService,
             RequestLockByEventFlowArgs::class.java
         )
+
+        log.info("[DBG] Flow inputs: $args")
 
         val swapVaultEventEncoder = SwapVaultEventEncoder.create(
             chainId = args.chainId.toBigInteger(),

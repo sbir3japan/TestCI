@@ -16,7 +16,11 @@ data class ClaimCommitmentInput(
     val signatures: List<String>?,
     val contractAddress: String,
     val msgSenderPrivateKey:String,
-)
+) {
+    override fun toString(): String {
+        return "ClaimCommitmentInput(transactionId='$transactionId', rpcUrl='$rpcUrl', signatures=$signatures, contractAddress='$contractAddress', msgSenderPrivateKey='$msgSenderPrivateKey')"
+    }
+}
 
 data class ClaimCommitmentOutput(
     val transactionReceipt: TransactionReceipt,
@@ -45,6 +49,8 @@ class ClaimCommitment : ClientStartableFlow {
         try {
             // Get any of the relevant details from te request here
             val inputs = requestBody.getRequestBodyAs(jsonMarshallingService, ClaimCommitmentInput::class.java)
+
+            log.info("[DBG] ClaimCommitmentInput: $inputs")
 
             val transactionReceipt =
                 SwapVault(inputs.rpcUrl, evmService, inputs.contractAddress,"")
