@@ -2,6 +2,7 @@ package net.corda.ledger.utxo.flow.impl.transaction
 
 import net.corda.ledger.common.data.transaction.SignedTransactionContainer
 import net.corda.ledger.common.data.transaction.WireTransaction
+import net.corda.ledger.utxo.flow.impl.flows.finality.FilteredTransactionAndSignatures
 import net.corda.v5.application.crypto.DigitalSignatureAndMetadata
 import net.corda.v5.base.annotations.CordaSerializable
 import net.corda.v5.base.annotations.Suspendable
@@ -70,4 +71,12 @@ interface UtxoSignedTransactionInternal : UtxoSignedTransaction {
      * @throws TransactionSignatureException if signature is owned by a signatory, and it is not valid.
      */
     fun verifySignatorySignature(signature: DigitalSignatureAndMetadata)
+
+    /**
+     * Fetches [FilteredTransactionAndSignatures] for dependency references.
+     * some exception info should be added
+     *
+     * @return a list of [FilteredTransactionAndSignatures]
+     */
+    fun getFilteredTransactionsAndSignaturesOfDependencies(): List<FilteredTransactionAndSignatures>
 }

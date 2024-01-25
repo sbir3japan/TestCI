@@ -80,6 +80,7 @@ abstract class UtxoLedgerTest : CommonLedgerTest() {
         transactionMetadataFactory,
         wireTransactionFactory,
         utxoLedgerTransactionFactory,
+        mockUtxoLedgerPersistenceService,
         mockUtxoLedgerTransactionVerificationService,
         mockUtxoLedgerGroupParametersPersistenceService,
         mockGroupParametersLookup,
@@ -102,6 +103,7 @@ abstract class UtxoLedgerTest : CommonLedgerTest() {
     val utxoSignedTransactionKryoSerializer = UtxoSignedTransactionKryoSerializer(
         serializationServiceWithWireTx,
         transactionSignatureService,
+        mockUtxoLedgerPersistenceService,
         utxoLedgerTransactionFactory,
         mockNotarySignatureVerificationService
     )
@@ -109,6 +111,7 @@ abstract class UtxoLedgerTest : CommonLedgerTest() {
         UtxoSignedTransactionSerializer(
             serializationServiceNullCfg,
             transactionSignatureService,
+            mockUtxoLedgerPersistenceService,
             utxoLedgerTransactionFactory,
             mockNotarySignatureVerificationService
         )
@@ -120,6 +123,7 @@ abstract class UtxoLedgerTest : CommonLedgerTest() {
         jsonValidator,
         transactionSignatureService,
         mockNotarySignatureVerificationService,
+        mockUtxoLedgerPersistenceService,
         utxoLedgerTransactionFactory
     )
 

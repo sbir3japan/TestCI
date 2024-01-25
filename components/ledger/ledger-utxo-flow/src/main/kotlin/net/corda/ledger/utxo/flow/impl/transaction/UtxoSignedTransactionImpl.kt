@@ -1,16 +1,20 @@
 package net.corda.ledger.utxo.flow.impl.transaction
 
+import net.corda.crypto.core.fullIdHash
 import net.corda.ledger.common.data.transaction.WireTransaction
 import net.corda.ledger.common.flow.transaction.TransactionMissingSignaturesException
 import net.corda.ledger.common.flow.transaction.TransactionSignatureServiceInternal
 import net.corda.ledger.utxo.data.transaction.WrappedUtxoWireTransaction
 import net.corda.ledger.utxo.data.transaction.verifier.verifyMetadata
+import net.corda.ledger.utxo.flow.impl.flows.finality.FilteredTransactionAndSignatures
+import net.corda.ledger.utxo.flow.impl.persistence.UtxoLedgerPersistenceService
 import net.corda.ledger.utxo.flow.impl.transaction.factory.UtxoLedgerTransactionFactory
 import net.corda.ledger.utxo.flow.impl.transaction.verifier.NotarySignatureVerificationServiceInternal
 import net.corda.v5.application.crypto.DigitalSignatureAndMetadata
 import net.corda.v5.application.serialization.SerializationService
 import net.corda.v5.base.annotations.Suspendable
 import net.corda.v5.base.types.MemberX500Name
+import net.corda.v5.crypto.CompositeKey
 import net.corda.v5.crypto.KeyUtils
 import net.corda.v5.crypto.SecureHash
 import net.corda.v5.ledger.common.transaction.TransactionMetadata
@@ -29,6 +33,7 @@ data class UtxoSignedTransactionImpl(
     private val serializationService: SerializationService,
     private val transactionSignatureServiceInternal: TransactionSignatureServiceInternal,
     private val notarySignatureVerificationService: NotarySignatureVerificationServiceInternal,
+    private val utxoLedgerPersistenceService: UtxoLedgerPersistenceService,
     private val utxoLedgerTransactionFactory: UtxoLedgerTransactionFactory,
     override val wireTransaction: WireTransaction,
     private val signatures: List<DigitalSignatureAndMetadata>
@@ -93,6 +98,7 @@ data class UtxoSignedTransactionImpl(
             serializationService,
             transactionSignatureServiceInternal,
             notarySignatureVerificationService,
+            utxoLedgerPersistenceService,
             utxoLedgerTransactionFactory,
             wireTransaction,
             signatures + signature
@@ -110,6 +116,7 @@ data class UtxoSignedTransactionImpl(
                 serializationService,
                 transactionSignatureServiceInternal,
                 notarySignatureVerificationService,
+                utxoLedgerPersistenceService,
                 utxoLedgerTransactionFactory,
                 wireTransaction,
                 signatures + newSignatures
@@ -178,8 +185,45 @@ data class UtxoSignedTransactionImpl(
     private fun getPublicKeysToSignatorySignatures(): Map<PublicKey, DigitalSignatureAndMetadata> {
         return signatures.mapNotNull { // We do not care about non-notary/non-signatory keys
             (getSignatoryKeyFromKeyId(it.by) ?: return@mapNotNull null) to it
-        }
-            .toMap()
+        }.toMap()
+    }
+
+    @Suspendable
+    override fun getFilteredTransactionsAndSignaturesOfDependencies(): List<FilteredTransactionAndSignatures> {
+        val filteredTransactionsAndSignatures =
+            utxoLedgerPersistenceService.fetchFilteredTransactions(inputStateRefs + referenceStateRefs)
+        return filteredTransactionsAndSignatures.mapValues { (transactionId, txAndSignatures) ->
+            val filteredTransaction = txAndSignatures.first
+            val signatures = txAndSignatures.second
+
+            requireNotNull(filteredTransaction) {
+                "Dependent transaction $transactionId does not exist"
+            }
+
+            notarySignatureVerificationService.verifyNotarySignatures(
+                filteredTransaction,
+                notaryKey,
+                signatures,
+                mutableMapOf()
+            )
+
+            val newTxNotaryKey = notaryKey
+            require(notaryName == filteredTransaction.notaryName) {
+                "Notary name of filtered transaction \"${filteredTransaction.notaryName}\" doesn't match with " +
+                        "notary service of current transaction \"${notaryName}\""
+            }
+
+            val newTxNotaryKeyIds = if (newTxNotaryKey is CompositeKey) {
+                newTxNotaryKey.leafKeys.toSet()
+            } else {
+                setOf(newTxNotaryKey.fullIdHash())
+            }
+
+            FilteredTransactionAndSignatures(
+                filteredTransaction,
+                signatures.filter { newTxNotaryKeyIds.contains(it.by) }
+            )
+        }.values.toList()
     }
 
     override fun verifyAttachedNotarySignature() {

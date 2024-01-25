@@ -4,6 +4,7 @@ import net.corda.sandboxgroupcontext.service.SandboxDependencyInjector
 import net.corda.v5.application.flows.CordaInject
 import net.corda.v5.serialization.SingletonSerializeAsToken
 import org.osgi.framework.FrameworkUtil
+import org.slf4j.LoggerFactory
 import java.lang.reflect.Field
 import java.util.Collections.unmodifiableMap
 
@@ -11,11 +12,13 @@ class SandboxDependencyInjectorImpl<T : Any>(
     singletons: Map<SingletonSerializeAsToken, List<String>>,
     private val closeable: AutoCloseable
 ) : SandboxDependencyInjector<T> {
+    private val logger = LoggerFactory.getLogger(this::class.java)
     private val serviceTypeMap: Map<Class<*>, SingletonSerializeAsToken>
 
     init {
         val serviceTypes = mutableMapOf<Class<*>, SingletonSerializeAsToken>()
         singletons.forEach { singleton ->
+            logger.info("XXXX singleton = ${singleton.key}, ${singleton.value}")
             registerService(singleton.key, singleton.value, serviceTypes)
         }
         serviceTypeMap = unmodifiableMap(serviceTypes)
@@ -26,8 +29,11 @@ class SandboxDependencyInjectorImpl<T : Any>(
     }
 
     override fun injectServices(obj: T) {
+        logger.info("XXXX inject Service")
         val requiredFields = obj::class.java.getFieldsForInjection()
+        logger.info("XXXX requiredFields = $requiredFields")
         val mismatchedFields = requiredFields.filterNot { serviceTypeMap.containsKey(it.type) }
+        logger.info("XXXX mismatched = $mismatchedFields")
         if (mismatchedFields.any()) {
             val fields = mismatchedFields.joinToString(separator = ", ", transform = Field::getName)
             throw IllegalArgumentException(

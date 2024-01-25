@@ -10,6 +10,7 @@ import net.corda.ledger.common.testkit.getSignatureWithMetadataExample
 import net.corda.ledger.common.testkit.getWireTransactionExample
 import net.corda.ledger.utxo.data.transaction.UtxoComponentGroup
 import net.corda.ledger.utxo.data.transaction.UtxoLedgerTransactionImpl
+import net.corda.ledger.utxo.flow.impl.persistence.UtxoLedgerPersistenceService
 import net.corda.ledger.utxo.flow.impl.transaction.UtxoSignedTransactionImpl
 import net.corda.ledger.utxo.flow.impl.transaction.UtxoSignedTransactionInternal
 import net.corda.ledger.utxo.flow.impl.transaction.factory.UtxoLedgerTransactionFactory
@@ -47,6 +48,7 @@ fun getUtxoSignedTransactionExample(
     jsonValidator: JsonValidator,
     transactionSignatureService: TransactionSignatureServiceInternal,
     notarySignatureVerificationService: NotarySignatureVerificationServiceInternal,
+    utxoLedgerPersistenceService: UtxoLedgerPersistenceService,
     utxoLedgerTransactionFactory: UtxoLedgerTransactionFactory,
     cpkPackageSeed: String? = null
 ): UtxoSignedTransaction {
@@ -61,6 +63,7 @@ fun getUtxoSignedTransactionExample(
         serializationService,
         transactionSignatureService,
         notarySignatureVerificationService,
+        utxoLedgerPersistenceService,
         utxoLedgerTransactionFactory,
         wireTransaction,
         listOf(getSignatureWithMetadataExample())

@@ -2,12 +2,15 @@ package net.corda.ledger.utxo.flow.impl.persistence
 
 import net.corda.ledger.common.data.transaction.TransactionStatus
 import net.corda.ledger.utxo.flow.impl.transaction.UtxoSignedLedgerTransaction
+import net.corda.v5.application.crypto.DigitalSignatureAndMetadata
 import net.corda.v5.application.persistence.CordaPersistenceException
 import net.corda.v5.base.annotations.Suspendable
 import net.corda.v5.crypto.SecureHash
 import net.corda.v5.crypto.merkle.MerkleProof
 import net.corda.v5.ledger.common.transaction.CordaPackageSummary
+import net.corda.v5.ledger.utxo.StateRef
 import net.corda.v5.ledger.utxo.transaction.UtxoSignedTransaction
+import net.corda.v5.ledger.utxo.transaction.filtered.UtxoFilteredTransaction
 
 /**
  * [UtxoLedgerPersistenceService] allows to insert and find UTXO signed transactions in the persistent store provided
@@ -95,6 +98,20 @@ interface UtxoLedgerPersistenceService {
         transactionId: SecureHash,
         groupIndex: Int
     ): List<MerkleProof>
+
+
+    /**
+     * Retrieve a map of transaction id to its corresponding filtered transaction and notary signature or null given a list of state reference.
+     *
+     * @param stateRefs a list of [StateRef]
+     * @param notaryKey notary key to get signature from
+     * @param notaryName of notary name to verify signature
+     *
+     * @return The fetch result in a map of transaction ID to its pair of [UtxoFilteredTransaction] and [DigitalSignatureAndMetadata]
+     * */
+    fun fetchFilteredTransactions(
+        stateRefs: List<StateRef>
+    ): Map<SecureHash, Pair<UtxoFilteredTransaction?, List< DigitalSignatureAndMetadata>>>
 
     /**
      * Persist a [UtxoSignedTransaction] to the store.

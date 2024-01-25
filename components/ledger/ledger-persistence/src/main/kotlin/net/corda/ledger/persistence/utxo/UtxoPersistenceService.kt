@@ -7,6 +7,7 @@ import net.corda.ledger.persistence.common.InconsistentLedgerStateException
 import net.corda.ledger.utxo.data.transaction.MerkleProofDto
 import net.corda.ledger.utxo.data.transaction.SignedLedgerTransactionContainer
 import net.corda.ledger.utxo.data.transaction.UtxoVisibleTransactionOutputDto
+import net.corda.v5.application.crypto.DigitalSignatureAndMetadata
 import net.corda.v5.crypto.SecureHash
 import net.corda.v5.ledger.common.transaction.CordaPackageSummary
 import net.corda.v5.ledger.utxo.ContractState
@@ -80,4 +81,16 @@ interface UtxoPersistenceService {
         transactionId: String,
         groupIndex: Int
     ): List<MerkleProofDto>
+
+    /**
+     * Retrieve filtered transactions with the given a list of state references.
+     *
+     * @param stateRefs The list of [StateRef]
+     *
+     * @return A map of the filtered transaction ID to a pair of a found [FilteredTransaction] and a corresponding signatures.
+     * If a [FilteredTransaction] or signature for a given ID was not found then it will be null.
+     */
+    fun fetchFilteredTransactions(
+        stateRefs: List<StateRef>
+    ): Map<SecureHash, Pair<FilteredTransaction?, List<DigitalSignatureAndMetadata>>>
 }

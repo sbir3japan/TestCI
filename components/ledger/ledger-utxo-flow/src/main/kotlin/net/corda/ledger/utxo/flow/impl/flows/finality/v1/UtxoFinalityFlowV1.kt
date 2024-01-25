@@ -1,7 +1,6 @@
 package net.corda.ledger.utxo.flow.impl.flows.finality.v1
 
 import net.corda.crypto.core.fullId
-import net.corda.crypto.core.fullIdHash
 import net.corda.ledger.common.data.transaction.TransactionStatus
 import net.corda.ledger.common.flow.flows.Payload
 import net.corda.ledger.common.flow.transaction.TransactionMissingSignaturesException
@@ -25,7 +24,6 @@ import net.corda.v5.base.annotations.Suspendable
 import net.corda.v5.base.annotations.VisibleForTesting
 import net.corda.v5.base.exceptions.CordaRuntimeException
 import net.corda.v5.base.types.MemberX500Name
-import net.corda.v5.crypto.CompositeKey
 import net.corda.v5.ledger.common.NotaryLookup
 import net.corda.v5.ledger.notary.plugin.api.PluggableNotaryClientFlow
 import net.corda.v5.ledger.notary.plugin.core.NotaryExceptionFatal
@@ -75,6 +73,7 @@ class UtxoFinalityFlowV1(
 
     @Suspendable
     override fun call(): UtxoSignedTransaction {
+        log.info("XXXX ")
         /*
          * if the number of sessions(counterparties) is more than one,
          * it should wait for additional signatures.
@@ -144,41 +143,44 @@ class UtxoFinalityFlowV1(
     @Suspendable
     private fun createFilteredTransactionsAndSignatures(notaryInfo: NotaryInfo): List<FilteredTransactionAndSignatures>? {
         return if (!notaryInfo.isBackchainRequired) {
-            initialTransaction
-                .let { it.inputStateRefs + it.referenceStateRefs }
-                .groupBy { stateRef -> stateRef.transactionId }
-                .mapValues { (_, stateRefs) -> stateRefs.map { stateRef -> stateRef.index } }
-                .map { (transactionId, indexes) ->
-                    val dependency = requireNotNull(utxoLedgerService.findSignedTransaction(transactionId)) {
-                        "Dependent transaction $transactionId does not exist"
-                    }
-                    val newTxNotaryKey = initialTransaction.notaryKey
-                    require(initialTransaction.notaryName == dependency.notaryName) {
-                        "Notary name of filtered transaction \"${dependency.notaryName}\" doesn't match with " +
-                            "notary service of current transaction \"${initialTransaction.notaryName}\""
-                    }
-                    notarySignatureVerificationService.verifyNotarySignatures(
-                        dependency,
-                        initialTransaction.notaryKey,
-                        dependency.signatures,
-                        mutableMapOf()
-                    )
+             initialTransaction.getFilteredTransactionsAndSignaturesOfDependencies()
 
-                    val newTxNotaryKeyIds = if (newTxNotaryKey is CompositeKey) {
-                        newTxNotaryKey.leafKeys.toSet()
-                    } else {
-                        setOf(newTxNotaryKey.fullIdHash())
-                    }
 
-                    FilteredTransactionAndSignatures(
-                        utxoLedgerService.filterSignedTransaction(dependency)
-                            .withOutputStates(indexes)
-                            .withNotary()
-                            .withTimeWindow()
-                            .build(),
-                        dependency.signatures.filter { newTxNotaryKeyIds.contains(it.by) }
-                    )
-                }
+//            initialTransaction
+//                .let { it.inputStateRefs + it.referenceStateRefs }
+//                .groupBy { stateRef -> stateRef.transactionId }
+//                .mapValues { (_, stateRefs) -> stateRefs.map { stateRef -> stateRef.index } }
+//                .map { (transactionId, indexes) ->
+//                    val dependency = requireNotNull(utxoLedgerService.findSignedTransaction(transactionId)) {
+//                        "Dependent transaction $transactionId does not exist"
+//                    }
+//                    val newTxNotaryKey = initialTransaction.notaryKey
+//                    require(initialTransaction.notaryName == dependency.notaryName) {
+//                        "Notary name of filtered transaction \"${dependency.notaryName}\" doesn't match with " +
+//                            "notary service of current transaction \"${initialTransaction.notaryName}\""
+//                    }
+//                    notarySignatureVerificationService.verifyNotarySignatures(
+//                        dependency,
+//                        initialTransaction.notaryKey,
+//                        dependency.signatures,
+//                        mutableMapOf()
+//                    )
+//
+//                    val newTxNotaryKeyIds = if (newTxNotaryKey is CompositeKey) {
+//                        newTxNotaryKey.leafKeys.toSet()
+//                    } else {
+//                        setOf(newTxNotaryKey.fullIdHash())
+//                    }
+//
+//                    FilteredTransactionAndSignatures(
+//                        utxoLedgerService.filterSignedTransaction(dependency)
+//                            .withOutputStates(indexes)
+//                            .withNotary()
+//                            .withTimeWindow()
+//                            .build(),
+//                        dependency.signatures.filter { newTxNotaryKeyIds.contains(it.by) }
+//                    )
+//                }
         } else {
             null
         }

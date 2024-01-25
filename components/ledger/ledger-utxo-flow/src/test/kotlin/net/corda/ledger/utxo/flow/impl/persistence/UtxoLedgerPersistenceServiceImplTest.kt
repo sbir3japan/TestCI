@@ -178,6 +178,7 @@ class UtxoLedgerPersistenceServiceImplTest {
             serializationService,
             transactionSignatureService,
             notarySignatureVerificationService,
+            mock<UtxoLedgerPersistenceService>(),
             mock<UtxoLedgerTransactionFactory>(),
             wireTransaction,
             signatures

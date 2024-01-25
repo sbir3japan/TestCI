@@ -2,6 +2,7 @@ package net.corda.ledger.utxo.flow.impl.transaction.serializer.kryo
 
 import net.corda.ledger.common.data.transaction.WireTransaction
 import net.corda.ledger.common.flow.transaction.TransactionSignatureServiceInternal
+import net.corda.ledger.utxo.flow.impl.persistence.UtxoLedgerPersistenceService
 import net.corda.ledger.utxo.flow.impl.transaction.UtxoSignedTransactionImpl
 import net.corda.ledger.utxo.flow.impl.transaction.UtxoSignedTransactionInternal
 import net.corda.ledger.utxo.flow.impl.transaction.factory.UtxoLedgerTransactionFactory
@@ -28,6 +29,8 @@ class UtxoSignedTransactionKryoSerializer @Activate constructor(
     private val serialisationService: SerializationService,
     @Reference(service = TransactionSignatureServiceInternal::class)
     private val transactionSignatureService: TransactionSignatureServiceInternal,
+    @Reference(service = UtxoLedgerPersistenceService::class)
+    private val utxoLedgerPersistenceService: UtxoLedgerPersistenceService,
     @Reference(service = UtxoLedgerTransactionFactory::class)
     private val utxoLedgerTransactionFactory: UtxoLedgerTransactionFactory,
     @Reference(service = NotarySignatureVerificationServiceInternal::class)
@@ -49,6 +52,7 @@ class UtxoSignedTransactionKryoSerializer @Activate constructor(
             serialisationService,
             transactionSignatureService,
             notarySignatureVerificationService,
+            utxoLedgerPersistenceService,
             utxoLedgerTransactionFactory,
             wireTransaction,
             signatures

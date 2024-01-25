@@ -50,6 +50,7 @@ class SandboxDependencyInjectorFactoryImpl : SandboxDependencyInjectorFactory {
                             logger.warn("Service {}{} not applicable for sandbox '{}'", ref, ref.properties, sandboxId)
                             return@mapNotNull null
                         }
+                        logger.warn("XXXX Service ref {}{}", ref, ref.properties)
 
                         @Suppress("unchecked_cast")
                         (ref.getProperty(OBJECTCLASS) as? Array<String> ?: emptyArray<String>())

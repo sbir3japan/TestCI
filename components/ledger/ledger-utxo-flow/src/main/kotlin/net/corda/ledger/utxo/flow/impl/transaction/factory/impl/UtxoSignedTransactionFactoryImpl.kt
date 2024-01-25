@@ -16,6 +16,7 @@ import net.corda.ledger.utxo.data.transaction.utxoComponentGroupStructure
 import net.corda.ledger.utxo.data.transaction.verifier.verifyMetadata
 import net.corda.ledger.utxo.flow.impl.groupparameters.verifier.SignedGroupParametersVerifier
 import net.corda.ledger.utxo.flow.impl.persistence.UtxoLedgerGroupParametersPersistenceService
+import net.corda.ledger.utxo.flow.impl.persistence.UtxoLedgerPersistenceService
 import net.corda.ledger.utxo.flow.impl.transaction.UtxoSignedTransactionImpl
 import net.corda.ledger.utxo.flow.impl.transaction.UtxoSignedTransactionInternal
 import net.corda.ledger.utxo.flow.impl.transaction.UtxoTransactionBuilderInternal
@@ -60,6 +61,8 @@ class UtxoSignedTransactionFactoryImpl @Activate constructor(
     private val wireTransactionFactory: WireTransactionFactory,
     @Reference(service = UtxoLedgerTransactionFactory::class)
     private val utxoLedgerTransactionFactory: UtxoLedgerTransactionFactory,
+    @Reference(service = UtxoLedgerPersistenceService::class)
+    private val utxoLedgerPersistenceService: UtxoLedgerPersistenceService,
     @Reference(service = UtxoLedgerTransactionVerificationService::class)
     private val utxoLedgerTransactionVerificationService: UtxoLedgerTransactionVerificationService,
     @Reference(service = UtxoLedgerGroupParametersPersistenceService::class)
@@ -101,6 +104,7 @@ class UtxoSignedTransactionFactoryImpl @Activate constructor(
             serializationService,
             transactionSignatureService,
             notarySignatureVerificationService,
+            utxoLedgerPersistenceService,
             utxoLedgerTransactionFactory,
             wireTransaction,
             signaturesWithMetadata
@@ -114,6 +118,7 @@ class UtxoSignedTransactionFactoryImpl @Activate constructor(
         serializationService,
         transactionSignatureService,
         notarySignatureVerificationService,
+        utxoLedgerPersistenceService,
         utxoLedgerTransactionFactory,
         wireTransaction,
         signaturesWithMetaData

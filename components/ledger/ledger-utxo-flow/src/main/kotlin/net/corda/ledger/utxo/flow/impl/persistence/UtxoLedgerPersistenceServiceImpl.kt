@@ -7,10 +7,11 @@ import net.corda.flow.fiber.metrics.recordSuspendable
 import net.corda.ledger.common.data.transaction.SignedTransactionContainer
 import net.corda.ledger.common.data.transaction.TransactionStatus
 import net.corda.ledger.common.data.transaction.TransactionStatus.Companion.toTransactionStatus
+import net.corda.ledger.common.data.transaction.filtered.FilteredTransaction
 import net.corda.ledger.utxo.data.transaction.MerkleProofDto
 import net.corda.ledger.utxo.data.transaction.SignedLedgerTransactionContainer
 import net.corda.ledger.utxo.flow.impl.cache.StateAndRefCache
-import net.corda.ledger.utxo.flow.impl.persistence.LedgerPersistenceMetricOperationName.FindMerkleProofs
+import net.corda.ledger.utxo.flow.impl.persistence.LedgerPersistenceMetricOperationName.FetchFilteredTransactions
 import net.corda.ledger.utxo.flow.impl.persistence.LedgerPersistenceMetricOperationName.FindSignedLedgerTransactionWithStatus
 import net.corda.ledger.utxo.flow.impl.persistence.LedgerPersistenceMetricOperationName.FindTransactionIdsAndStatuses
 import net.corda.ledger.utxo.flow.impl.persistence.LedgerPersistenceMetricOperationName.FindTransactionWithStatus
@@ -18,8 +19,8 @@ import net.corda.ledger.utxo.flow.impl.persistence.LedgerPersistenceMetricOperat
 import net.corda.ledger.utxo.flow.impl.persistence.LedgerPersistenceMetricOperationName.PersistTransaction
 import net.corda.ledger.utxo.flow.impl.persistence.LedgerPersistenceMetricOperationName.PersistTransactionIfDoesNotExist
 import net.corda.ledger.utxo.flow.impl.persistence.LedgerPersistenceMetricOperationName.UpdateTransactionStatus
-import net.corda.ledger.utxo.flow.impl.persistence.external.events.FindMerkleProofsExternalEventFactory
-import net.corda.ledger.utxo.flow.impl.persistence.external.events.FindMerkleProofsParameters
+import net.corda.ledger.utxo.flow.impl.persistence.external.events.FetchFilteredTransactionsExternalEventFactory
+import net.corda.ledger.utxo.flow.impl.persistence.external.events.FetchFilteredTransactionsParameters
 import net.corda.ledger.utxo.flow.impl.persistence.external.events.FindSignedLedgerTransactionExternalEventFactory
 import net.corda.ledger.utxo.flow.impl.persistence.external.events.FindSignedLedgerTransactionParameters
 import net.corda.ledger.utxo.flow.impl.persistence.external.events.FindTransactionExternalEventFactory
@@ -39,17 +40,21 @@ import net.corda.ledger.utxo.flow.impl.transaction.UtxoSignedLedgerTransactionIm
 import net.corda.ledger.utxo.flow.impl.transaction.UtxoSignedTransactionInternal
 import net.corda.ledger.utxo.flow.impl.transaction.factory.UtxoLedgerTransactionFactory
 import net.corda.ledger.utxo.flow.impl.transaction.factory.UtxoSignedTransactionFactory
+import net.corda.ledger.utxo.flow.impl.transaction.filtered.UtxoFilteredTransactionImpl
 import net.corda.metrics.CordaMetrics
 import net.corda.sandbox.type.SandboxConstants.CORDA_SYSTEM_SERVICE
 import net.corda.sandbox.type.UsedByFlow
 import net.corda.sandboxgroupcontext.CurrentSandboxGroupContext
 import net.corda.utilities.serialization.deserialize
+import net.corda.v5.application.crypto.DigitalSignatureAndMetadata
 import net.corda.v5.application.serialization.SerializationService
 import net.corda.v5.base.annotations.Suspendable
 import net.corda.v5.crypto.SecureHash
 import net.corda.v5.crypto.merkle.MerkleProof
 import net.corda.v5.ledger.common.transaction.CordaPackageSummary
+import net.corda.v5.ledger.utxo.StateRef
 import net.corda.v5.ledger.utxo.transaction.UtxoSignedTransaction
+import net.corda.v5.ledger.utxo.transaction.filtered.UtxoFilteredTransaction
 import net.corda.v5.serialization.SingletonSerializeAsToken
 import org.osgi.service.component.annotations.Activate
 import org.osgi.service.component.annotations.Component
@@ -163,28 +168,24 @@ class UtxoLedgerPersistenceServiceImpl @Activate constructor(
     }
 
     @Suspendable
-    override fun findMerkleProofs(
-        transactionId: SecureHash,
-        groupIndex: Int
-    ): List<MerkleProof> {
-        return recordSuspendable({ ledgerPersistenceFlowTimer(FindMerkleProofs) }) @Suspendable {
+    override fun fetchFilteredTransactions(stateRefs: List<StateRef>): Map<SecureHash, Pair<UtxoFilteredTransaction?, List<DigitalSignatureAndMetadata>>> {
+        return recordSuspendable({ ledgerPersistenceFlowTimer(FetchFilteredTransactions) }) @Suspendable {
             wrapWithPersistenceException {
                 externalEventExecutor.execute(
-                    FindMerkleProofsExternalEventFactory::class.java,
-                    FindMerkleProofsParameters(transactionId.toString(), groupIndex)
+                    FetchFilteredTransactionsExternalEventFactory::class.java,
+                    FetchFilteredTransactionsParameters(stateRefs)
                 )
             }.firstOrNull()?.let {
-                serializationService.deserialize<List<MerkleProofDto>>(it.array()).map { merkleProofDto ->
-                    merkleProofFactory.createAuditMerkleProof(
-                        merkleProofDto.transactionId,
-                        merkleProofDto.groupIndex,
-                        merkleProofDto.treeSize,
-                        merkleProofDto.leavesWithData,
-                        merkleProofDto.hashes
-                    )
-                }
-            } ?: emptyList()
-        }
+                serializationService.deserialize<Map<SecureHash, Pair<UtxoFilteredTransaction?, List<DigitalSignatureAndMetadata>>>>(it.array())
+                    .mapValues { (_, filteredTransactionAndSignature) ->
+                        val filteredTransaction = filteredTransactionAndSignature.first
+                        val signatures = filteredTransactionAndSignature.second
+                        if (filteredTransaction is FilteredTransaction)
+                                UtxoFilteredTransactionImpl(serializationService, filteredTransaction) to signatures
+                        else null to signatures
+                    }
+            }
+        } ?: emptyMap()
     }
 
     @Suspendable
