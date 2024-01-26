@@ -2,7 +2,7 @@ package net.corda.ledger.utxo.flow.impl.transaction
 
 import net.corda.ledger.common.data.transaction.SignedTransactionContainer
 import net.corda.ledger.common.data.transaction.WireTransaction
-import net.corda.ledger.utxo.flow.impl.flows.finality.FilteredTransactionAndSignatures
+import net.corda.ledger.utxo.data.transaction.FilteredTransactionAndSignatures
 import net.corda.v5.application.crypto.DigitalSignatureAndMetadata
 import net.corda.v5.base.annotations.CordaSerializable
 import net.corda.v5.base.annotations.Suspendable
