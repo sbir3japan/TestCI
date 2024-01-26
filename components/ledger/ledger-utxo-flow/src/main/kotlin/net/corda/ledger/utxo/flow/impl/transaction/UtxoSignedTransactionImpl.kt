@@ -4,9 +4,9 @@ import net.corda.crypto.core.fullIdHash
 import net.corda.ledger.common.data.transaction.WireTransaction
 import net.corda.ledger.common.flow.transaction.TransactionMissingSignaturesException
 import net.corda.ledger.common.flow.transaction.TransactionSignatureServiceInternal
+import net.corda.ledger.utxo.data.transaction.FilteredTransactionAndSignatures
 import net.corda.ledger.utxo.data.transaction.WrappedUtxoWireTransaction
 import net.corda.ledger.utxo.data.transaction.verifier.verifyMetadata
-import net.corda.ledger.utxo.data.transaction.FilteredTransactionAndSignatures
 import net.corda.ledger.utxo.flow.impl.persistence.UtxoLedgerPersistenceService
 import net.corda.ledger.utxo.flow.impl.transaction.factory.UtxoLedgerTransactionFactory
 import net.corda.ledger.utxo.flow.impl.transaction.verifier.NotarySignatureVerificationServiceInternal
@@ -210,7 +210,7 @@ data class UtxoSignedTransactionImpl(
             val newTxNotaryKey = notaryKey
             require(notaryName == filteredTransaction.notaryName) {
                 "Notary name of filtered transaction \"${filteredTransaction.notaryName}\" doesn't match with " +
-                        "notary service of current transaction \"${notaryName}\""
+                    "notary service of current transaction \"${notaryName}\""
             }
 
             val newTxNotaryKeyIds = if (newTxNotaryKey is CompositeKey) {

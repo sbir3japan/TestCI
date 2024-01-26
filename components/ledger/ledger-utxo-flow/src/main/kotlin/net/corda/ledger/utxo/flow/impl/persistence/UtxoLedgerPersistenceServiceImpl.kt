@@ -8,7 +8,6 @@ import net.corda.ledger.common.data.transaction.SignedTransactionContainer
 import net.corda.ledger.common.data.transaction.TransactionStatus
 import net.corda.ledger.common.data.transaction.TransactionStatus.Companion.toTransactionStatus
 import net.corda.ledger.common.data.transaction.filtered.FilteredTransaction
-import net.corda.ledger.utxo.data.transaction.MerkleProofDto
 import net.corda.ledger.utxo.data.transaction.SignedLedgerTransactionContainer
 import net.corda.ledger.utxo.flow.impl.cache.StateAndRefCache
 import net.corda.ledger.utxo.flow.impl.persistence.LedgerPersistenceMetricOperationName.FetchFilteredTransactions
@@ -168,7 +167,9 @@ class UtxoLedgerPersistenceServiceImpl @Activate constructor(
     }
 
     @Suspendable
-    override fun fetchFilteredTransactions(stateRefs: List<StateRef>): Map<SecureHash, Pair<UtxoFilteredTransaction?, List<DigitalSignatureAndMetadata>>> {
+    override fun fetchFilteredTransactions(
+        stateRefs: List<StateRef>
+    ): Map<SecureHash, Pair<UtxoFilteredTransaction?, List<DigitalSignatureAndMetadata>>> {
         return recordSuspendable({ ledgerPersistenceFlowTimer(FetchFilteredTransactions) }) @Suspendable {
             wrapWithPersistenceException {
                 externalEventExecutor.execute(
@@ -180,9 +181,11 @@ class UtxoLedgerPersistenceServiceImpl @Activate constructor(
                     .mapValues { (_, filteredTransactionAndSignature) ->
                         val filteredTransaction = filteredTransactionAndSignature.first
                         val signatures = filteredTransactionAndSignature.second
-                        if (filteredTransaction is FilteredTransaction)
-                                UtxoFilteredTransactionImpl(serializationService, filteredTransaction) to signatures
-                        else null to signatures
+                        if (filteredTransaction is FilteredTransaction) {
+                            UtxoFilteredTransactionImpl(serializationService, filteredTransaction) to signatures
+                        } else {
+                            null to signatures
+                        }
                     }
             }
         } ?: emptyMap()

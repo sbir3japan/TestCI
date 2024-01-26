@@ -99,7 +99,6 @@ interface UtxoLedgerPersistenceService {
         groupIndex: Int
     ): List<MerkleProof>
 
-
     /**
      * Retrieve a map of transaction id to its corresponding filtered transaction and notary signature or null given a list of state reference.
      *
@@ -111,7 +110,7 @@ interface UtxoLedgerPersistenceService {
      * */
     fun fetchFilteredTransactions(
         stateRefs: List<StateRef>
-    ): Map<SecureHash, Pair<UtxoFilteredTransaction?, List< DigitalSignatureAndMetadata>>>
+    ): Map<SecureHash, Pair<UtxoFilteredTransaction?, List<DigitalSignatureAndMetadata>>>
 
     /**
      * Persist a [UtxoSignedTransaction] to the store.
