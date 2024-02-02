@@ -22,8 +22,7 @@ class GroupAllocator {
         events: List<EventProcessingInput<K, E>>,
         config: EventMediatorConfig<K, S, E>
     ): List<Map<K, EventProcessingInput<K, E>>> {
-        val eventCount = events.flatMap { it.records }.size.toDouble()
-        val groups = setUpGroups(config, eventCount)
+        val groups = setUpGroups(config)
         val sortedEvents = events.sortedByDescending { it.records.size }
         sortedEvents.forEach {
             val leastFilledGroup = groups.minBy { group ->
@@ -37,7 +36,7 @@ class GroupAllocator {
 
     private fun <E : Any, S: Any, K : Any> setUpGroups(
         config: EventMediatorConfig<K, S, E>,
-    ): MutableList<MutableMap<K, List<Record<K, E>>>> {
+    ): List<MutableMap<K, EventProcessingInput<K, E>>> {
         val numGroups = config.threads
         return MutableList(numGroups) { mutableMapOf() }
     }
