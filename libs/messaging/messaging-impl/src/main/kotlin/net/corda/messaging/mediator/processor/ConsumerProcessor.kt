@@ -17,12 +17,11 @@ import net.corda.messaging.mediator.StateManagerHelper
 import net.corda.messaging.mediator.metrics.EventMediatorMetrics
 import net.corda.messaging.utils.toRecord
 import net.corda.taskmanager.TaskManager
-import net.corda.utilities.concurrent.getOrThrow
+import net.corda.utilities.concurrent.transpose
 import net.corda.utilities.debug
 import org.slf4j.LoggerFactory
 import java.util.concurrent.CompletionException
 import java.util.concurrent.TimeUnit
-import java.util.concurrent.TimeoutException
 
 /**
  * Class to construct a message bus consumer and begin processing its subscribed topic(s).
@@ -120,31 +119,15 @@ class ConsumerProcessor<K : Any, S : Any, E : Any>(
                     val future = taskManager.executeShortRunningTask {
                         eventProcessor.processEvents(group)
                     }
-                    Pair(future, group)
-                }.map { (future, group) ->
-                    try {
-                        future.getOrThrow(config.processorTimeout)
-                    } catch (e: TimeoutException) {
-                        group.mapValues { (key, input) ->
-                            val oldState = input.state
-                            val state = stateManagerHelper.failStateProcessing(
-                                key.toString(),
-                                oldState,
-                                "timeout occurred while processing events"
-                            )
-                            val stateChange = if (oldState != null) {
-                                StateChangeAndOperation.Update(state)
-                            } else {
-                                StateChangeAndOperation.Create(state)
-                            }
-                            EventProcessingOutput(listOf(), stateChange)
-                        }
+                    future.completeOnTimeout(failGroup(group), config.processorTimeout.toMillis(), TimeUnit.MILLISECONDS)
+                    future.thenApply { output ->
+                        output.mapKeys { it.toString() }
                     }
-                }.fold(mapOf<K, EventProcessingOutput>()) { acc, cur ->
-                    acc + cur
-                }.mapKeys {
-                    it.toString()
-                }
+                }.transpose().thenApply { mapList ->
+                    mapList.reduce { accumulated, next ->
+                        accumulated + next
+                    }
+                }.join()
 
                 // Persist state changes, send async outputs and setup to reprocess states that fail to persist
                 val failedStates = processOutputs(outputs)
@@ -158,6 +141,23 @@ class ConsumerProcessor<K : Any, S : Any, E : Any>(
             }
         }
         metrics.processorTimer.record(System.nanoTime() - startTimestamp, TimeUnit.NANOSECONDS)
+    }
+
+    private fun failGroup(group: Map<K, EventProcessingInput<K, E>>) : Map<K, EventProcessingOutput> {
+        return group.mapValues { (key, input) ->
+            val oldState = input.state
+            val state = stateManagerHelper.failStateProcessing(
+                key.toString(),
+                oldState,
+                "timeout occurred while processing events"
+            )
+            val stateChange = if (oldState != null) {
+                StateChangeAndOperation.Update(state)
+            } else {
+                StateChangeAndOperation.Create(state)
+            }
+            EventProcessingOutput(listOf(), stateChange)
+        }
     }
 
     /**
@@ -188,30 +188,22 @@ class ConsumerProcessor<K : Any, S : Any, E : Any>(
      * Will send any asynchronous outputs back to the bus for states which saved successfully.
      * @return a map of all the states that failed to save by their keys.
      */
+    @Suppress("UNCHECKED_CAST")
     private fun processOutputs(outputs: Map<String, EventProcessingOutput>): Map<String, State> {
-        val statesToCreate = mutableListOf<State>()
-        val statesToUpdate = mutableListOf<State>()
-        val statesToDelete = mutableListOf<State>()
+        val group = stateManager.createOperationGroup()
         outputs.values.forEach {
             when (it.stateChangeAndOperation) {
-                is StateChangeAndOperation.Create -> statesToCreate.add(it.stateChangeAndOperation.outputState)
-                is StateChangeAndOperation.Update -> statesToUpdate.add(it.stateChangeAndOperation.outputState)
-                is StateChangeAndOperation.Delete -> statesToDelete.add(it.stateChangeAndOperation.outputState)
+                is StateChangeAndOperation.Create -> group.create(it.stateChangeAndOperation.outputState)
+                is StateChangeAndOperation.Update -> group.update(it.stateChangeAndOperation.outputState)
+                is StateChangeAndOperation.Delete -> group.delete(it.stateChangeAndOperation.outputState)
                 is StateChangeAndOperation.Noop -> {} // Do nothing.
             }
         }
-        val failedToCreateKeys = stateManager.create(statesToCreate)
-        val failedToCreate = stateManager.get(failedToCreateKeys)
-        val failedToDelete = stateManager.delete(statesToDelete)
-        val failedToUpdate = stateManager.update(statesToUpdate)
-        val failedToUpdateOptimisticLockFailure = failedToUpdate.mapNotNull { (key, value) ->
-            value?.let { key to it }
-        }.toMap()
-        val failedKeys = failedToCreate.keys + failedToDelete.keys + failedToUpdate.keys
-        val outputsToSend = (outputs - failedKeys).values.flatMap { it.asyncOutputs }
+        val failures = group.execute()
+        val outputsToSend = (outputs - failures.keys).values.flatMap { it.asyncOutputs }
         sendAsynchronousEvents(outputsToSend)
 
-        return failedToCreate + failedToDelete + failedToUpdateOptimisticLockFailure
+        return failures.filter { it.value != null } as Map<String, State>
     }
 
     /**
