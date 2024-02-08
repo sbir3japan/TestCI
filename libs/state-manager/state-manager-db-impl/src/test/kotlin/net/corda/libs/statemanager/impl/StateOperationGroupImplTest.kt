@@ -11,6 +11,7 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.never
 import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
@@ -167,11 +168,11 @@ class StateOperationGroupImplTest {
             .execute()
 
         assertThat(failures).isEmpty()
-        verify(repository).create(connection, listOf())
-        verify(repository).update(connection, listOf())
-        verify(repository).delete(connection, listOf())
-        verify(repository, times(1)).get(connection, listOf())
-        verify(datasource, times(1)).connection
+        verify(repository, never()).create(connection, listOf())
+        verify(repository, never()).update(connection, listOf())
+        verify(repository, never()).delete(connection, listOf())
+        verify(repository, never()).get(connection, listOf())
+        verify(datasource, never()).connection
     }
 
     @Test

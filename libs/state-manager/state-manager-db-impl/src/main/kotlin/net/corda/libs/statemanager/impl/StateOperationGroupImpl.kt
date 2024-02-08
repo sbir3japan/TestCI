@@ -51,6 +51,7 @@ class StateOperationGroupImpl(
         if (executed) {
             throw IllegalStateException("Attempted to execute a group that has already been executed")
         }
+        if (stateKeys.isEmpty()) return emptyMap<String, State?>().also { executed = true }
         return dataSource.connection.transaction { connection ->
             val createFailures = repository.create(
                 connection,

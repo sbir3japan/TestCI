@@ -5,6 +5,7 @@ import net.corda.libs.configuration.SmartConfigImpl
 import net.corda.libs.statemanager.api.Metadata
 import net.corda.libs.statemanager.api.State
 import net.corda.libs.statemanager.api.StateManager
+import net.corda.libs.statemanager.api.StateOperationGroup
 import net.corda.messagebus.api.consumer.CordaConsumerRecord
 import net.corda.messaging.api.constants.MessagingMetadataKeys.PROCESSING_FAILURE
 import net.corda.messaging.api.exception.CordaMessageAPIFatalException
@@ -42,7 +43,6 @@ import org.mockito.kotlin.whenever
 import java.time.Instant
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CompletionException
-import java.util.concurrent.TimeoutException
 
 @Execution(ExecutionMode.SAME_THREAD)
 class ConsumerProcessorTest {
@@ -61,6 +61,7 @@ class ConsumerProcessorTest {
     private lateinit var mediatorSubscriptionState: MediatorSubscriptionState
     private lateinit var stateManagerHelper: StateManagerHelper<String>
     private lateinit var eventProcessor: EventProcessor<String, String, String>
+    private lateinit var operationGroup: StateOperationGroup
 
 
     @BeforeEach
@@ -74,11 +75,13 @@ class ConsumerProcessorTest {
         messageRouter = mock()
         mediatorSubscriptionState = MediatorSubscriptionState()
         eventProcessor = mock()
-        eventMediatorConfig = buildStringTestConfig()
+        eventMediatorConfig = buildStringTestConfig(10000L)
         stateManagerHelper = mock()
         consumerProcessor = ConsumerProcessor(
             eventMediatorConfig, groupAllocator, taskManager, messageRouter, mediatorSubscriptionState, eventProcessor, stateManagerHelper
         )
+        operationGroup = mock()
+        whenever(stateManager.createOperationGroup()).thenReturn(operationGroup)
     }
 
 
@@ -118,10 +121,9 @@ class ConsumerProcessorTest {
         verify(groupAllocator, times(2)).allocateGroups<String, String, String>(any(), any())
         verify(taskManager, times(2)).executeShortRunningTask<Unit>(any())
 
-        verify(stateManager, times(2)).get(any())
-        verify(stateManager, times(1)).create(any())
-        verify(stateManager, times(1)).update(any())
-        verify(stateManager, times(1)).delete(any())
+        verify(stateManager, times(1)).get(any())
+        verify(stateManager, times(1)).createOperationGroup()
+        verify(operationGroup, times(1)).execute()
         verify(consumer, times(1)).syncCommitOffsets()
 
         verify(messageRouter, times(2)).getDestination(any())
@@ -172,9 +174,19 @@ class ConsumerProcessorTest {
 
     @Test
     fun `when event processing times out, mark all states in the group as failed`() {
+        val config = buildStringTestConfig(10L)
+        consumerProcessor = ConsumerProcessor(
+            config,
+            groupAllocator,
+            taskManager,
+            messageRouter,
+            mediatorSubscriptionState,
+            eventProcessor,
+            stateManagerHelper
+        )
         whenever(taskManager.executeShortRunningTask<Unit>(any())).thenAnswer {
             val future = CompletableFuture<Map<String, EventProcessingOutput>>()
-            future.completeExceptionally(TimeoutException())
+            // Simulate a future timing out by never completing it.
             future
         }
         whenever(stateManagerHelper.failStateProcessing(any(), anyOrNull(), any())).thenReturn(mock())
@@ -235,11 +247,11 @@ class ConsumerProcessorTest {
     private fun getConsumerRecord() = CordaConsumerRecord("topic", 1, 1, "key", "value", Instant.now().toEpochMilli())
     private fun getConsumerConfig() = MediatorConsumerConfig(String::class.java, String::class.java) { }
 
-    private fun buildStringTestConfig() = EventMediatorConfig(
+    private fun buildStringTestConfig(timeout: Long) = EventMediatorConfig(
         "",
         SmartConfigImpl.empty()
             .withValue(MessagingConfig.Subscription.MEDIATOR_PROCESSING_POLL_TIMEOUT, ConfigValueFactory.fromAnyRef(10))
-            .withValue(MessagingConfig.Subscription.MEDIATOR_PROCESSING_PROCESSOR_TIMEOUT, ConfigValueFactory.fromAnyRef(1000)),
+            .withValue(MessagingConfig.Subscription.MEDIATOR_PROCESSING_PROCESSOR_TIMEOUT, ConfigValueFactory.fromAnyRef(timeout)),
         emptyList(),
         emptyList(),
         mock<StateAndEventProcessor<String, String, String>>(),

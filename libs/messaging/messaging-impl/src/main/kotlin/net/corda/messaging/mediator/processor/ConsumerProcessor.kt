@@ -118,13 +118,21 @@ class ConsumerProcessor<K : Any, S : Any, E : Any>(
                 }.map { group ->
                     val future = taskManager.executeShortRunningTask {
                         eventProcessor.processEvents(group)
-                    }
-                    future.completeOnTimeout(failGroup(group), config.processorTimeout.toMillis(), TimeUnit.MILLISECONDS)
-                    future.thenApply { output ->
+                    }.orTimeout(
+                        config.processorTimeout.toMillis(),
+                        TimeUnit.MILLISECONDS
+                    ).handle { output, throwable ->
+                        if (throwable != null) {
+                            failGroup(group)
+                        } else {
+                            output
+                        }
+                    }.thenApply { output ->
                         output.mapKeys { it.toString() }
                     }
+                    future
                 }.transpose().thenApply { mapList ->
-                    mapList.reduce { accumulated, next ->
+                    mapList.fold(mapOf<String, EventProcessingOutput>()) { accumulated, next ->
                         accumulated + next
                     }
                 }.join()
