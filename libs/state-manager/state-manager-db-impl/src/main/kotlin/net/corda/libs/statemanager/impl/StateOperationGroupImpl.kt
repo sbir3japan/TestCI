@@ -4,11 +4,13 @@ import net.corda.db.core.CloseableDataSource
 import net.corda.db.core.utils.transaction
 import net.corda.libs.statemanager.api.State
 import net.corda.libs.statemanager.api.StateOperationGroup
+import net.corda.libs.statemanager.impl.metrics.MetricsRecorder
 import net.corda.libs.statemanager.impl.repository.StateRepository
 
 class StateOperationGroupImpl(
     private val dataSource: CloseableDataSource,
-    private val repository: StateRepository
+    private val repository: StateRepository,
+    private val metricsRecorder: MetricsRecorder
 ) : StateOperationGroup {
 
     private val stateKeys = mutableSetOf<String>()
@@ -52,33 +54,35 @@ class StateOperationGroupImpl(
             throw IllegalStateException("Attempted to execute a group that has already been executed")
         }
         if (stateKeys.isEmpty()) return emptyMap<String, State?>().also { executed = true }
-        return dataSource.connection.transaction { connection ->
-            val createFailures = repository.create(
-                connection,
-                creates
-            ).let { successes ->
-                (creates.map { it.key }.toSet() - successes.toSet()).toList()
+        return metricsRecorder.recordProcessingTime(MetricsRecorder.OperationType.GROUP) {
+            dataSource.connection.transaction { connection ->
+                val createFailures = repository.create(
+                    connection,
+                    creates
+                ).let { successes ->
+                    (creates.map { it.key }.toSet() - successes.toSet()).toList()
+                }
+
+                val updateFailures = repository.update(
+                    connection,
+                    updates
+                ).failedKeys
+
+                val deleteFailures = repository.delete(
+                    connection,
+                    deletes
+                )
+
+                val failedKeys = createFailures + updateFailures + deleteFailures
+                val failedStates = repository.get(connection, failedKeys).associateBy { it.key }
+                val nonExistentStateFailures = (createFailures + updateFailures).filter {
+                    it !in failedStates.keys
+                }.associateWith { null }
+
+                failedStates + nonExistentStateFailures
+            }.also {
+                executed = true
             }
-
-            val updateFailures = repository.update(
-                connection,
-                updates
-            ).failedKeys
-
-            val deleteFailures = repository.delete(
-                connection,
-                deletes
-            )
-
-            val failedKeys = createFailures + updateFailures + deleteFailures
-            val failedStates = repository.get(connection, failedKeys).associateBy { it.key }
-            val nonExistentStateFailures = (createFailures + updateFailures).filter {
-                it !in failedStates.keys
-            }.associateWith { null }
-
-            failedStates + nonExistentStateFailures
-        }.also {
-            executed = true
         }
     }
 }

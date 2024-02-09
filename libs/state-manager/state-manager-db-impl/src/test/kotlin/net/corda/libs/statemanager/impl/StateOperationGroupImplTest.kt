@@ -3,6 +3,7 @@ package net.corda.libs.statemanager.impl
 import net.corda.db.core.CloseableDataSource
 import net.corda.libs.statemanager.api.State
 import net.corda.libs.statemanager.api.metadata
+import net.corda.libs.statemanager.impl.metrics.MetricsRecorder
 import net.corda.libs.statemanager.impl.repository.StateRepository
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
@@ -25,6 +26,7 @@ class StateOperationGroupImplTest {
         on { connection } doReturn(connection)
     }
     private val repository = mock<StateRepository>()
+    private val metricsRecorder = mock<MetricsRecorder>()
 
     private val stateOne = State("key1", "state1".toByteArray(), 1, metadata(), Instant.now())
     private val stateTwo = State("key2", "state2".toByteArray(), 2, metadata(), Instant.now())
@@ -38,7 +40,7 @@ class StateOperationGroupImplTest {
             listOf(),
             listOf(stateTwo, stateThree)
         )
-        val group = StateOperationGroupImpl(datasource, repository)
+        val group = StateOperationGroupImpl(datasource, repository, metricsRecorder)
         val failures = group
             .create(stateOne)
             .update(stateTwo)
@@ -61,7 +63,7 @@ class StateOperationGroupImplTest {
             listOf(),
             listOf(stateOne, stateTwo, stateThree)
         )
-        val group = StateOperationGroupImpl(datasource, repository)
+        val group = StateOperationGroupImpl(datasource, repository, metricsRecorder)
         val failures = group
             .create(stateOne)
             .execute()
@@ -81,7 +83,7 @@ class StateOperationGroupImplTest {
             listOf(),
             listOf(stateTwo, stateThree)
         )
-        val group = StateOperationGroupImpl(datasource, repository)
+        val group = StateOperationGroupImpl(datasource, repository, metricsRecorder)
         val failures = group
             .update(stateTwo)
             .execute()
@@ -103,7 +105,7 @@ class StateOperationGroupImplTest {
             listOf(),
             listOf(stateThree)
         )
-        val group = StateOperationGroupImpl(datasource, repository)
+        val group = StateOperationGroupImpl(datasource, repository, metricsRecorder)
         val failures = group
             .update(stateTwo)
             .execute()
@@ -125,7 +127,7 @@ class StateOperationGroupImplTest {
             listOf(stateThree.key),
             listOf(stateThree)
         )
-        val group = StateOperationGroupImpl(datasource, repository)
+        val group = StateOperationGroupImpl(datasource, repository, metricsRecorder)
         val failures = group
             .delete(stateThree)
             .execute()
@@ -147,7 +149,7 @@ class StateOperationGroupImplTest {
             listOf(stateThree.key),
             listOf()
         )
-        val group = StateOperationGroupImpl(datasource, repository)
+        val group = StateOperationGroupImpl(datasource, repository, metricsRecorder)
         val failures = group
             .delete(stateThree)
             .execute()
@@ -163,7 +165,7 @@ class StateOperationGroupImplTest {
     @Test
     fun `when execute is called with no states, nothing happens`() {
         setUpRepository()
-        val group = StateOperationGroupImpl(datasource, repository)
+        val group = StateOperationGroupImpl(datasource, repository, metricsRecorder)
         val failures = group
             .execute()
 
@@ -177,7 +179,7 @@ class StateOperationGroupImplTest {
 
     @Test
     fun `when a state on the same key is added twice, the group builder throws an exception`() {
-        val group = StateOperationGroupImpl(datasource, repository)
+        val group = StateOperationGroupImpl(datasource, repository, metricsRecorder)
         group.create(stateOne)
         assertThrows<IllegalArgumentException> {
             group.create(stateOne)
@@ -193,7 +195,7 @@ class StateOperationGroupImplTest {
     @Test
     fun `when execute is invoked twice, the second attempt fails`() {
         setUpRepository()
-        val group = StateOperationGroupImpl(datasource, repository)
+        val group = StateOperationGroupImpl(datasource, repository, metricsRecorder)
         group.execute()
         assertThrows<IllegalStateException> {
             group.execute()
@@ -203,7 +205,7 @@ class StateOperationGroupImplTest {
     @Test
     fun `when adding states to a group builder that has already been executed, an exception is thrown`() {
         setUpRepository()
-        val group = StateOperationGroupImpl(datasource, repository)
+        val group = StateOperationGroupImpl(datasource, repository, metricsRecorder)
         group.execute()
         assertThrows<IllegalStateException> {
             group.create(stateOne)
