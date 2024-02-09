@@ -56,7 +56,7 @@ class FlowCheckpointTerminationTaskProcessor(
 
     private fun process(): List<FlowCheckpointTermination> {
         logger.debug { "Received a scheduled task trigger. Scheduling checkpoint termination events for the flow engine." }
-        getExpiredStateIds()
+//        getExpiredStateIds()
         return listOf()
     }
 
