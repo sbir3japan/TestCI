@@ -32,7 +32,7 @@ import java.util.UUID
  */
 class FlowCheckpointTerminationTaskProcessor(
     private val stateManager: StateManager,
-    config: SmartConfig,
+    private val config: SmartConfig,
     private val clock: Clock,
     private val batchSize: Int = ID_BATCH_SIZE
 ) : DurableProcessor<String, ScheduledTaskTrigger> {
