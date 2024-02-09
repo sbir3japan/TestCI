@@ -41,7 +41,7 @@ class FlowCheckpointTerminationTaskProcessor(
         private const val ID_BATCH_SIZE = 200
     }
 
-    private val checkpointTerminationTimeMilliseconds = config.getLong(PROCESSING_FLOW_CHECKPOINT_CLEANUP_TIME)
+    private val checkpointTerminationTimeMilliseconds = 10L
 
     override fun onNext(events: List<Record<String, ScheduledTaskTrigger>>): List<Record<*, *>> {
         // Filter to the task that this processor cares about. There can be other tasks on this topic.
@@ -56,11 +56,8 @@ class FlowCheckpointTerminationTaskProcessor(
 
     private fun process(): List<FlowCheckpointTermination> {
         logger.debug { "Received a scheduled task trigger. Scheduling checkpoint termination events for the flow engine." }
-        val keys = getExpiredStateIds()
-        val batches = batchIds(keys)
-        return batches.map {
-            FlowCheckpointTermination(it)
-        }
+        getExpiredStateIds()
+        return listOf()
     }
 
     private fun getExpiredStateIds(): List<String> {
@@ -68,20 +65,16 @@ class FlowCheckpointTerminationTaskProcessor(
         val states = stateManager.findUpdatedBetweenWithMetadataMatchingAny(
             IntervalFilter(Instant.EPOCH, windowExpiry),
             listOf(
-                MetadataFilter(STATE_TYPE, Operation.Equals, Checkpoint::class.java.name),
                 MetadataFilter(STATE_META_CHECKPOINT_TERMINATED_KEY, Operation.Equals, true),
             )
         )
+        stateManager.delete(states.values)
 
         return states.map {
             it.key
         }.also {
             logger.debug { "Found ${states.size} terminated checkpoint states eligible for deletion" }
         }
-    }
-
-    private fun batchIds(ids: List<String>): List<List<String>> {
-        return ids.chunked(batchSize)
     }
 
     override val keyClass = String::class.java
