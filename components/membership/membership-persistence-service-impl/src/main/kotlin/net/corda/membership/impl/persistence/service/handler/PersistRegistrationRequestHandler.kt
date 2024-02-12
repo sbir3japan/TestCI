@@ -41,8 +41,10 @@ internal class PersistRegistrationRequestHandler(
                         val newSerial = request.registrationRequest.serial
                         logger.info("Updating request [$registrationId] serial to $newSerial")
                         em.merge(createEntityBasedOnPreviousEntity(currentRegistrationRequest, newSerial))
-                        return@transaction
                     }
+                    return@transaction
+                } else {
+                    em.merge(createEntityBasedOnRequest(request))
                     return@transaction
                 }
             }
