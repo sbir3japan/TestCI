@@ -8,6 +8,7 @@ import net.corda.messaging.api.processor.StateAndEventProcessor.State
 import net.corda.messaging.api.records.Record
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import javax.persistence.EntityExistsException
 import javax.persistence.OptimisticLockException
 import javax.persistence.PessimisticLockException
 
@@ -57,6 +58,13 @@ internal class MembershipPersistenceAsyncProcessor(
                 request,
             )
         } catch (e: RecoverableException) {
+            retry(
+                event.key,
+                e,
+                state,
+                request,
+            )
+        } catch (e: EntityExistsException) {
             retry(
                 event.key,
                 e,

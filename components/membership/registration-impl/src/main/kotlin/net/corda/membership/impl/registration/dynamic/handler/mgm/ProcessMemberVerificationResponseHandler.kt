@@ -86,7 +86,7 @@ internal class ProcessMemberVerificationResponseHandler(
         val registrationLogger = RegistrationLogger(logger)
             .setRegistrationId(registrationId)
             .setMember(member)
-            .setMgm(member)
+            .setMgm(mgm)
 
         registrationLogger.info("Processing member verification response.")
 

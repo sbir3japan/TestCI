@@ -38,14 +38,15 @@ internal class PersistRegistrationRequestHandler(
                     // In case of processing persistence requests in an unordered manner we need to make sure the serial
                     // gets persisted. All other existing data of the request will remain the same.
                     if (request.status == RegistrationStatus.SENT_TO_MGM && currentRegistrationRequest.serial == null) {
-                        logger.info("Updating request [$registrationId] serial to ${currentRegistrationRequest.serial}")
-                        em.merge(createEntityBasedOnPreviousEntity(currentRegistrationRequest, request.registrationRequest.serial))
+                        val newSerial = request.registrationRequest.serial
+                        logger.info("Updating request [$registrationId] serial to $newSerial")
+                        em.merge(createEntityBasedOnPreviousEntity(currentRegistrationRequest, newSerial))
                         return@transaction
                     }
                     return@transaction
                 }
             }
-            em.merge(createEntityBasedOnRequest(request))
+            em.persist(createEntityBasedOnRequest(request))
         }
     }
 
