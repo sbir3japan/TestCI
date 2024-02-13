@@ -39,7 +39,7 @@ class StateManagerHelper<S : Any>(
     ) = serialize(newState?.value)?.let { serializedValue ->
         val stateType = newState!!.value!!::class.java.name
         val expiryTime = newState.metadata?.get("terminated")?.let {
-            Instant.now().plusMillis(it as Long)
+            Instant.now().plusMillis(it.toString().toLong())
         }
 
         State(
