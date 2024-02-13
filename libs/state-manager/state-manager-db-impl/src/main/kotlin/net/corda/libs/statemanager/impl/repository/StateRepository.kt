@@ -64,6 +64,8 @@ interface StateRepository {
      */
     fun delete(connection: Connection, states: Collection<State>): Collection<String>
 
+    fun deleteExpired(connection: Connection)
+
     /**
      * Retrieve states for which [State.modifiedTime] is within [interval].
      * Transaction should be controlled by the caller.

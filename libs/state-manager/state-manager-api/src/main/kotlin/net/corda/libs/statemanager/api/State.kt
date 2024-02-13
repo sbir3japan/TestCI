@@ -32,6 +32,12 @@ data class State(
      * Time when the state was last modified.
      */
     val modifiedTime: Instant = Instant.now(),
+
+
+    /**
+     * Time when the state should be deleted
+     */
+    val expiryTime: Instant? = null,
 ) {
     companion object {
         const val VERSION_INITIAL_VALUE: Int = 0

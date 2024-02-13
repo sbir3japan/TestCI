@@ -11,6 +11,7 @@ import net.corda.messaging.api.constants.MessagingMetadataKeys.PROCESSING_FAILUR
 import net.corda.messaging.api.processor.StateAndEventProcessor
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import java.time.Instant
 
 /**
  * Helper for working with [StateManager], used by [MultiSourceEventMediatorImpl].
@@ -37,11 +38,16 @@ class StateManagerHelper<S : Any>(
         newState: StateAndEventProcessor.State<S>?,
     ) = serialize(newState?.value)?.let { serializedValue ->
         val stateType = newState!!.value!!::class.java.name
+        val expiryTime = newState.metadata?.get("terminated")?.let {
+            Instant.now().plusMillis(it as Long)
+        }
+
         State(
             key,
             serializedValue,
             persistedState?.version ?: State.VERSION_INITIAL_VALUE,
             mergeMetadata(persistedState?.metadata, newState.metadata, stateType),
+            expiryTime = expiryTime
         )
     }
 

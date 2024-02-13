@@ -20,6 +20,13 @@ abstract class AbstractQueryProvider : QueryProvider {
             DELETE FROM $STATE_MANAGER_TABLE s WHERE s.$KEY_COLUMN = ? AND s.$VERSION_COLUMN = ?
         """.trimIndent()
 
+
+    override val deleteExpired: String
+        get() = """
+            DELETE FROM $STATE_MANAGER_TABLE 
+            WHERE expire_at_time IS NOT NULL AND expire_at_time < CURRENT_TIMESTAMP
+        """.trimIndent()
+
     override val findStatesUpdatedBetween: String
         get() = """
             SELECT s.$KEY_COLUMN, s.$VALUE_COLUMN, s.$METADATA_COLUMN, s.$VERSION_COLUMN, s.$MODIFIED_TIME_COLUMN FROM $STATE_MANAGER_TABLE s

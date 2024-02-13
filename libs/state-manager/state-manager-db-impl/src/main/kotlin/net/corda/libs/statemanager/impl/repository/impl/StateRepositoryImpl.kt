@@ -94,6 +94,12 @@ class StateRepositoryImpl(private val queryProvider: QueryProvider) : StateRepos
         }
     }
 
+    override fun deleteExpired(connection: Connection) {
+        return connection.prepareStatement(queryProvider.deleteExpired).use { statement ->
+            statement.execute()
+        }
+    }
+
     override fun updatedBetween(connection: Connection, interval: IntervalFilter): Collection<State> =
         connection.prepareStatement(queryProvider.findStatesUpdatedBetween).use {
             it.setTimestamp(1, Timestamp.from(interval.start))

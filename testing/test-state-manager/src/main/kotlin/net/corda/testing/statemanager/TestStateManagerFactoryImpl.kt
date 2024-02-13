@@ -70,6 +70,10 @@ class TestStateManagerFactoryImpl : StateManagerFactory {
                 }.associateBy { it.key }
             }
 
+            override fun deleteExpired() {
+                TODO("Not yet implemented")
+            }
+
             override fun createOperationGroup(): StateOperationGroup {
                 TODO("Not yet implemented")
             }

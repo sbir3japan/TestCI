@@ -65,6 +65,10 @@ fun getMockStateManager(): StateManager {
             return failedDeletion
         }
 
+        override fun deleteExpired() {
+            TODO("Not yet implemented")
+        }
+
         override fun updatedBetween(interval: IntervalFilter): Map<String, State> {
             TODO("Not yet implemented")
         }

@@ -151,6 +151,20 @@ class StateManagerImpl(
         }
     }
 
+    override fun deleteExpired() {
+        return metricsRecorder.recordProcessingTime(MetricsRecorder.OperationType.DELETE_EXPIRED) {
+            try {
+                dataSource.connection.use { connection ->
+                    stateRepository.deleteExpired(connection)
+                }
+
+            } catch (e: Exception) {
+                logger.warn("Failed to delete expired states", e)
+                throw e
+            }
+        }
+    }
+
     override fun createOperationGroup(): StateOperationGroup {
         return StateOperationGroupImpl(dataSource, stateRepository)
     }

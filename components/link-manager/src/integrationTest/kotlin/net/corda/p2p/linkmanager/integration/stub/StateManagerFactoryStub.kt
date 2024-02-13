@@ -21,6 +21,9 @@ class StateManagerFactoryStub : StateManagerFactory {
             override fun update(states: Collection<State>): Map<String, State?> = throw UnsupportedOperationException()
 
             override fun delete(states: Collection<State>): Map<String, State> = throw UnsupportedOperationException()
+            override fun deleteExpired() {
+                TODO("Not yet implemented")
+            }
 
             override fun updatedBetween(interval: IntervalFilter): Map<String, State> =
                 throw UnsupportedOperationException()

@@ -213,6 +213,10 @@ class PerformanceClaimStateStoreImplTest {
             TODO("Not yet implemented")
         }
 
+        override fun deleteExpired() {
+            TODO("Not yet implemented")
+        }
+
         override fun createOperationGroup(): StateOperationGroup {
             TODO("Not yet implemented")
         }

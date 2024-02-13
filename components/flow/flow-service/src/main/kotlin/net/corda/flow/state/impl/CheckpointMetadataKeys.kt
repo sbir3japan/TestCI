@@ -16,5 +16,5 @@ object CheckpointMetadataKeys {
      * When set to true, this key signals that a checkpoint has reached its termination state and can be deleted.
      * Checkpoints will be deleted by a cleanup processor based on a configurable time/
      */
-    const val STATE_META_CHECKPOINT_TERMINATED_KEY = "checkpoint.terminated"
+    const val STATE_META_CHECKPOINT_TERMINATED_KEY = "terminated"
 }

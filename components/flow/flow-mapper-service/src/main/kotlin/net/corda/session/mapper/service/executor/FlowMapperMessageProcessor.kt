@@ -4,6 +4,7 @@ import net.corda.data.flow.FlowKey
 import net.corda.data.flow.event.SessionEvent
 import net.corda.data.flow.event.mapper.FlowMapperEvent
 import net.corda.data.flow.state.mapper.FlowMapperState
+import net.corda.data.flow.state.mapper.FlowMapperStateType
 import net.corda.flow.mapper.factory.FlowMapperEventExecutorFactory
 import net.corda.libs.configuration.SmartConfig
 import net.corda.libs.statemanager.api.Metadata
@@ -63,8 +64,14 @@ class FlowMapperMessageProcessor(
                     val executor = flowMapperEventExecutorFactory.create(key, value, state?.value, flowConfig)
                     val result = executor.execute()
                     val newMap = result.flowMapperState?.status?.let {
-                        mapOf(FLOW_MAPPER_STATUS to it.toString())
-                    } ?: mapOf()
+                        mutableMapOf(FLOW_MAPPER_STATUS to it.toString())
+                    } ?: mutableMapOf()
+
+                    if (result.flowMapperState?.status== FlowMapperStateType.CLOSING ||
+                        result.flowMapperState?.status== FlowMapperStateType.ERROR) {
+                        newMap["terminated"] = "600000"
+                    }
+
                     StateAndEventProcessor.Response(
                         State(result.flowMapperState, state?.metadata?.let {
                             Metadata(it + newMap)

@@ -14,6 +14,8 @@ interface QueryProvider {
 
     val deleteStatesByKey: String
 
+    val deleteExpired: String
+
     val findStatesUpdatedBetween: String
 
     fun updateStates(size: Int): String
