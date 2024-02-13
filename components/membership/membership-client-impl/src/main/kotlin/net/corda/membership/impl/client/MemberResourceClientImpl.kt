@@ -327,7 +327,7 @@ class MemberResourceClientImpl @Activate constructor(
                 when (val result = persistentOperation.execute()) {
                     is MembershipPersistenceResult.Failure -> {
                         logger.warn(
-                            "Could not persist registration request for holding identity ID" +
+                            "##-MemberResourceClient: Could not persist registration request for holding identity ID" +
                                 " [$holdingIdentityShortHash]. ${result.errorMsg}",
                         )
                         asyncPublisher.publish(persistentOperation.createAsyncCommands().toList())

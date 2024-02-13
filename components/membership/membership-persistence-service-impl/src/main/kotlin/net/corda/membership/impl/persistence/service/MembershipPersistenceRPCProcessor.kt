@@ -12,6 +12,7 @@ import net.corda.messaging.api.processor.RPCResponderProcessor
 import net.corda.utilities.trace
 import org.slf4j.LoggerFactory
 import java.util.concurrent.CompletableFuture
+import javax.persistence.EntityExistsException
 
 internal class MembershipPersistenceRPCProcessor(
     private val handlerFactories: HandlerFactories,
@@ -35,11 +36,18 @@ internal class MembershipPersistenceRPCProcessor(
             } else {
                 result
             }
+        } catch (e: EntityExistsException) {
+            // TODO remove
+            val error = "##-RPC-Processor: Exception thrown while processing membership persistence request: $e"
+            logger.warn(error)
+            val kind = ErrorKind.INVALID_ENTITY_UPDATE
+            PersistenceFailedResponse(error, kind)
         } catch (e: Exception) {
             val error = "Exception thrown while processing membership persistence request: ${e.message}"
             logger.warn(error)
             val kind = when (e) {
                 is InvalidEntityUpdateException -> ErrorKind.INVALID_ENTITY_UPDATE
+//                is EntityExistsException -> ErrorKind.INVALID_ENTITY_UPDATE
                 else -> ErrorKind.GENERAL
             }
             PersistenceFailedResponse(error, kind)
