@@ -9,6 +9,7 @@ import net.corda.libs.statemanager.api.IntervalFilter
 import net.corda.libs.statemanager.api.MetadataFilter
 import net.corda.libs.statemanager.api.Operation
 import net.corda.libs.statemanager.api.STATE_TYPE
+import net.corda.libs.statemanager.api.State
 import net.corda.libs.statemanager.api.StateManager
 import net.corda.messaging.api.processor.DurableProcessor
 import net.corda.messaging.api.records.Record
@@ -65,13 +66,13 @@ class FlowCheckpointTerminationTaskProcessor(
 
     private fun getExpiredStateIds(): List<String> {
         val windowExpiry = clock.instant() - Duration.ofMillis(checkpointTerminationTimeMilliseconds)
-        val states = stateManager.findUpdatedBetweenWithMetadataMatchingAny(
+        val states = mapOf<String, State>() /*stateManager.findUpdatedBetweenWithMetadataMatchingAny(
             IntervalFilter(Instant.EPOCH, windowExpiry),
             listOf(
                 MetadataFilter(STATE_TYPE, Operation.Equals, Checkpoint::class.java.name),
                 MetadataFilter(STATE_META_CHECKPOINT_TERMINATED_KEY, Operation.Equals, true),
             )
-        )
+        ) */
 
         return states.map {
             it.key
