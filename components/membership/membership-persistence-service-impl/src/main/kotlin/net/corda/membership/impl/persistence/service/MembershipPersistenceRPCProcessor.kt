@@ -38,7 +38,7 @@ internal class MembershipPersistenceRPCProcessor(
             }
         } catch (e: EntityExistsException) {
             // TODO remove
-            val error = "##-RPC-Processor: Exception thrown while processing membership persistence request: $e"
+            val error = "##- RPC-Processor: Exception thrown while processing membership persistence request: $e"
             logger.warn(error)
             val kind = ErrorKind.INVALID_ENTITY_UPDATE
             PersistenceFailedResponse(error, kind)

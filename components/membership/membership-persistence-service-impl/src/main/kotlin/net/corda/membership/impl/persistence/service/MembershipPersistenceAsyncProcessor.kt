@@ -66,7 +66,7 @@ internal class MembershipPersistenceAsyncProcessor(
             )
         } catch (e: EntityExistsException) {
             // TODO remove
-            logger.warn("##-Async-Processor: Exception thrown while processing membership persistence request: $e")
+            logger.warn("##- Async-Processor: Exception thrown while processing membership persistence request: $e")
             retry(
                 event.key,
                 e,

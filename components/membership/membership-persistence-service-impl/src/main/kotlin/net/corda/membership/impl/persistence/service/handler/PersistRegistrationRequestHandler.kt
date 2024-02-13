@@ -46,7 +46,7 @@ internal class PersistRegistrationRequestHandler(
                 } else {
                     // TODO remove temp logging
                     logger.info(
-                        "Updating existing registration request '{}' from '{}' to '{}'.",
+                        "##- Updating existing registration request '{}' from '{}' to '{}'.",
                         currentRegistrationRequest.registrationId,
                         it,
                         request.status
@@ -55,13 +55,27 @@ internal class PersistRegistrationRequestHandler(
                     return@transaction
                 }
             }
-            // TODO remove temp logging
-            logger.info(
-                "Persisting new registration request '{}' with status '{}'.",
-                request.registrationRequest.registrationId,
-                request.status
-            )
-            em.persist(createEntityBasedOnRequest(request))
+            try {
+                // TODO remove temp logging
+                logger.info(
+                    "##- Persisting new registration request '{}' with status '{}'.",
+                    request.registrationRequest.registrationId,
+                    request.status
+                )
+                em.persist(createEntityBasedOnRequest(request))
+                logger.info(
+                    "##- Persisted new registration request '{}' with status '{}'.",
+                    request.registrationRequest.registrationId,
+                    request.status
+                )
+            } catch (e: Exception) {
+                logger.warn(
+                    "##- Registration request '{}' with status '{}' threw $e",
+                    request.registrationRequest.registrationId,
+                    request.status
+                )
+                throw e
+            }
         }
     }
 
