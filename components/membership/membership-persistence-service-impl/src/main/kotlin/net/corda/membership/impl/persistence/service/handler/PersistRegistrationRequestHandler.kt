@@ -44,10 +44,23 @@ internal class PersistRegistrationRequestHandler(
                     }
                     return@transaction
                 } else {
+                    // TODO remove temp logging
+                    logger.info(
+                        "Updating existing registration request '{}' from '{}' to '{}'.",
+                        currentRegistrationRequest.registrationId,
+                        it,
+                        request.status
+                    )
                     em.merge(createEntityBasedOnRequest(request))
                     return@transaction
                 }
             }
+            // TODO remove temp logging
+            logger.info(
+                "Persisting new registration request '{}' with status '{}'.",
+                request.registrationRequest.registrationId,
+                request.status
+            )
             em.persist(createEntityBasedOnRequest(request))
         }
     }
