@@ -7,6 +7,7 @@ import net.corda.membership.datamodel.RegistrationRequestEntity
 import net.corda.membership.impl.persistence.service.handler.RegistrationStatusHelper.toStatus
 import net.corda.membership.lib.registration.RegistrationStatusExt.canMoveToStatus
 import net.corda.orm.utils.use
+import net.corda.virtualnode.HoldingIdentity
 import net.corda.virtualnode.toCorda
 import javax.persistence.LockModeType
 
@@ -22,48 +23,50 @@ internal class PersistRegistrationRequestHandler(
                 RegistrationRequestEntity::class.java,
                 registrationId,
                 LockModeType.PESSIMISTIC_WRITE,
-            )
-            currentRegistrationRequest?.status?.toStatus()?.let {
-                if (it == request.status) {
-                    logger.info(
-                        "Registration request [$registrationId] with status: ${currentRegistrationRequest.status}" + " is already persisted. Persistence request was discarded."
-                    )
-                    return@transaction
-                }
-                if (!it.canMoveToStatus(request.status)) {
-                    logger.info(
-                        "Registration request [$registrationId] has status: ${currentRegistrationRequest.status}" + " can not move it to status ${request.status}"
-                    )
-                    // In case of processing persistence requests in an unordered manner we need to make sure the serial
-                    // gets persisted. All other existing data of the request will remain the same.
-                    if (request.status == RegistrationStatus.SENT_TO_MGM && currentRegistrationRequest.serial == null) {
-                        val newSerial = request.registrationRequest.serial
-                        logger.info("Updating request [$registrationId] serial to $newSerial")
-                        em.merge(createEntityBasedOnPreviousEntity(currentRegistrationRequest, newSerial))
-                    }
-                    return@transaction
+            ) ?: return@transaction persistNewEntity(context.holdingIdentity.toCorda(), request)
+
+            val currentStatus = currentRegistrationRequest.status.toStatus()
+            if (currentStatus == request.status) {
+                logger.info(
+                    "Registration request [$registrationId] with status: ${currentRegistrationRequest.status} is already persisted. Persistence request was discarded."
+                )
+            } else if (!currentStatus.canMoveToStatus(request.status)) {
+                logger.info(
+                    "Registration request [$registrationId] has status: ${currentRegistrationRequest.status} cannot move it to status ${request.status}"
+                )
+                // In case of processing persistence requests in an unordered manner we need to make sure the serial
+                // gets persisted. All other existing data of the request will remain the same.
+                if (request.status == RegistrationStatus.SENT_TO_MGM && currentRegistrationRequest.serial == null) {
+                    val newSerial = request.registrationRequest.serial
+                    logger.info("Updating request [$registrationId] serial to $newSerial")
+                    em.merge(createEntityBasedOnPreviousEntity(currentRegistrationRequest, newSerial))
                 } else {
-                    // TODO remove temp logging
-                    logger.info(
-                        "##- Updating existing registration request '{}' from '{}' to '{}'.",
-                        currentRegistrationRequest.registrationId,
-                        it,
-                        request.status
-                    )
-                    em.merge(createEntityBasedOnRequest(request))
-                    return@transaction
+                    // do nothing
                 }
+            } else {
+                logger.info(
+                    "##- Updating existing registration request '{}' from '{}' to '{}'.",
+                    currentRegistrationRequest.registrationId,
+                    currentStatus,
+                    request.status
+                )
+                em.merge(createEntityBasedOnRequest(request))
             }
         }
+    }
+
+    private fun persistNewEntity(holdingIdentity: HoldingIdentity, request: PersistRegistrationRequest) {
         try {
             logger.info(
                 "##- Persisting new registration request '{}' with status '{}'.",
                 request.registrationRequest.registrationId,
                 request.status
             )
-            getEntityManager(context.holdingIdentity.toCorda().shortHash).use {
+
+            getEntityManager(holdingIdentity.shortHash).use {
                 it.persist(createEntityBasedOnRequest(request))
             }
+
             logger.info(
                 "##- Persisted new registration request '{}' with status '{}'.",
                 request.registrationRequest.registrationId,
