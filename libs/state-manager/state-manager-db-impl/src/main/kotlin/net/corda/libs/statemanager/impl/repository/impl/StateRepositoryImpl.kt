@@ -25,7 +25,7 @@ class StateRepositoryImpl(private val queryProvider: QueryProvider) : StateRepos
                 statement.setBytes(indices.next(), state.value)
                 statement.setInt(indices.next(), state.version)
                 statement.setString(indices.next(), objectMapper.writeValueAsString(state.metadata))
-                statement.setTimestamp(indices.next(), Timestamp.from(state.expiryTime))
+                statement.setTimestamp(indices.next(), state.expiryTime?.let { Timestamp.from(it) })
             }
             statement.execute()
             val results = statement.resultSet
@@ -58,7 +58,7 @@ class StateRepositoryImpl(private val queryProvider: QueryProvider) : StateRepos
                 stmt.setBytes(indices.next(), state.value)
                 stmt.setString(indices.next(), objectMapper.writeValueAsString(state.metadata))
                 stmt.setInt(indices.next(), state.version)
-                stmt.setTimestamp(indices.next(), Timestamp.from(state.expiryTime))
+                stmt.setTimestamp(indices.next(), state.expiryTime?.let { Timestamp.from(it) })
             }
             stmt.execute()
             val results = stmt.resultSet
