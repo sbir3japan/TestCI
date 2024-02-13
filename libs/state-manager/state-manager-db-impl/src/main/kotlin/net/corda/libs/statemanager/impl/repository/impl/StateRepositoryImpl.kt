@@ -49,19 +49,21 @@ class StateRepositoryImpl(private val queryProvider: QueryProvider) : StateRepos
 
     override fun update(connection: Connection, states: Collection<State>): StateRepository.StateUpdateSummary {
         if (states.isEmpty()) return StateRepository.StateUpdateSummary(emptyList(), emptyList())
-        val indices = generateSequence(1) { it + 1 }.iterator()
         val updatedKeys = mutableListOf<String>()
-        connection.prepareStatement(queryProvider.updateStates(states.size)).use { stmt ->
-            states.forEach { state ->
-                stmt.setString(indices.next(), state.key)
-                stmt.setBytes(indices.next(), state.value)
-                stmt.setString(indices.next(), objectMapper.writeValueAsString(state.metadata))
-                stmt.setInt(indices.next(), state.version)
-            }
-            stmt.execute()
-            val results = stmt.resultSet
-            while (results.next()) {
-                updatedKeys.add(results.getString(1))
+        states.chunked(20).forEach { subStates ->
+            val indices = generateSequence(1) { it + 1 }.iterator()
+            connection.prepareStatement(queryProvider.updateStates(subStates.size)).use { stmt ->
+                subStates.forEach { state ->
+                    stmt.setString(indices.next(), state.key)
+                    stmt.setBytes(indices.next(), state.value)
+                    stmt.setString(indices.next(), objectMapper.writeValueAsString(state.metadata))
+                    stmt.setInt(indices.next(), state.version)
+                }
+                stmt.execute()
+                val results = stmt.resultSet
+                while (results.next()) {
+                    updatedKeys.add(results.getString(1))
+                }
             }
         }
         return StateRepository.StateUpdateSummary(
