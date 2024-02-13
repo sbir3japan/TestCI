@@ -65,7 +65,7 @@ class FlowCheckpointTerminationTaskProcessor(
     }
 
     private fun getExpiredStateIds(): List<String> {
-        val windowExpiry = clock.instant() - Duration.ofMillis(checkpointTerminationTimeMilliseconds)
+//        val windowExpiry = clock.instant() - Duration.ofMillis(checkpointTerminationTimeMilliseconds)
         val states = mapOf<String, State>() /*stateManager.findUpdatedBetweenWithMetadataMatchingAny(
             IntervalFilter(Instant.EPOCH, windowExpiry),
             listOf(
