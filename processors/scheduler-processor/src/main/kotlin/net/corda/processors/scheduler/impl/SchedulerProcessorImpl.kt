@@ -68,10 +68,6 @@ class SchedulerProcessorImpl @Activate constructor(
             600, ScheduledTask.SCHEDULED_TASK_TOPIC_DB_PROCESSOR
         ),
         Schedule(
-            ScheduledTask.SCHEDULED_TASK_NAME_SESSION_TIMEOUT,
-            60, ScheduledTask.SCHEDULED_TASK_TOPIC_FLOW_PROCESSOR
-        ),
-        Schedule(
             ScheduledTask.SCHEDULED_TASK_NAME_FLOW_CHECKPOINT_TERMINATION,
             20, ScheduledTask.SCHEDULED_TASK_TOPIC_FLOW_PROCESSOR
         ),
