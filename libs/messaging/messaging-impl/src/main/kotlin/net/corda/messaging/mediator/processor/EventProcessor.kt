@@ -153,6 +153,7 @@ class EventProcessor<K : Any, S : Any, E : Any>(
         state: State?,
         processed: State?
     ) = when {
+        state != null && processed != null && processed.metadata["checkpoint.terminated"] == true -> StateChangeAndOperation.Delete(state)
         state == null && processed != null -> StateChangeAndOperation.Create(processed)
         state != null && processed != null -> StateChangeAndOperation.Update(processed)
         state != null && processed == null -> StateChangeAndOperation.Delete(state)
