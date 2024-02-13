@@ -68,6 +68,15 @@ internal abstract class BasePersistenceHandler<REQUEST, RESPONSE>(
         }
     }
 
+    protected fun getEntityManager(holdingIdentityShortHash: ShortHash): EntityManager {
+        val virtualNodeInfo = virtualNodeInfoReadService.getByHoldingIdentityShortHash(holdingIdentityShortHash)
+            ?: throw MembershipPersistenceException(
+                "Virtual node info can't be retrieved for " +
+                        "holding identity ID $holdingIdentityShortHash"
+            )
+        return getEntityManagerFactory(virtualNodeInfo).createEntityManager()
+    }
+
     private fun getEntityManagerFactory(info: VirtualNodeInfo): EntityManagerFactory {
         return dbConnectionManager.getOrCreateEntityManagerFactory(
             connectionId = info.vaultDmlConnectionId,
