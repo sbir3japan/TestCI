@@ -6,4 +6,5 @@ object StateColumns {
     const val METADATA_COLUMN = "metadata"
     const val VERSION_COLUMN = "version"
     const val MODIFIED_TIME_COLUMN = "modified_time"
+    const val EXPIRE_TIME_COLUMN = "expire_at_time"
 }
