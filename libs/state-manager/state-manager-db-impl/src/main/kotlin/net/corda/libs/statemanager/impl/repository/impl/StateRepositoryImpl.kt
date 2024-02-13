@@ -8,7 +8,7 @@ import net.corda.libs.statemanager.impl.model.v1.resultSetAsStateCollection
 import net.corda.libs.statemanager.impl.repository.StateRepository
 import java.sql.Connection
 import java.sql.Timestamp
-import java.sql.Types
+import java.time.Instant
 
 class StateRepositoryImpl(private val queryProvider: QueryProvider) : StateRepository {
 
@@ -28,7 +28,7 @@ class StateRepositoryImpl(private val queryProvider: QueryProvider) : StateRepos
                 statement.setString(indices.next(), objectMapper.writeValueAsString(state.metadata))
                 val expiry = state.expiryTime
                 if (expiry == null) {
-                    statement.setNull(indices.next(), Types.TIMESTAMP)
+                    statement.setTimestamp(indices.next(), Timestamp.from(Instant.now().plusSeconds(100000)) )
                 } else {
                     statement.setTimestamp(indices.next(), state.expiryTime?.let { Timestamp.from(it) })
                 }
@@ -66,10 +66,11 @@ class StateRepositoryImpl(private val queryProvider: QueryProvider) : StateRepos
                 stmt.setInt(indices.next(), state.version)
                 val expiry = state.expiryTime
                 if (expiry == null) {
-                    stmt.setNull(indices.next(), Types.TIMESTAMP)
+                    stmt.setTimestamp(indices.next(), Timestamp.from(Instant.now().plusSeconds(100000)) )
                 } else {
-                    stmt.setTimestamp(indices.next(), state.expiryTime?.let { Timestamp.from(it) })
-                }            }
+                    stmt.setTimestamp(indices.next(),Timestamp.from(state.expiryTime))
+                }
+            }
             stmt.execute()
             val results = stmt.resultSet
             while (results.next()) {
