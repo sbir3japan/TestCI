@@ -6,6 +6,7 @@ import net.corda.data.membership.db.request.command.PersistRegistrationRequest
 import net.corda.membership.datamodel.RegistrationRequestEntity
 import net.corda.membership.impl.persistence.service.handler.RegistrationStatusHelper.toStatus
 import net.corda.membership.lib.registration.RegistrationStatusExt.canMoveToStatus
+import net.corda.orm.utils.transaction
 import net.corda.orm.utils.use
 import net.corda.virtualnode.HoldingIdentity
 import net.corda.virtualnode.toCorda
@@ -69,9 +70,26 @@ internal class PersistRegistrationRequestHandler(
                 request.status
             )
 
-            transaction(holdingIdentity.shortHash) {
-                it.persist(createEntityBasedOnRequest(request))
-                it.flush()
+            getEntityManager(holdingIdentity.shortHash).transaction {
+                val now = clock.instant()
+                with(request.registrationRequest) {
+                    it.createNativeQuery("INSERT INTO vnode_registration_request VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+                        .setParameter(1, registrationId)
+                        .setParameter(2, request.registeringHoldingIdentity.toCorda().shortHash.value)
+                        .setParameter(3, request.status.toString())
+                        .setParameter(4, now)
+                        .setParameter(5, now)
+                        .setParameter(6, memberContext.data.array())
+                        .setParameter(7, memberContext.signature.publicKey.array())
+                        .setParameter(8, memberContext.signature.bytes.array())
+                        .setParameter(9, memberContext.signatureSpec.signatureName)
+                        .setParameter(10, registrationContext.data.array())
+                        .setParameter(11, registrationContext.signature.publicKey.array())
+                        .setParameter(12, registrationContext.signature.bytes.array())
+                        .setParameter(13, registrationContext.signatureSpec.signatureName)
+                        .setParameter(14, serial)
+                        .executeUpdate()
+                }
             }
 
             logger.info(
