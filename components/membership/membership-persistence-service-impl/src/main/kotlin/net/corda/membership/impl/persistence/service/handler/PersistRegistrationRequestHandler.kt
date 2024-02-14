@@ -71,6 +71,7 @@ internal class PersistRegistrationRequestHandler(
 
             getEntityManager(holdingIdentity.shortHash).use {
                 it.persist(createEntityBasedOnRequest(request))
+                it.flush()
             }
 
             logger.info(
