@@ -50,7 +50,7 @@ class StateRepositoryImpl(private val queryProvider: QueryProvider) : StateRepos
     override fun update(connection: Connection, states: Collection<State>): StateRepository.StateUpdateSummary {
         if (states.isEmpty()) return StateRepository.StateUpdateSummary(emptyList(), emptyList())
         val updatedKeys = mutableListOf<String>()
-        states.chunked(20).forEach { subStates ->
+        states.chunked(1).forEach { subStates ->
             val indices = generateSequence(1) { it + 1 }.iterator()
             connection.prepareStatement(queryProvider.updateStates(subStates.size)).use { stmt ->
                 subStates.forEach { state ->
