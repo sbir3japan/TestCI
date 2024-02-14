@@ -32,11 +32,11 @@ class PostgresQueryProvider : AbstractQueryProvider() {
                 $VALUE_COLUMN = temp.value, 
                 $VERSION_COLUMN = s.$VERSION_COLUMN + 1, 
                 $METADATA_COLUMN = CAST(temp.metadata as JSONB), 
-                $MODIFIED_TIME_COLUMN = CURRENT_TIMESTAMP AT TIME ZONE 'UTC'
-                $EXPIRE_TIME_COLUMN = CAST(temp.expire_at_time AS TIMESTAMP)
+                $MODIFIED_TIME_COLUMN = CURRENT_TIMESTAMP AT TIME ZONE 'UTC',
+                $EXPIRE_TIME_COLUMN = temp.expire_at_time
             FROM
             (
-                VALUES ${List(size) { "(?, ?, ?, ?, ?)" }.joinToString(",")}
+                VALUES ${List(size) { "(?, ?, ?, ?, CAST(? AS TIMESTAMP))" }.joinToString(",")}
             ) AS temp(key, value, metadata, version, expire_at_time)
             WHERE temp.key = s.$KEY_COLUMN AND temp.version = s.$VERSION_COLUMN
             RETURNING s.$KEY_COLUMN

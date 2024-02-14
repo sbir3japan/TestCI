@@ -23,8 +23,8 @@ abstract class AbstractQueryProvider : QueryProvider {
 
     override val deleteExpired: String
         get() = """
-            DELETE FROM $STATE_MANAGER_TABLE 
-            WHERE expire_at_time IS NOT NULL AND expire_at_time < CURRENT_TIMESTAMP
+            DELETE FROM $STATE_MANAGER_TABLE s
+            WHERE s.expire_at_time < CURRENT_TIMESTAMP
         """.trimIndent()
 
     override val findStatesUpdatedBetween: String

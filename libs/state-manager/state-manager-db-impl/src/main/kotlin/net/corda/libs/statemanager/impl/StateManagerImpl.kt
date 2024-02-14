@@ -154,7 +154,7 @@ class StateManagerImpl(
     override fun deleteExpired() {
         return metricsRecorder.recordProcessingTime(MetricsRecorder.OperationType.DELETE_EXPIRED) {
             try {
-                dataSource.connection.use { connection ->
+                dataSource.connection.transaction { connection ->
                     stateRepository.deleteExpired(connection)
                 }
 

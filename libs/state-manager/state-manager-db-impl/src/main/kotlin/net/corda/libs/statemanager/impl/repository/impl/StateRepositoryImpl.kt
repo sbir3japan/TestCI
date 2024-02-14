@@ -6,15 +6,17 @@ import net.corda.libs.statemanager.api.MetadataFilter
 import net.corda.libs.statemanager.api.State
 import net.corda.libs.statemanager.impl.model.v1.resultSetAsStateCollection
 import net.corda.libs.statemanager.impl.repository.StateRepository
+import org.slf4j.LoggerFactory
 import java.sql.Connection
 import java.sql.Timestamp
-import java.time.Instant
+import java.sql.Types
 
 class StateRepositoryImpl(private val queryProvider: QueryProvider) : StateRepository {
 
     private companion object {
         private const val CREATE_RESULT_COLUMN_INDEX = 1
         private val objectMapper = ObjectMapper()
+        private val logger = LoggerFactory.getLogger(this::class.java)
     }
 
     override fun create(connection: Connection, states: Collection<State>): Collection<String> {
@@ -28,9 +30,9 @@ class StateRepositoryImpl(private val queryProvider: QueryProvider) : StateRepos
                 statement.setString(indices.next(), objectMapper.writeValueAsString(state.metadata))
                 val expiry = state.expiryTime
                 if (expiry == null) {
-                    statement.setTimestamp(indices.next(), Timestamp.from(Instant.now().plusSeconds(100000)) )
+                    statement.setNull(indices.next(), Types.TIMESTAMP)
                 } else {
-                    statement.setTimestamp(indices.next(), state.expiryTime?.let { Timestamp.from(it) })
+                    statement.setTimestamp(indices.next(), Timestamp.from(state.expiryTime))
                 }
             }
             statement.execute()
@@ -66,9 +68,9 @@ class StateRepositoryImpl(private val queryProvider: QueryProvider) : StateRepos
                 stmt.setInt(indices.next(), state.version)
                 val expiry = state.expiryTime
                 if (expiry == null) {
-                    stmt.setTimestamp(indices.next(), Timestamp.from(Instant.now().plusSeconds(100000)) )
+                    stmt.setNull(indices.next(), Types.TIMESTAMP)
                 } else {
-                    stmt.setTimestamp(indices.next(),Timestamp.from(state.expiryTime))
+                    stmt.setTimestamp(indices.next(), Timestamp.from(expiry))
                 }
             }
             stmt.execute()
@@ -108,8 +110,13 @@ class StateRepositoryImpl(private val queryProvider: QueryProvider) : StateRepos
     }
 
     override fun deleteExpired(connection: Connection) {
-        return connection.prepareStatement(queryProvider.deleteExpired).use { statement ->
-            statement.execute()
+        connection.prepareStatement(queryProvider.deleteExpired).use { statement ->
+            try {
+                statement.executeUpdate()
+            } catch (ex: Exception) {
+                logger.warn("Failed to delete expired states: ${ex.message}")
+                throw ex
+            }
         }
     }
 
