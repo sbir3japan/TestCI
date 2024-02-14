@@ -18,18 +18,25 @@ internal class PersistRegistrationRequestHandler(
     override fun invoke(context: MembershipRequestContext, request: PersistRegistrationRequest) {
         val registrationId = request.registrationRequest.registrationId
         logger.info("Persisting registration request with ID [$registrationId] to status ${request.status}.")
-        val previousEntity = transaction(context.holdingIdentity.toCorda().shortHash) { em ->
-            val currentRegistrationRequest = em.find(
-                RegistrationRequestEntity::class.java,
-                registrationId,
-                LockModeType.PESSIMISTIC_WRITE,
-            )
-            currentRegistrationRequest?.status?.toStatus()?.let {
-                if (it == request.status) {
+
+        val currentRegistrationRequest: RegistrationRequestEntity? =
+            getEntityManager(context.holdingIdentity.toCorda().shortHash).use {
+                it.find(
+                    RegistrationRequestEntity::class.java,
+                    registrationId,
+                    LockModeType.PESSIMISTIC_WRITE,
+                )
+            }
+        if (currentRegistrationRequest == null) {
+            persistNewEntity(context.holdingIdentity.toCorda(), request)
+        } else {
+            transaction(context.holdingIdentity.toCorda().shortHash) { em ->
+                val currentStatus = currentRegistrationRequest.status.toStatus()
+                if (currentStatus == request.status) {
                     logger.info(
                         "Registration request [$registrationId] with status: ${currentRegistrationRequest.status}" + " is already persisted. Persistence request was discarded."
                     )
-                } else if (!it.canMoveToStatus(request.status)) {
+                } else if (!currentStatus.canMoveToStatus(request.status)) {
                     logger.info(
                         "Registration request [$registrationId] has status: ${currentRegistrationRequest.status}" + " can not move it to status ${request.status}"
                     )
@@ -46,17 +53,12 @@ internal class PersistRegistrationRequestHandler(
                     logger.info(
                         "##- Updating existing registration request '{}' from '{}' to '{}'.",
                         currentRegistrationRequest.registrationId,
-                        it,
+                        currentStatus,
                         request.status
                     )
                     em.merge(createEntityBasedOnRequest(request))
                 }
             }
-            currentRegistrationRequest
-        }
-
-        if (previousEntity == null) {
-            persistNewEntity(context.holdingIdentity.toCorda(), request)
         }
     }
 
