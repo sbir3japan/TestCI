@@ -44,7 +44,7 @@ class StateManagerImpl(
     private fun getByKey(keys: Collection<String>): Map<String, State> {
         if (keys.isEmpty()) return emptyMap()
 
-        return dataSource.connection.use { connection ->
+        return dataSource.connection.transaction { connection ->
             stateRepository.get(connection, keys)
         }.associateBy {
             it.key
@@ -157,7 +157,7 @@ class StateManagerImpl(
 
     override fun updatedBetween(interval: IntervalFilter): Map<String, State> {
         return metricsRecorder.recordProcessingTime(FIND) {
-            dataSource.connection.use { connection ->
+            dataSource.connection.transaction { connection ->
                 stateRepository.updatedBetween(connection, interval)
             }.associateBy {
                 it.key
@@ -169,7 +169,7 @@ class StateManagerImpl(
         if (filters.isEmpty()) return emptyMap()
 
         return metricsRecorder.recordProcessingTime(FIND) {
-            dataSource.connection.use { connection ->
+            dataSource.connection.transaction { connection ->
                 stateRepository.filterByAll(connection, filters)
             }.associateBy {
                 it.key
@@ -181,7 +181,7 @@ class StateManagerImpl(
         if (filters.isEmpty()) return emptyMap()
 
         return metricsRecorder.recordProcessingTime(FIND) {
-            dataSource.connection.use { connection ->
+            dataSource.connection.transaction { connection ->
                 stateRepository.filterByAny(connection, filters)
             }.associateBy {
                 it.key
@@ -194,7 +194,7 @@ class StateManagerImpl(
         metadataFilters: Collection<MetadataFilter>
     ): Map<String, State> {
         return metricsRecorder.recordProcessingTime(FIND) {
-            dataSource.connection.use { connection ->
+            dataSource.connection.transaction { connection ->
                 stateRepository.filterByUpdatedBetweenWithMetadataMatchingAll(
                     connection,
                     intervalFilter,
@@ -211,7 +211,7 @@ class StateManagerImpl(
         metadataFilters: Collection<MetadataFilter>
     ): Map<String, State> {
         return metricsRecorder.recordProcessingTime(FIND) {
-            dataSource.connection.use { connection ->
+            dataSource.connection.transaction { connection ->
                 stateRepository.filterByUpdatedBetweenWithMetadataMatchingAny(
                     connection,
                     intervalFilter,
