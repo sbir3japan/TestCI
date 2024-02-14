@@ -98,6 +98,8 @@ interface StateManager : Lifecycle {
 
     fun deleteExpired()
 
+    fun selectExpired(): List<String>
+
     /**
      * Retrieve all states that were updated for the last time between [IntervalFilter.start] (inclusive)
      * and [IntervalFilter.finish] (inclusive). Only states that have been successfully committed and distributed
@@ -196,4 +198,5 @@ interface StateManager : Lifecycle {
      * @return The group builder to which operations can be added.
      */
     fun createOperationGroup(): StateOperationGroup
+    fun delete(states: List<String>): List<String>
 }

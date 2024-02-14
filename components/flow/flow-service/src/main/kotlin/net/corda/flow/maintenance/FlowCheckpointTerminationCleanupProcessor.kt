@@ -4,8 +4,6 @@ import net.corda.data.flow.FlowCheckpointTermination
 import net.corda.libs.statemanager.api.StateManager
 import net.corda.messaging.api.processor.DurableProcessor
 import net.corda.messaging.api.records.Record
-import net.corda.utilities.debug
-import net.corda.utilities.trace
 import org.slf4j.LoggerFactory
 
 /**
@@ -28,14 +26,12 @@ class FlowCheckpointTerminationCleanupProcessor(
     }
 
     private fun process(event: FlowCheckpointTermination) {
-        logger.debug { "Checkpoint termination event received with ${event.checkpointStateKeys.size} keys to remove" }
-        val states = stateManager.get(event.checkpointStateKeys)
-        logger.trace { "Looked up ${states.size} states" }
-        val failed = stateManager.delete(states.values)
+        logger.info( "Checkpoint termination event received with ${event.checkpointStateKeys.size} keys to remove" )
+        val failed = stateManager.delete(event.checkpointStateKeys)
         if (failed.isNotEmpty()) {
             logger.info(
                 "Failed to delete ${failed.size} checkpoint states when executing a checkpoint termination event. Failed IDs: ${
-                    failed.keys.joinToString(
+                    failed.joinToString(
                         ","
                     )
                 }"

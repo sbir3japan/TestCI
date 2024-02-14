@@ -26,3 +26,14 @@ fun ResultSet.resultSetAsStateCollection(objectMapper: ObjectMapper): Collection
 
     return result
 }
+
+fun ResultSet.resultSetAsStateKeys(): List<String> {
+    val result = mutableListOf<String>()
+
+    while (next()) {
+        val key = getString(KEY_COLUMN)
+        result.add(key)
+    }
+
+    return result
+}

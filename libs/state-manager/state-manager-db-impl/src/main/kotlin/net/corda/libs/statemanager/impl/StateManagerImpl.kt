@@ -139,13 +139,30 @@ class StateManagerImpl(
                         if (it.isNotEmpty()) {
                             logger.warn(
                                 "Optimistic locking check failed while deleting States" +
-                                    " ${failedDeletes.joinToString()}"
+                                        " ${failedDeletes.joinToString()}"
                             )
                         }
                     }
                 }
             } catch (e: Exception) {
                 logger.warn("Failed to delete batch of states - ${states.joinToString { it.key }}", e)
+                throw e
+            }
+        }
+    }
+
+    override fun delete(states: List<String>): List<String> {
+        if (states.isEmpty()) return emptyList()
+
+        return metricsRecorder.recordProcessingTime(DELETE) {
+            try {
+                val failedDeletes = dataSource.connection.transaction { connection ->
+                    stateRepository.delete(connection, states)
+                }
+
+                failedDeletes.toList()
+            } catch (e: Exception) {
+                logger.warn("Failed to delete batch of states - ${states.joinToString()}", e)
                 throw e
             }
         }
@@ -160,6 +177,20 @@ class StateManagerImpl(
 
             } catch (e: Exception) {
                 logger.warn("Failed to delete expired states", e)
+                throw e
+            }
+        }
+    }
+
+    override fun selectExpired(): List<String> {
+        return metricsRecorder.recordProcessingTime(MetricsRecorder.OperationType.DELETE_EXPIRED) {
+            try {
+                dataSource.connection.use { connection ->
+                    stateRepository.selectExpired(connection)
+                }
+
+            } catch (e: Exception) {
+                logger.warn("Failed to select expired states", e)
                 throw e
             }
         }

@@ -5,6 +5,7 @@ import net.corda.libs.statemanager.api.IntervalFilter
 import net.corda.libs.statemanager.api.MetadataFilter
 import net.corda.libs.statemanager.api.State
 import net.corda.libs.statemanager.impl.model.v1.resultSetAsStateCollection
+import net.corda.libs.statemanager.impl.model.v1.resultSetAsStateKeys
 import net.corda.libs.statemanager.impl.repository.StateRepository
 import org.slf4j.LoggerFactory
 import java.sql.Connection
@@ -109,10 +110,44 @@ class StateRepositoryImpl(private val queryProvider: QueryProvider) : StateRepos
         }
     }
 
+    override fun delete(connection: Connection, states: List<String>): Collection<String> {
+        if (states.isEmpty()) return emptySet()
+        return connection.prepareStatement(queryProvider.deleteStatesByKeyNoVersion).use { statement ->
+            // The actual state order doesn't matter, but we must ensure that the states are iterated over in the same
+            // order when examining the result as when the statements were generated.
+            val statesOrdered = states.toList()
+            statesOrdered.forEach { state ->
+                statement.setString(1, state)
+                statement.addBatch()
+            }
+            // For the delete case, it's safe to return anything other than a row update count of 1 as failed. The state
+            // manager must check any returned failed deletes regardless to verify that the call did not request
+            // removal of a state that never existed.
+            statement.executeBatch().zip(statesOrdered).mapNotNull { (count, state) ->
+                if (count <= 0) {
+                    state
+                } else {
+                    null
+                }
+            }.toList()
+        }
+    }
+
     override fun deleteExpired(connection: Connection) {
-        connection.prepareStatement(queryProvider.deleteExpired).use { statement ->
+        connection.prepareStatement(queryProvider.selectExpired).use { statement ->
             try {
                 statement.executeUpdate()
+            } catch (ex: Exception) {
+                logger.warn("Failed to delete expired states: ${ex.message}")
+                throw ex
+            }
+        }
+    }
+
+    override fun selectExpired(connection: Connection): List<String> {
+        return connection.prepareStatement(queryProvider.selectExpired).use { statement ->
+            try {
+                statement.executeQuery().resultSetAsStateKeys()
             } catch (ex: Exception) {
                 logger.warn("Failed to delete expired states: ${ex.message}")
                 throw ex

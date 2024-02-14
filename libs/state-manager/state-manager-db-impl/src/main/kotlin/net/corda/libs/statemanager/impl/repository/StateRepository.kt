@@ -63,8 +63,10 @@ interface StateRepository {
      * @return Collection of keys for states that could not be deleted due to optimistic locking check failure.
      */
     fun delete(connection: Connection, states: Collection<State>): Collection<String>
+    fun delete(connection: Connection, states: List<String>): Collection<String>
 
     fun deleteExpired(connection: Connection)
+    fun selectExpired(connection: Connection): List<String>
 
     /**
      * Retrieve states for which [State.modifiedTime] is within [interval].
