@@ -18,47 +18,46 @@ internal class PersistRegistrationRequestHandler(
     override fun invoke(context: MembershipRequestContext, request: PersistRegistrationRequest) {
         val registrationId = request.registrationRequest.registrationId
         logger.info("Persisting registration request with ID [$registrationId] to status ${request.status}.")
-
-        val currentRegistrationRequest: RegistrationRequestEntity? =
-            getEntityManager(context.holdingIdentity.toCorda().shortHash).use {
-                it.find(
-                    RegistrationRequestEntity::class.java,
-                    registrationId,
-                    LockModeType.PESSIMISTIC_WRITE,
-                )
-            }
-        if (currentRegistrationRequest == null) {
-            persistNewEntity(context.holdingIdentity.toCorda(), request)
-        } else {
-            transaction(context.holdingIdentity.toCorda().shortHash) { em ->
-                val currentStatus = currentRegistrationRequest.status.toStatus()
-                if (currentStatus == request.status) {
+        var currentRegistrationRequest: RegistrationRequestEntity? = null
+        transaction(context.holdingIdentity.toCorda().shortHash) { em ->
+            currentRegistrationRequest = em.find(
+                RegistrationRequestEntity::class.java,
+                registrationId,
+                LockModeType.PESSIMISTIC_WRITE,
+            )
+            currentRegistrationRequest?.status?.toStatus()?.let {
+                if (it == request.status) {
                     logger.info(
-                        "Registration request [$registrationId] with status: ${currentRegistrationRequest.status}" + " is already persisted. Persistence request was discarded."
+                        "Registration request [$registrationId] with status: $it is already persisted. Persistence request was discarded."
                     )
-                } else if (!currentStatus.canMoveToStatus(request.status)) {
+                } else if (!it.canMoveToStatus(request.status)) {
                     logger.info(
-                        "Registration request [$registrationId] has status: ${currentRegistrationRequest.status}" + " can not move it to status ${request.status}"
+                        "Registration request [$registrationId] has status: $it can not move it to status ${request.status}"
                     )
                     // In case of processing persistence requests in an unordered manner we need to make sure the serial
                     // gets persisted. All other existing data of the request will remain the same.
-                    if (request.status == RegistrationStatus.SENT_TO_MGM && currentRegistrationRequest.serial == null) {
+                    if (request.status == RegistrationStatus.SENT_TO_MGM && currentRegistrationRequest!!.serial == null) {
                         val newSerial = request.registrationRequest.serial
                         logger.info("Updating request [$registrationId] serial to $newSerial")
-                        em.merge(createEntityBasedOnPreviousEntity(currentRegistrationRequest, newSerial))
+                        em.merge(createEntityBasedOnPreviousEntity(currentRegistrationRequest!!, newSerial))
                     } else {
                         // do nothing
                     }
                 } else {
                     logger.info(
                         "##- Updating existing registration request '{}' from '{}' to '{}'.",
-                        currentRegistrationRequest.registrationId,
-                        currentStatus,
+                        currentRegistrationRequest!!.registrationId,
+                        it,
                         request.status
                     )
                     em.merge(createEntityBasedOnRequest(request))
                 }
             }
+            return@transaction
+        }
+
+        if (currentRegistrationRequest == null) {
+            persistNewEntity(context.holdingIdentity.toCorda(), request)
         }
     }
 

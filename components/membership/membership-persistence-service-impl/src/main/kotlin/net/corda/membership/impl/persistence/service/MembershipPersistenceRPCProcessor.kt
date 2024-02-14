@@ -43,7 +43,7 @@ internal class MembershipPersistenceRPCProcessor(
             val kind = ErrorKind.INVALID_ENTITY_UPDATE
             PersistenceFailedResponse(error, kind)
         } catch (e: Exception) {
-            val error = "Exception thrown while processing membership persistence request: ${e.message}"
+            val error = "Exception thrown while processing membership persistence request: $e"
             logger.warn(error)
             val kind = when (e) {
                 is InvalidEntityUpdateException -> ErrorKind.INVALID_ENTITY_UPDATE
