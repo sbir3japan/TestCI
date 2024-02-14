@@ -69,7 +69,7 @@ internal class PersistRegistrationRequestHandler(
                 request.status
             )
 
-            getEntityManager(holdingIdentity.shortHash).use {
+            transaction(holdingIdentity.shortHash) {
                 it.persist(createEntityBasedOnRequest(request))
                 it.flush()
             }
