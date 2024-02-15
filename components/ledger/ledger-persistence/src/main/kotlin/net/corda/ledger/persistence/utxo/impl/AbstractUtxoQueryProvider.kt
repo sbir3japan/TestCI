@@ -73,7 +73,7 @@ abstract class AbstractUtxoQueryProvider : UtxoQueryProvider {
         get() = """
             SELECT status
             FROM {h-schema}utxo_transaction
-            WHERE id = :transactionId"""
+            WHERE id = :transactionId AND is_filtered = false"""
             .trimIndent()
 
     override val markTransactionVisibleStatesConsumed: String
