@@ -50,7 +50,9 @@ internal class PersistRegistrationRequestHandler(
                         it,
                         request.status
                     )
-                    em.merge(createEntityBasedOnRequest(request))
+                    val update = createEntityBasedOnRequest(request)
+                    logger.info("Updated entity has serial ${update.serial}")
+                    em.merge(update)
                 }
             }
             return@transaction
@@ -72,7 +74,7 @@ internal class PersistRegistrationRequestHandler(
             getEntityManager(holdingIdentity.shortHash).transaction {
                 val now = clock.instant()
                 with(request.registrationRequest) {
-                    val q = it.createNativeQuery("INSERT INTO vnode_registration_request VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+                    val q = it.createNativeQuery("INSERT INTO vnode_registration_request VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
                         .setParameter(1, registrationId)
                         .setParameter(2, request.registeringHoldingIdentity.toCorda().shortHash.value)
                         .setParameter(3, request.status.toString())
@@ -86,7 +88,8 @@ internal class PersistRegistrationRequestHandler(
                         .setParameter(11, registrationContext.signature.publicKey.array())
                         .setParameter(12, registrationContext.signature.bytes.array())
                         .setParameter(13, registrationContext.signatureSpec.signatureName)
-                        .setParameter(14, serial)
+                        .setParameter(14, "")
+                        .setParameter(15, serial)
 
                     logger.info("##- Query is: ${q.parameters}")
                     q.executeUpdate()
