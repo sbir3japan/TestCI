@@ -7,7 +7,6 @@ import net.corda.membership.datamodel.RegistrationRequestEntity
 import net.corda.membership.impl.persistence.service.handler.RegistrationStatusHelper.toStatus
 import net.corda.membership.lib.registration.RegistrationStatusExt.canMoveToStatus
 import net.corda.orm.utils.transaction
-import net.corda.orm.utils.use
 import net.corda.virtualnode.HoldingIdentity
 import net.corda.virtualnode.toCorda
 import javax.persistence.LockModeType
@@ -73,7 +72,7 @@ internal class PersistRegistrationRequestHandler(
             getEntityManager(holdingIdentity.shortHash).transaction {
                 val now = clock.instant()
                 with(request.registrationRequest) {
-                    it.createNativeQuery("INSERT INTO vnode_registration_request VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+                    val q = it.createNativeQuery("INSERT INTO vnode_registration_request VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
                         .setParameter(1, registrationId)
                         .setParameter(2, request.registeringHoldingIdentity.toCorda().shortHash.value)
                         .setParameter(3, request.status.toString())
@@ -88,7 +87,9 @@ internal class PersistRegistrationRequestHandler(
                         .setParameter(12, registrationContext.signature.bytes.array())
                         .setParameter(13, registrationContext.signatureSpec.signatureName)
                         .setParameter(14, serial)
-                        .executeUpdate()
+
+                    logger.info("##- Query is: $q")
+                    q.executeUpdate()
                 }
             }
 

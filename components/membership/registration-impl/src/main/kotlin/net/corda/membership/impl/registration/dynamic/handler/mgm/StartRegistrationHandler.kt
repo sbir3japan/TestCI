@@ -134,6 +134,7 @@ internal class StartRegistrationHandler(
 
             registrationLogger.info("Registering member with MGM.")
             val pendingMemberInfo = buildPendingMemberInfo(registrationRequest!!, registrationLogger)
+            registrationLogger.info("Built pending memberinfo $pendingMemberInfo")
             // Parse the registration request and verify contents
             // The MemberX500Name matches the source MemberX500Name from the P2P messaging
             validateRegistrationRequest(
@@ -142,17 +143,20 @@ internal class StartRegistrationHandler(
                 DECLINED_REASON_NAME_IN_REQUEST_NOT_MATCHING_NAME_IN_P2P_MSG,
                 DECLINED_REASON_NAME_IN_REQUEST_NOT_MATCHING_NAME_IN_P2P_MSG
             )
+            registrationLogger.info("Validated name.")
 
             val persistentMemberInfo = memberInfoFactory.createPersistentMemberInfo(
                 mgmMemberInfo.holdingIdentity.toAvro(),
                 pendingMemberInfo,
             )
+            registrationLogger.info("Created persistent memberinfo $persistentMemberInfo")
             val pendingMemberRecord = Record(
                 topic = Schemas.Membership.MEMBER_LIST_TOPIC,
                 key = "${mgmMemberInfo.holdingIdentity.shortHash}-${pendingMemberInfo.holdingIdentity.shortHash}" +
                     "-${pendingMemberInfo.status}",
                 value = persistentMemberInfo,
             )
+            registrationLogger.info("Created pending member record $pendingMemberRecord")
             // Persist pending member info so that we can notify the member of declined registration if failure occurs
             // after this point
             membershipPersistenceClient.persistMemberInfo(mgmHoldingId, listOf(pendingMemberInfo))
@@ -162,6 +166,7 @@ internal class StartRegistrationHandler(
                             (it as MembershipPersistenceResult.Failure).errorMsg
                     }
                 }
+            registrationLogger.info("Persisted memberinfo")
             outputRecords.add(pendingMemberRecord)
 
             registrationLogger.info("Updating the status of the registration request.")
@@ -265,10 +270,10 @@ internal class StartRegistrationHandler(
             registrationLogger.info("Successful initial validation of registration request.")
             VerifyMember()
         } catch (ex: InvalidRegistrationRequestException) {
-            registrationLogger.warn("Declined registration. ${ex.originalMessage}")
+            registrationLogger.warn("Declined registration. $ex")
             DeclineRegistration(ex.originalMessage, ex.reasonForUser)
         } catch (ex: Exception) {
-            registrationLogger.warn("Declined registration. ${ex.message}")
+            registrationLogger.warn("Declined registration. $ex")
             DeclineRegistration("Failed to verify registration request due to: [${ex.message}]", DECLINED_REASON_FOR_USER_INTERNAL_ERROR)
         }
         outputRecords.add(Record(REGISTRATION_COMMAND_TOPIC, key, RegistrationCommand(outputCommand)))
