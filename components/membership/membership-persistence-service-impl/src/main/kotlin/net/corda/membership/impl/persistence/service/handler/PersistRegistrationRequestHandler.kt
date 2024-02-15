@@ -88,7 +88,7 @@ internal class PersistRegistrationRequestHandler(
                         .setParameter(13, registrationContext.signatureSpec.signatureName)
                         .setParameter(14, serial)
 
-                    logger.info("##- Query is: $q")
+                    logger.info("##- Query is: ${q.parameters}")
                     q.executeUpdate()
                 }
             }

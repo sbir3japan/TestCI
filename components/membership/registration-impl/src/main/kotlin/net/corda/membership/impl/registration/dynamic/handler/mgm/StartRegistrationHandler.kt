@@ -125,6 +125,7 @@ internal class StartRegistrationHandler(
             val mgmMemberInfo = getMGMMemberInfo(mgmHoldingId, registrationLogger)
             val registrationRequest = membershipQueryClient.queryRegistrationRequest(mgmHoldingId, registrationId)
                 .getOrThrow()
+            registrationLogger.info("##- Found registration request: $registrationRequest")
             validateRegistrationRequest(
                 registrationRequest != null,
                 registrationLogger,
@@ -273,7 +274,7 @@ internal class StartRegistrationHandler(
             registrationLogger.warn("Declined registration. $ex")
             DeclineRegistration(ex.originalMessage, ex.reasonForUser)
         } catch (ex: Exception) {
-            registrationLogger.warn("Declined registration. $ex")
+            registrationLogger.warn("Declined registration. Exception was $ex. Stacktrace is ${ex.stackTrace}")
             DeclineRegistration("Failed to verify registration request due to: [${ex.message}]", DECLINED_REASON_FOR_USER_INTERNAL_ERROR)
         }
         outputRecords.add(Record(REGISTRATION_COMMAND_TOPIC, key, RegistrationCommand(outputCommand)))
@@ -321,7 +322,9 @@ internal class StartRegistrationHandler(
         registrationRequest: RegistrationRequestDetails,
         registrationLogger: RegistrationLogger
     ): SelfSignedMemberInfo {
+        registrationLogger.info("Building pending memberinfo")
         val memberContext = registrationRequest.memberProvidedContext.data.array().deserializeContext(keyValuePairListDeserializer)
+        registrationLogger.info("Member context is $memberContext")
         validateRegistrationRequest(
             memberContext.isNotEmpty(),
             registrationLogger,
@@ -331,6 +334,7 @@ internal class StartRegistrationHandler(
 
         val customFieldsValid = registrationContextCustomFieldsVerifier.verify(memberContext)
         val errorMsgFn = { (customFieldsValid as RegistrationContextCustomFieldsVerifier.Result.Failure).reason }
+        registrationLogger.info("Validated custom fields. Result was $errorMsgFn")
         validateRegistrationRequest(
             customFieldsValid !is RegistrationContextCustomFieldsVerifier.Result.Failure,
             registrationLogger,
@@ -345,6 +349,7 @@ internal class StartRegistrationHandler(
             STATUS to MEMBER_STATUS_PENDING,
             SERIAL to (registrationRequest.serial!! + 1).toString(),
         ).toKeyValuePairList()
+        registrationLogger.info("MGM context is $mgmContext")
         return memberInfoFactory.createSelfSignedMemberInfo(
             registrationRequest.memberProvidedContext.data.array(),
             serialize(mgmContext),
