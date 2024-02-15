@@ -18,24 +18,42 @@ class StateRepositoryImpl(private val queryProvider: QueryProvider) : StateRepos
 
     override fun create(connection: Connection, states: Collection<State>): Collection<String> {
         if (states.isEmpty()) return emptySet()
-        return states.chunked(10).map { subStates ->
-            connection.prepareStatement(queryProvider.createStates(subStates.size)).use { statement ->
-                val indices = generateSequence(1) { it + 1 }.iterator()
-                subStates.forEach { state ->
-                    statement.setString(indices.next(), state.key)
-                    statement.setBytes(indices.next(), state.value)
-                    statement.setInt(indices.next(), state.version)
-                    statement.setString(indices.next(), objectMapper.writeValueAsString(state.metadata))
-                }
-                statement.execute()
-                val results = statement.resultSet
-                sequence<String> {
-                    while (results.next()) {
-                        yield(results.getString(CREATE_RESULT_COLUMN_INDEX))
-                    }
-                }.toList()
+        return connection.prepareStatement(queryProvider.createStates(states.size)).use { statement ->
+            val statesOrdered = states.toList()
+            statesOrdered.forEach { state ->
+                statement.setString(1, state.key)
+                statement.setBytes(2, state.value)
+                statement.setInt(3, state.version)
+                statement.setString(4, objectMapper.writeValueAsString(state.metadata))
+                statement.addBatch()
             }
-        }.flatten()
+
+            statement.executeBatch().zip(statesOrdered).mapNotNull {(count, state) ->
+                if (count > 0) {
+                    state.key
+                } else {
+                    null
+                }
+            }.toList()
+        }
+//        return states.chunked(10).map { subStates ->
+//            connection.prepareStatement(queryProvider.createStates(subStates.size)).use { statement ->
+//                val indices = generateSequence(1) { it + 1 }.iterator()
+//                subStates.forEach { state ->
+//                    statement.setString(indices.next(), state.key)
+//                    statement.setBytes(indices.next(), state.value)
+//                    statement.setInt(indices.next(), state.version)
+//                    statement.setString(indices.next(), objectMapper.writeValueAsString(state.metadata))
+//                }
+//                statement.execute()
+//                val results = statement.resultSet
+//                sequence<String> {
+//                    while (results.next()) {
+//                        yield(results.getString(CREATE_RESULT_COLUMN_INDEX))
+//                    }
+//                }.toList()
+//            }
+//        }.flatten()
     }
 
     override fun get(connection: Connection, keys: Collection<String>): Collection<State> {
@@ -51,27 +69,40 @@ class StateRepositoryImpl(private val queryProvider: QueryProvider) : StateRepos
 
     override fun update(connection: Connection, states: Collection<State>): StateRepository.StateUpdateSummary {
         if (states.isEmpty()) return StateRepository.StateUpdateSummary(emptyList(), emptyList())
-        val updatedKeys = mutableListOf<String>()
-        states.chunked(10).forEach { subStates ->
-            val indices = generateSequence(1) { it + 1 }.iterator()
-            connection.prepareStatement(queryProvider.updateStates(subStates.size)).use { stmt ->
-                subStates.forEach { state ->
-                    stmt.setString(indices.next(), state.key)
-                    stmt.setBytes(indices.next(), state.value)
-                    stmt.setString(indices.next(), objectMapper.writeValueAsString(state.metadata))
-                    stmt.setInt(indices.next(), state.version)
-                }
-                stmt.execute()
-                val results = stmt.resultSet
-                while (results.next()) {
-                    updatedKeys.add(results.getString(1))
-                }
+        return connection.prepareStatement(queryProvider.updateStates(states.size)).use { statement ->
+            val statesOrdered = states.toList()
+            statesOrdered.forEach { state ->
+                statement.setBytes(1, state.value)
+                statement.setString(2, objectMapper.writeValueAsString(state.metadata))
+                statement.setString(3, state.key)
+                statement.setInt(4, state.version)
+                statement.addBatch()
             }
+            val (succeeded, failed) = statement.executeBatch().zip(statesOrdered)
+                .partition { (count, _) -> count > 0 }
+            StateRepository.StateUpdateSummary(succeeded.map { it.second.key }, failed.map { it.second.key} )
         }
-        return StateRepository.StateUpdateSummary(
-            updatedKeys,
-            states.map { it.key }.filterNot { updatedKeys.contains(it) }
-        )
+//        val updatedKeys = mutableListOf<String>()
+//        states.chunked(1).forEach { subStates ->
+//            val indices = generateSequence(1) { it + 1 }.iterator()
+//            connection.prepareStatement(queryProvider.updateStates(subStates.size)).use { stmt ->
+//                subStates.forEach { state ->
+//                    stmt.setString(indices.next(), state.key)
+//                    stmt.setBytes(indices.next(), state.value)
+//                    stmt.setString(indices.next(), objectMapper.writeValueAsString(state.metadata))
+//                    stmt.setInt(indices.next(), state.version)
+//                }
+//                stmt.execute()
+//                val results = stmt.resultSet
+//                while (results.next()) {
+//                    updatedKeys.add(results.getString(1))
+//                }
+//            }
+//        }
+//        return StateRepository.StateUpdateSummary(
+//            updatedKeys,
+//            states.map { it.key }.filterNot { updatedKeys.contains(it) }
+//        )
     }
 
     override fun delete(connection: Connection, states: Collection<State>): Collection<String> {

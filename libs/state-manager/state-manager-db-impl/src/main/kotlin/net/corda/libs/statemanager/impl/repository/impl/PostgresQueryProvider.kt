@@ -12,7 +12,13 @@ import net.corda.libs.statemanager.impl.model.v1.StateColumns.VERSION_COLUMN
 class PostgresQueryProvider : AbstractQueryProvider() {
 
     override fun createStates(size: Int): String = """
-        WITH data ($KEY_COLUMN, $VALUE_COLUMN, $VERSION_COLUMN, $METADATA_COLUMN, $MODIFIED_TIME_COLUMN) as (
+        INSERT INTO $STATE_MANAGER_TABLE
+        VALUES (?, ?, ?, CAST(? AS JSONB), CURRENT_TIMESTAMP AT TIME ZONE 'UTC')
+        ON CONFLICT DO NOTHING
+    """.trimIndent()
+
+    /*
+            WITH data ($KEY_COLUMN, $VALUE_COLUMN, $VERSION_COLUMN, $METADATA_COLUMN, $MODIFIED_TIME_COLUMN) as (
             VALUES ${List(size) { "(?, ?, ?, CAST(? AS JSONB), CURRENT_TIMESTAMP AT TIME ZONE 'UTC')" }.joinToString(",")}
         )
         INSERT INTO $STATE_MANAGER_TABLE
@@ -23,14 +29,25 @@ class PostgresQueryProvider : AbstractQueryProvider() {
         )
         RETURNING $STATE_MANAGER_TABLE.$KEY_COLUMN;
     """.trimIndent()
+     */
 
     override fun updateStates(size: Int): String = """
-            UPDATE $STATE_MANAGER_TABLE AS s 
-            SET 
-                $KEY_COLUMN = temp.key, 
-                $VALUE_COLUMN = temp.value, 
-                $VERSION_COLUMN = s.$VERSION_COLUMN + 1, 
-                $METADATA_COLUMN = CAST(temp.metadata as JSONB), 
+            UPDATE $STATE_MANAGER_TABLE
+            SET  
+                $VALUE_COLUMN = ?, 
+                $VERSION_COLUMN = $VERSION_COLUMN + 1, 
+                $METADATA_COLUMN = CAST(? as JSONB), 
+                $MODIFIED_TIME_COLUMN = CURRENT_TIMESTAMP AT TIME ZONE 'UTC'
+            WHERE $KEY_COLUMN = ? AND $VERSION_COLUMN = ?
+    """.trimIndent()
+
+    /*
+                UPDATE $STATE_MANAGER_TABLE AS s
+            SET
+                $KEY_COLUMN = temp.key,
+                $VALUE_COLUMN = temp.value,
+                $VERSION_COLUMN = s.$VERSION_COLUMN + 1,
+                $METADATA_COLUMN = CAST(temp.metadata as JSONB),
                 $MODIFIED_TIME_COLUMN = CURRENT_TIMESTAMP AT TIME ZONE 'UTC'
             FROM
             (
@@ -39,6 +56,7 @@ class PostgresQueryProvider : AbstractQueryProvider() {
             WHERE temp.key = s.$KEY_COLUMN AND temp.version = s.$VERSION_COLUMN
             RETURNING s.$KEY_COLUMN
     """.trimIndent()
+     */
 
     override fun findStatesByMetadataMatchingAll(filters: Collection<MetadataFilter>) =
         """
