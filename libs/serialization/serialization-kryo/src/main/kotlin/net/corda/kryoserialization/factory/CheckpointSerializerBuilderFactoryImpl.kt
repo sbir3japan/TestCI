@@ -1,6 +1,7 @@
 package net.corda.kryoserialization.factory
 
 import net.corda.crypto.cipher.suite.KeyEncodingService
+import net.corda.internal.serialization.encoding.EncoderServiceFactory
 import net.corda.kryoserialization.impl.KryoCheckpointSerializerBuilderImpl
 import net.corda.sandbox.SandboxGroup
 import net.corda.serialization.checkpoint.CheckpointSerializerBuilder
@@ -12,13 +13,17 @@ import org.osgi.service.component.annotations.Reference
 @Component(service = [CheckpointSerializerBuilderFactory::class])
 class CheckpointSerializerBuilderFactoryImpl @Activate constructor(
     @Reference
-    private val keyEncodingService: KeyEncodingService
+    private val keyEncodingService: KeyEncodingService,
 ) : CheckpointSerializerBuilderFactory {
+
+    private val streamEncoderService = EncoderServiceFactory()
+
     override fun createCheckpointSerializerBuilder(
         sandboxGroup: SandboxGroup
     ): CheckpointSerializerBuilder {
         return KryoCheckpointSerializerBuilderImpl(
             keyEncodingService,
+            streamEncoderService,
             sandboxGroup
         )
     }

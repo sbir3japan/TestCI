@@ -4,6 +4,9 @@ package net.corda.kryoserialization
 
 import com.esotericsoftware.kryo.io.Input
 import com.esotericsoftware.kryo.io.Output
+import net.corda.internal.serialization.encoding.Encoder
+import net.corda.internal.serialization.encoding.EncoderServiceFactory
+import net.corda.internal.serialization.encoding.EncoderType
 import net.corda.utilities.LazyPool
 import java.io.InputStream
 import java.io.OutputStream
@@ -21,8 +24,11 @@ internal fun <T> kryoInput(underlying: InputStream, task: Input.() -> T): T {
     }
 }
 
-internal fun <T> kryoOutput(task: Output.() -> T): ByteArray {
-    return byteArrayOutput { underlying ->
+internal fun <T> kryoOutput(
+    encoder: Encoder = EncoderServiceFactory().get(EncoderType.NOOP),
+    task: Output.() -> T
+): ByteArray {
+    return byteArrayOutput(encoder) { underlying ->
         serializationBufferPool.run {
             Output(it).use { output ->
                 output.outputStream = underlying
