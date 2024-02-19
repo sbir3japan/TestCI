@@ -157,6 +157,10 @@ class StateManagerImpl(
                 logger.warn("Failed to delete batch of states - ${states.joinToString { it.key }}", e)
                 throw e
             }
+        }.also {
+            if (it.isNotEmpty()) {
+                metricsRecorder.recordFailureCount(DELETE, it.size)
+            }
         }
     }
 
