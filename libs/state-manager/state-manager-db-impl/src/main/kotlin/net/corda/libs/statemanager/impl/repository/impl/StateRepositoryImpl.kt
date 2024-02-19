@@ -47,9 +47,7 @@ class StateRepositoryImpl(private val queryProvider: QueryProvider) : StateRepos
         }
     }
 
-    override fun get(connection: Connection, keys: Collection<String>): Collection<
-
-            State> {
+    override fun get(connection: Connection, keys: Collection<String>): Collection<State> {
         if (keys.isEmpty()) return emptySet()
         return connection.prepareStatement(queryProvider.findStatesByKey(keys.size)).use {
             keys.forEachIndexed { index, key ->
@@ -83,25 +81,6 @@ class StateRepositoryImpl(private val queryProvider: QueryProvider) : StateRepos
         )
     }
 
-    override fun deleteNoVersion(connection: Connection, states: List<String>): Collection<String> {
-        if (states.isEmpty()) return emptySet()
-        return connection.prepareStatement(queryProvider.deleteStatesByKeyNoVersion(states.size)).use { statement ->
-            // The actual state order doesn't matter, but we must ensure that the states are iterated over in the same
-            // order when examining the result as when the statements were generated.
-            val indices = generateSequence(1) { it + 1 }.iterator()
-            states.forEach { state ->
-                statement.setString(indices.next(), state)
-            }
-            statement.execute()
-            val results = statement.resultSet
-            val succeededKeys = sequence<String> {
-                while (results.next()) {
-                    yield(results.getString(CREATE_RESULT_COLUMN_INDEX))
-                }
-            }.toSet()
-            states - succeededKeys
-        }
-    }
     override fun delete(connection: Connection, states: Collection<State>): Collection<String> {
         if (states.isEmpty()) return emptySet()
         return connection.prepareStatement(queryProvider.deleteStatesByKey(states.size)).use { statement ->
