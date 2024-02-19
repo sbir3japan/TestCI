@@ -29,7 +29,7 @@ class StateRepositoryImplTest {
         whenever(statement.executeBatch()).thenReturn(
             arrayOf(1, 0, SUCCESS_NO_INFO, EXECUTE_FAILED).toIntArray()
         )
-        whenever(queryProvider.deleteStatesByKey).thenReturn("")
+        whenever(queryProvider.deleteStatesByKey(any())).thenReturn("")
         val repository = StateRepositoryImpl(queryProvider)
         val failed = repository.delete(connection, states)
         assertThat(failed.size).isEqualTo(3)

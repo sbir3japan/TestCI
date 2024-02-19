@@ -177,7 +177,7 @@ class StateManagerImplTest {
 
     @Test
     fun deleteReturnsEmptyAndDoesNotInteractWithTheDatabaseWhenEmptyListOfStatesIsUsedInput() {
-        val failedDeletes = assertDoesNotThrow { stateManager.delete(emptyList()) }
+        val failedDeletes = assertDoesNotThrow { stateManager.delete(emptyList<State>()) }
 
         assertThat(failedDeletes).isEmpty()
         verifyNoInteractions(dataSource)

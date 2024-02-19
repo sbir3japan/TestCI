@@ -84,49 +84,59 @@ class StateRepositoryImpl(private val queryProvider: QueryProvider) : StateRepos
         )
     }
 
-    override fun delete(connection: Connection, states: List<String>): Collection<String> {
-        if (states.isEmpty()) return emptyList()
-        return connection.prepareStatement(queryProvider.deleteStatesByKey).use { statement ->
+    override fun deleteNoVersion(connection: Connection, states: List<String>): Collection<String> {
+        if (states.isEmpty()) return emptySet()
+        return connection.prepareStatement(queryProvider.deleteStatesByKeyNoVersion(states.size)).use { statement ->
             // The actual state order doesn't matter, but we must ensure that the states are iterated over in the same
             // order when examining the result as when the statements were generated.
-            val statesOrdered = states.toList()
-            statesOrdered.forEach { state ->
-                statement.setString(1, state)
-                statement.addBatch()
+            val indices = generateSequence(1) { it + 1 }.iterator()
+            states.forEach { state ->
+                statement.setString(indices.next(), state)
             }
-            // For the delete case, it's safe to return anything other than a row update count of 1 as failed. The state
-            // manager must check any returned failed deletes regardless to verify that the call did not request
-            // removal of a state that never existed.
-            statement.executeBatch().zip(statesOrdered).mapNotNull { (count, state) ->
-                if (count <= 0) {
-                    state
-                } else {
-                    null
+            statement.execute()
+            val results = statement.resultSet
+            val succeededKeys = sequence<String> {
+                while (results.next()) {
+                    yield(results.getString(CREATE_RESULT_COLUMN_INDEX))
                 }
-            }.toList()
+            }.toSet()
+            states - succeededKeys
         }
     }
     override fun delete(connection: Connection, states: Collection<State>): Collection<String> {
         if (states.isEmpty()) return emptySet()
-        return connection.prepareStatement(queryProvider.deleteStatesByKey).use { statement ->
+        return connection.prepareStatement(queryProvider.deleteStatesByKey(states.size)).use { statement ->
             // The actual state order doesn't matter, but we must ensure that the states are iterated over in the same
             // order when examining the result as when the statements were generated.
-            val statesOrdered = states.toList()
-            statesOrdered.forEach { state ->
-                statement.setString(1, state.key)
-                statement.setInt(2, state.version)
-                statement.addBatch()
+            val indices = generateSequence(1) { it + 1 }.iterator()
+            states.forEach { state ->
+                statement.setString(indices.next(), state.key)
+                statement.setInt(indices.next(), state.version)
             }
-            // For the delete case, it's safe to return anything other than a row update count of 1 as failed. The state
-            // manager must check any returned failed deletes regardless to verify that the call did not request
-            // removal of a state that never existed.
-            statement.executeBatch().zip(statesOrdered).mapNotNull { (count, state) ->
-                if (count <= 0) {
-                    state.key
-                } else {
-                    null
+            statement.execute()
+            val results = statement.resultSet
+            val succeededKeys = sequence<String> {
+                while (results.next()) {
+                    yield(results.getString(CREATE_RESULT_COLUMN_INDEX))
                 }
-            }.toList()
+            }.toSet()
+            states.map { it.key } - succeededKeys
+//            val statesOrdered = states.toList()
+//            statesOrdered.forEach { state ->
+//                statement.setString(1, state.key)
+//                statement.setInt(2, state.version)
+//                statement.addBatch()
+//            }
+//            // For the delete case, it's safe to return anything other than a row update count of 1 as failed. The state
+//            // manager must check any returned failed deletes regardless to verify that the call did not request
+//            // removal of a state that never existed.
+//            statement.executeBatch().zip(statesOrdered).mapNotNull { (count, state) ->
+//                if (count <= 0) {
+//                    state.key
+//                } else {
+//                    null
+//                }
+//            }.toList()
         }
     }
 

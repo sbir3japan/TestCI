@@ -137,7 +137,7 @@ class StateManagerImpl(
         return metricsRecorder.recordProcessingTime(MetricsRecorder.OperationType.DELETE_NO_LOCKING) {
             try {
                 val failedDeletes = dataSource.connection.transaction { connection ->
-                    stateRepository.delete(connection, states)
+                    stateRepository.deleteNoVersion(connection, states)
                 }
 
                 if (failedDeletes.isEmpty()) {

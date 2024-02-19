@@ -18,14 +18,18 @@ abstract class AbstractQueryProvider : QueryProvider {
             WHERE s.$KEY_COLUMN IN (${List(size) { "?" }.joinToString(",")} )
         """.trimIndent()
 
-    override val deleteStatesByKey: String
-        get() = """
-            DELETE FROM $STATE_MANAGER_TABLE s WHERE s.$KEY_COLUMN = ? AND s.$VERSION_COLUMN = ?
+    override fun deleteStatesByKey(size: Int) =
+        """
+            DELETE FROM $STATE_MANAGER_TABLE s 
+            WHERE (s.$KEY_COLUMN, s.$VERSION_COLUMN) IN (${List(size) { "(?, ?)" }.joinToString(",")})
+            RETURNING s.$KEY_COLUMN
         """.trimIndent()
 
-    override val deleteStatesByKeyNoVersion: String
-        get() = """
-            DELETE FROM $STATE_MANAGER_TABLE s WHERE s.$KEY_COLUMN = ?
+    override fun deleteStatesByKeyNoVersion(size: Int) =
+        """
+            DELETE FROM $STATE_MANAGER_TABLE s 
+            WHERE s.$KEY_COLUMN IN (${List(size) { "?" }.joinToString(",")})
+            RETURNING s.$KEY_COLUMN
         """.trimIndent()
 
     override val findStatesUpdatedBetween: String
