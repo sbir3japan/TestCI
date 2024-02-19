@@ -74,7 +74,7 @@ internal class PersistRegistrationRequestHandler(
             getEntityManager(holdingIdentity.shortHash).transaction {
                 val now = clock.instant()
                 with(request.registrationRequest) {
-                    val q = it.createNativeQuery("INSERT INTO vnode_registration_request VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+                    it.createNativeQuery("INSERT INTO {h-schema}vnode_registration_request VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
                         .setParameter(1, registrationId)
                         .setParameter(2, request.registeringHoldingIdentity.toCorda().shortHash.value)
                         .setParameter(3, request.status.toString())
@@ -90,9 +90,7 @@ internal class PersistRegistrationRequestHandler(
                         .setParameter(13, registrationContext.signatureSpec.signatureName)
                         .setParameter(14, "")
                         .setParameter(15, serial)
-
-                    logger.info("##- Query is: ${q.parameters}")
-                    q.executeUpdate()
+                        .executeUpdate()
                 }
             }
 
