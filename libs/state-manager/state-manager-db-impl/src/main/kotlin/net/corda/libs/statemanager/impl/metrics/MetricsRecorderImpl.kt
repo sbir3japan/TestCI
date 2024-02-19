@@ -19,4 +19,11 @@ class MetricsRecorderImpl : MetricsRecorder {
             .build()
             .increment(count.toDouble())
     }
+
+    override fun recordStateCount(operationType: MetricsRecorder.OperationType, count: Int) {
+        CordaMetrics.Metric.StateManger.StateCount.builder()
+            .withTag(CordaMetrics.Tag.OperationName, operationType.toString())
+            .build()
+            .increment(count.toDouble())
+    }
 }

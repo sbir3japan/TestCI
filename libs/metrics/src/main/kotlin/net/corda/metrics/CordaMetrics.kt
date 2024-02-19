@@ -723,6 +723,11 @@ object CordaMetrics {
              * Record the number of failed creates/updates/deletes that occur in the state manager.
              */
             object FailureCount: Metric<Counter>("$PREFIX.failure.count", Metrics::counter)
+
+            /**
+             * Record the number of states that were processed as part of a particular state manager interaction.
+             */
+            object StateCount: Metric<Counter>("$PREFIX.state.count", Metrics::counter)
         }
     }
 
