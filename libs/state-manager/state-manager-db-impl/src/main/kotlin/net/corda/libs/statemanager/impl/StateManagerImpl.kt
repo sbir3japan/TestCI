@@ -92,6 +92,7 @@ class StateManagerImpl(
 
             states.map { it.key }.toSet() - successfulKeys.toSet()
         }.also {
+            metricsRecorder.recordStateCount(CREATE, states.size - it.size)
             if (it.isNotEmpty()) {
                 metricsRecorder.recordFailureCount(CREATE, it.size)
             }
@@ -125,6 +126,7 @@ class StateManagerImpl(
                 throw e
             }
         }.also {
+            metricsRecorder.recordStateCount(UPDATE, states.size - it.size)
             if (it.isNotEmpty()) {
                 metricsRecorder.recordFailureCount(UPDATE, it.size)
             }
@@ -156,6 +158,11 @@ class StateManagerImpl(
             } catch (e: Exception) {
                 logger.warn("Failed to delete batch of states - ${states.joinToString { it.key }}", e)
                 throw e
+            }
+        }.also {
+            metricsRecorder.recordStateCount(DELETE, states.size - it.size)
+            if (it.isNotEmpty()) {
+                metricsRecorder.recordFailureCount(DELETE, it.size)
             }
         }
     }
