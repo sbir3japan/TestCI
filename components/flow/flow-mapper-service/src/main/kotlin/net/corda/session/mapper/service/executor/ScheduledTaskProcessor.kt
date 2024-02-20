@@ -4,8 +4,8 @@ import net.corda.data.flow.event.mapper.ExecuteCleanup
 import net.corda.data.flow.state.mapper.FlowMapperStateType
 import net.corda.data.scheduler.ScheduledTaskTrigger
 import net.corda.libs.statemanager.api.IntervalFilter
-import net.corda.libs.statemanager.api.Operation
 import net.corda.libs.statemanager.api.MetadataFilter
+import net.corda.libs.statemanager.api.Operation
 import net.corda.libs.statemanager.api.StateManager
 import net.corda.messaging.api.processor.DurableProcessor
 import net.corda.messaging.api.records.Record
@@ -18,6 +18,7 @@ import java.time.Duration
 import java.time.Instant
 import java.util.UUID
 
+@Suppress("unused_parameter")
 class ScheduledTaskProcessor(
     private val stateManager: StateManager,
     private val clock: Clock,
@@ -50,7 +51,7 @@ class ScheduledTaskProcessor(
     }
 
     private fun getExpiredStateIds() : List<String> {
-        val windowExpiry = clock.instant() - Duration.ofMillis(cleanupWindow)
+        val windowExpiry = clock.instant() - Duration.ofMillis(10000)
         val states = stateManager.findUpdatedBetweenWithMetadataMatchingAny(
             IntervalFilter(Instant.EPOCH, windowExpiry),
             listOf(
