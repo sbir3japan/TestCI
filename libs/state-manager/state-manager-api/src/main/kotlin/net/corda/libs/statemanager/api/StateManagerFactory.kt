@@ -19,6 +19,6 @@ interface StateManagerFactory {
     fun create(
         config: SmartConfig,
         stateType: StateManagerConfig.StateType,
-        compressionType: CompressionType = CompressionType.NONE
+        compressionType: CompressionType = CompressionType.SNAPPY
     ): StateManager
 }
