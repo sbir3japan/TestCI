@@ -91,7 +91,7 @@ class StateManagerFactoryImpl @Activate constructor(
             lifecycleCoordinatorFactory,
             dataSource!!,
             StateRepositoryImpl(queryProvider(), compressionService, compressionType),
-            MetricsRecorderImpl()
+            MetricsRecorderImpl(stateType.value)
         )
     }
 }

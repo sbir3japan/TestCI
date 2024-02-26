@@ -720,6 +720,11 @@ object CordaMetrics {
             object ExecutionTime : Metric<Timer>("$PREFIX.execution.time", CordaMetrics::timer)
 
             /**
+             * Size of batches involved in a specific State Manager operation.
+             */
+            object BatchSize : Metric<DistributionSummary>("$PREFIX.batch.size", Metrics::summary)
+
+            /**
              * Record the number of failed creates/updates/deletes that occur in the state manager.
              */
             object FailureCount: Metric<Counter>("$PREFIX.failure.count", Metrics::counter)
@@ -777,6 +782,11 @@ object CordaMetrics {
          * The name of the operation performed
          */
         OperationName("operation.name"),
+
+        /**
+         * The name of the operation performed
+         */
+        StateType("state.type"),
 
         /**
          * Message pattern clientId for which the metric is applicable.

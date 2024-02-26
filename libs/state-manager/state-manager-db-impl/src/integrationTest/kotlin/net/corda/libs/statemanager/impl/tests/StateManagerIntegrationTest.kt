@@ -90,7 +90,7 @@ class StateManagerIntegrationTest {
         lifecycleCoordinatorFactory = mock<LifecycleCoordinatorFactory>(),
         dataSource = dataSource,
         stateRepository = StateRepositoryImpl(queryProvider, compressionService, CompressionType.NONE),
-        metricsRecorder = MetricsRecorderImpl()
+        metricsRecorder = MetricsRecorderImpl("default")
     )
 
     private fun cleanStates() = dataSource.connection.transaction {

@@ -85,6 +85,8 @@ class StateManagerImpl(
             )
         }
 
+        metricsRecorder.recordBatchSize(CREATE, states.size.toDouble())
+
         return metricsRecorder.recordProcessingTime(CREATE) {
             val successfulKeys = dataSource.connection.transaction { connection ->
                 stateRepository.create(connection, states)
@@ -108,6 +110,8 @@ class StateManagerImpl(
 
     override fun update(states: Collection<State>): Map<String, State?> {
         if (states.isEmpty()) return emptyMap()
+
+        metricsRecorder.recordBatchSize(UPDATE, states.size.toDouble())
 
         return metricsRecorder.recordProcessingTime(UPDATE) {
             try {
@@ -133,6 +137,8 @@ class StateManagerImpl(
 
     override fun delete(states: Collection<State>): Map<String, State> {
         if (states.isEmpty()) return emptyMap()
+
+        metricsRecorder.recordBatchSize(DELETE, states.size.toDouble())
 
         return metricsRecorder.recordProcessingTime(DELETE) {
             try {

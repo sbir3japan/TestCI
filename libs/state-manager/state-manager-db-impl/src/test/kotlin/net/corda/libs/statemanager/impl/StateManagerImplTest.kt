@@ -27,7 +27,8 @@ import java.time.Instant
 class StateManagerImplTest {
     private val connection: Connection = mock()
     private val stateRepository: StateRepository = mock()
-    private val metricsRecorder: MetricsRecorder = spy<MetricsRecorderImpl>()
+    private val metricsRecorderObj: MetricsRecorder = MetricsRecorderImpl("default")
+    private val metricsRecorder = spy(metricsRecorderObj)
     private val dataSource: CloseableDataSource = mock {
         on { connection } doReturn connection
     }
