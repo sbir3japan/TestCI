@@ -33,4 +33,19 @@ dependencies {
     integrationTestRuntimeOnly "org.hsqldb:hsqldb:$hsqldbVersion"
     integrationTestRuntimeOnly libs.slf4j.simple
     integrationTestRuntimeOnly libs.postgresql.jdbc
+
+    implementation 'com.scylladb:java-driver-core-shaded:4.17.0.0'
+    runtimeOnly 'com.github.jnr:jnr-ffi:2.2.16'
+
+    integrationTestImplementation libs.mockito.core
+}
+
+// include coroutines bundle in this jar as it doesn't have OSGi metadata
+tasks.named('jar', Jar) {
+    bundle {
+        bnd """\
+Import-Package: *
+-includeresource: @snappy-${snappyVersion}.jar
+"""
+    }
 }
