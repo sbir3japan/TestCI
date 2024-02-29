@@ -29,6 +29,7 @@ class TestLoadGenerator(
                 (1..pollRecords).map {
                     val flowId = UUID.randomUUID().toString()
                     val flowEvent = createStartFlowEvent(
+                        flowId,
                         "clientId",
                         cpiName,
                         holdingIdentity,
@@ -54,6 +55,7 @@ class TestLoadGenerator(
         // Do nothing
     }
     private fun createStartFlowEvent(
+        flowId: String,
         clientRequestId: String,
         cpiName: String,
         holdingIdentity: HoldingIdentity,
@@ -73,7 +75,6 @@ class TestLoadGenerator(
             Instant.now()
         )
 
-        val flowId = UUID.randomUUID().toString()
         val startFlowEvent = StartFlow(context, flowStartArgs)
         return FlowEvent(flowId, startFlowEvent)
     }

@@ -14,7 +14,7 @@ data class TestConfig(
     private val processingFlowCleanupTime: Long = 5_000,
     private val maxAllowedMessageSize: Long = 100_000_000,
     private val threadPoolSize: Long = 8,
-    private val minPoolRecordCount: Long = 20,
+    private val minPoolRecordCount: Long = 1,
     private val pollTimeout: Long = 0,
     private val pollRecords: Long = 20,
     private val pollTimeMs: Long = 0,

@@ -53,6 +53,8 @@ class FlowFiberImpl(
 
     @Suspendable
     override fun startFlow(flowFiberExecutionContext: FlowFiberExecutionContext): Future<FlowIORequest<*>> {
+        log.info("FlowFiberImpl - setting flowFiberExecutionContext for flowId ${flowFiberExecutionContext.flowCheckpoint.flowId} with flowFiberExecutionContext flow id of ${flowFiberExecutionContext.flowCheckpoint.flowId} and mdcdata of ${flowFiberExecutionContext.mdcLoggingData} ")
+
         this.flowFiberExecutionContext = flowFiberExecutionContext
 
         if (boundSandboxUUID != null) {
@@ -162,7 +164,7 @@ class FlowFiberImpl(
         if (this.boundSandboxUUID != null && boundSandboxUUID != flowFiberExecutionContext.sandboxGroupContext.sandboxGroup.id) {
             log.warn(
                 "Attempting to execute a flow created against one sandbox inside a different one for holding id " +
-                    "${flowFiberExecutionContext.holdingIdentity.shortHash}"
+                        "${flowFiberExecutionContext.holdingIdentity.shortHash}"
             )
         }
         boundSandboxUUID = flowFiberExecutionContext.sandboxGroupContext.sandboxGroup.id

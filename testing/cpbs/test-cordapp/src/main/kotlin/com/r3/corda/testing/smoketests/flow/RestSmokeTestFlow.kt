@@ -18,12 +18,7 @@ import net.corda.v5.application.messaging.FlowMessaging
 import net.corda.v5.application.persistence.PersistenceService
 import net.corda.v5.application.serialization.SerializationService
 import net.corda.v5.base.annotations.Suspendable
-import net.corda.v5.base.types.MemberX500Name
-import net.corda.v5.crypto.DigitalSignature
-import net.corda.v5.crypto.SignatureSpec
 import org.slf4j.LoggerFactory
-import java.security.KeyPairGenerator
-import java.security.PublicKey
 
 @Suppress("unused", "TooManyFunctions")
 @InitiatingFlow(protocol = "smoke-test-protocol")
@@ -76,54 +71,4 @@ class RestSmokeTestFlow : ClientStartableFlow {
         return true.toString()
     }
 
-    private class SigningResult(
-        val publicKey: PublicKey,
-        val bytesToSign: ByteArray,
-        val signature: DigitalSignature,
-        val signatureSpec: SignatureSpec
-    )
-
-    @Suspendable
-    private fun RestSmokeTestInput.performSigning() : SigningResult {
-        val x500Name = getValue("memberX500")
-        val member = memberLookup.lookup(MemberX500Name.parse(x500Name))
-        checkNotNull(member) { "Member $x500Name could not be looked up" }
-        val publicKey = member.ledgerKeys[0]
-        val bytesToSign = byteArrayOf(1, 2, 3, 4, 5)
-        log.info("Crypto - Signing bytes $bytesToSign with public key '$publicKey'")
-        val signatureSpec =
-            signatureSpecService.defaultSignatureSpec(publicKey)
-                ?: throw IllegalStateException("Default signature spec not found for key")
-        val signature = signingService.sign(bytesToSign, publicKey, signatureSpec)
-        log.info("Crypto - Signature $signature received")
-        return SigningResult(publicKey, bytesToSign, signature, signatureSpec)
-    }
-
-    @Suspendable
-    private fun RestSmokeTestInput.getValue(key: String): String {
-        return checkNotNull(this.data?.get(key)) { "Failed to find key '${key}' in the REST input args" }
-    }
-
-    // ---------- INSERTED FOR PERFORMANCE TESTING ----------
-
-    private val mockPublicKey: PublicKey by lazy {
-        generatePublicKey()
-    }
-
-    private val mockSignatureSpec by lazy {
-        MockSignatureSpec()
-    }
-
-    private fun generatePublicKey(): PublicKey {
-        val keyGen = KeyPairGenerator.getInstance("RSA")
-        keyGen.initialize(2048)
-        val key = keyGen.generateKeyPair().public
-        val serKey = serializationService.serialize(key)
-        return serializationService.deserialize(serKey, PublicKey::class.java)
-    }
-
-    private class MockSignatureSpec : SignatureSpec {
-        override fun getSignatureName(): String =
-            "FlowEnginePerformanceTest-MockSignature"
-    }
 }
