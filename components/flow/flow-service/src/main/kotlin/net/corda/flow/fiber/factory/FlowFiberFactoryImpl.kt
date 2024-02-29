@@ -49,7 +49,6 @@ class FlowFiberFactoryImpl @Activate constructor(
         }
         try {
             val flowFiber = FlowFiberImpl(id, logic, currentThreadFiberExecutor)
-            logger.warn("FlowFiberFactoryImpl - creating and starting fiber for flowId $flowId with flowFiberExecutionContext flow id of ${flowFiberExecutionContext.flowCheckpoint.flowId} and mdcdata of ${flowFiberExecutionContext.mdcLoggingData}")
             return FiberFuture(flowFiber, flowFiber.startFlow(flowFiberExecutionContext))
         } catch (e: Throwable) {
             throw FlowFatalException(

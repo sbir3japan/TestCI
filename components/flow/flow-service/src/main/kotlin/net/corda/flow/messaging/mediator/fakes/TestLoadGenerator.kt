@@ -30,7 +30,7 @@ class TestLoadGenerator(
                     val flowId = UUID.randomUUID().toString()
                     val flowEvent = createStartFlowEvent(
                         flowId,
-                        "clientId",
+                        UUID.randomUUID().toString(),
                         cpiName,
                         holdingIdentity,
                         flowClassName,
