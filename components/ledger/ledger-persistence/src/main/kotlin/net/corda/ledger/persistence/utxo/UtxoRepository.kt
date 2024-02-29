@@ -223,6 +223,4 @@ interface UtxoRepository {
     )
 
     data class TransactionMerkleProofLeaf(val merkleProofId: String, val leafIndex: Int)
-
-    fun stateRefsExist(entityManager: EntityManager, stateRefs: List<StateRef>): List<Pair<String, Int>>
 }

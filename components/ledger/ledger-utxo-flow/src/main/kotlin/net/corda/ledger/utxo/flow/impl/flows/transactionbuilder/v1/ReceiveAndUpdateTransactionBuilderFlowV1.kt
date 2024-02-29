@@ -89,11 +89,7 @@ class ReceiveAndUpdateTransactionBuilderFlowV1(
             }
 
             // Persist the verified filtered transactions
-            persistenceService.persistFilteredTransactionsAndSignatures(
-                receivedFilteredTransactions,
-                updatedTransactionBuilder.inputStateRefs,
-                updatedTransactionBuilder.referenceStateRefs
-            )
+            persistenceService.persistFilteredTransactionsAndSignatures(receivedFilteredTransactions)
         }
 
         return updatedTransactionBuilder

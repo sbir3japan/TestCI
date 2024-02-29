@@ -49,9 +49,7 @@ class ReceiveWireTransactionFlowV1(
                 wrappedUtxoWireTransaction.id,
                 wrappedUtxoWireTransaction.notaryName,
                 wrappedUtxoWireTransaction.dependencies,
-                transactionPayload.filteredDependencies,
-                wrappedUtxoWireTransaction.inputStateRefs,
-                wrappedUtxoWireTransaction.referenceStateRefs
+                transactionPayload.filteredDependencies
             )
         )
 

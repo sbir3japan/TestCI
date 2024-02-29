@@ -77,8 +77,6 @@ interface UtxoPersistenceService {
      */
     fun persistFilteredTransactions(
         filteredTransactionsAndSignatures: Map<FilteredTransaction, List<DigitalSignatureAndMetadata>>,
-        inputStateRefs: List<StateRef>,
-        referenceStateRefs: List<StateRef>,
         account: String
     )
 

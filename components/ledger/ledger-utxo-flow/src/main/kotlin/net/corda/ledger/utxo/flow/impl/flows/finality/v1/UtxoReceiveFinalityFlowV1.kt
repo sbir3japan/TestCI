@@ -197,19 +197,16 @@ class UtxoReceiveFinalityFlowV1(
 
         val inputStateAndRefs = initialTransaction.inputStateRefs.map { stateRef ->
             requireNotNull(dependentStateAndRefs[stateRef]) {
-                "Missing input state and ref $stateRef from the filtered transaction"
+                "Missing input state and ref from the filtered transaction"
             }
         }
         val referenceStateAndRefs = initialTransaction.referenceStateRefs.map { stateRef ->
             requireNotNull(dependentStateAndRefs[stateRef]) {
-                "Missing reference state and ref $stateRef from the filtered transaction"
+                "Missing reference state and ref from the filtered transaction"
             }
         }
 
-        persistenceService.persistFilteredTransactionsAndSignatures(
-            filteredTransactionsAndSignatures,
-            inputStateAndRefs.map { it.ref },
-            referenceStateAndRefs.map { it.ref })
+        persistenceService.persistFilteredTransactionsAndSignatures(filteredTransactionsAndSignatures)
 
         return InitialTransactionPayload(
             initialTransaction,
@@ -217,7 +214,6 @@ class UtxoReceiveFinalityFlowV1(
             inputStateAndRefs,
             referenceStateAndRefs
         )
-        // do nothing
     }
 
     @Suspendable
