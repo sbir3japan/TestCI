@@ -298,7 +298,9 @@ class UtxoLedgerPersistenceServiceImpl @Activate constructor(
 
     @Suspendable
     override fun persistFilteredTransactionsAndSignatures(
-        filteredTransactionsAndSignatures: List<UtxoFilteredTransactionAndSignatures>
+        filteredTransactionsAndSignatures: List<UtxoFilteredTransactionAndSignatures>,
+        inputStateRefs: List<StateRef>,
+        referenceStateRefs: List<StateRef>
     ) {
         val filteredTransactionAndSignatureMap = filteredTransactionsAndSignatures.associate {
             (it.filteredTransaction as UtxoFilteredTransactionImpl).filteredTransaction to it.signatures
@@ -310,7 +312,11 @@ class UtxoLedgerPersistenceServiceImpl @Activate constructor(
             wrapWithPersistenceException {
                 externalEventExecutor.execute(
                     PersistFilteredTransactionsExternalEventFactory::class.java,
-                    PersistFilteredTransactionParameters(serialize(filteredTransactionAndSignatureMap))
+                    PersistFilteredTransactionParameters(
+                        serialize(filteredTransactionAndSignatureMap),
+                        inputStateRefs,
+                        referenceStateRefs
+                    )
                 )
             }
         }

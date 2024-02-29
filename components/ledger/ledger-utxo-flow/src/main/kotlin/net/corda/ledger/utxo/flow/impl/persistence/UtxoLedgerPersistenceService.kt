@@ -154,6 +154,8 @@ interface UtxoLedgerPersistenceService {
      */
     @Suspendable
     fun persistFilteredTransactionsAndSignatures(
-        filteredTransactionsAndSignatures: List<UtxoFilteredTransactionAndSignatures>
+        filteredTransactionsAndSignatures: List<UtxoFilteredTransactionAndSignatures>,
+        inputStateRefs: List<StateRef>,
+        referenceStateRefs: List<StateRef>
     )
 }
