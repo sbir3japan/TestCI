@@ -9,6 +9,7 @@ import net.corda.data.flow.event.session.SessionData
 import net.corda.data.flow.event.session.SessionInit
 import net.corda.data.flow.state.checkpoint.FlowStackItem
 import net.corda.data.flow.state.checkpoint.FlowStackItemSession
+import net.corda.data.flow.state.waiting.start.WaitingForStartFlow
 import net.corda.flow.fiber.FiberFuture
 import net.corda.flow.fiber.FlowContinuation
 import net.corda.flow.fiber.FlowLogicAndArgs
@@ -17,7 +18,6 @@ import net.corda.flow.pipeline.events.FlowEventContext
 import net.corda.flow.pipeline.exceptions.FlowFatalException
 import net.corda.flow.pipeline.factory.FlowFactory
 import net.corda.flow.pipeline.factory.FlowFiberExecutionContextFactory
-import net.corda.data.flow.state.waiting.start.WaitingForStartFlow
 import net.corda.flow.pipeline.runner.FlowRunner
 import net.corda.flow.utils.KeyValueStore
 import net.corda.flow.utils.emptyKeyValuePairList
@@ -32,6 +32,7 @@ import net.corda.virtualnode.read.VirtualNodeInfoReadService
 import org.osgi.service.component.annotations.Activate
 import org.osgi.service.component.annotations.Component
 import org.osgi.service.component.annotations.Reference
+import org.slf4j.LoggerFactory
 import java.time.Duration
 
 @Suppress("LongParameterList")
@@ -50,6 +51,11 @@ class FlowRunnerImpl @Activate constructor(
     @Reference(service = PlatformInfoProvider::class)
     val platformInfoProvider: PlatformInfoProvider,
 ) : FlowRunner {
+
+    private companion object {
+        val log = LoggerFactory.getLogger(this::class.java.enclosingClass)
+    }
+
     override fun runFlow(
         context: FlowEventContext<Any>,
         flowContinuation: FlowContinuation
@@ -60,12 +66,15 @@ class FlowRunnerImpl @Activate constructor(
                     "${platformInfoProvider.localWorkerPlatformVersion}.  The flow must be restarted.")
         }
 
+        log.info("FlowRunnerImpl - RunFlow for ${context.checkpoint.flowId}")
         val waitingFor = context.checkpoint.waitingFor?.value
         return when (val receivedEvent = context.inputEvent.payload) {
             is StartFlow -> {
                 if (waitingFor is WaitingForStartFlow) {
+                    log.info("FlowRunnerImpl - RunFlow - starting flow  for ${context.checkpoint.flowId}")
                     startFlow(context, receivedEvent)
                 } else {
+                    log.info("FlowRunnerImpl - RunFlow - resuming flow  for ${context.checkpoint.flowId}")
                     resumeFlow(context, flowContinuation)
                 }
             }

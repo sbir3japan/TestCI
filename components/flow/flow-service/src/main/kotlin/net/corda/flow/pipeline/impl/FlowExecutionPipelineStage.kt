@@ -53,10 +53,15 @@ internal class FlowExecutionPipelineStage(
         notifyContextUpdate: (FlowEventContext<Any>) -> Unit
     ) : FlowEventContext<Any> {
         var currentContext = context
+        logger.info("FlowExecutionPipelineStage - run flow - ${context.checkpoint.flowId}")
         var continuation = flowReady(currentContext)
+        logger.info("FlowExecutionPipelineStage - run flow - ${context.checkpoint.flowId} - continuation: $continuation")
+
         while (continuation != FlowContinuation.Continue) {
             continuation = try {
+                logger.info("FlowExecutionPipelineStage - executeing flow - ${context.checkpoint.flowId}")
                 val output = executeFlow(currentContext, continuation, timeout)
+                logger.info("FlowExecutionPipelineStage - output for flow - $output - ${context.checkpoint.flowId}")
                 currentContext = updateContext(output, currentContext)
                 notifyContextUpdate(currentContext)
                 flowReady(currentContext)
@@ -67,6 +72,8 @@ internal class FlowExecutionPipelineStage(
                     )
                 )
             }
+            logger.info("FlowExecutionPipelineStage - continuation - $continuation - ${context.checkpoint.flowId}")
+
         }
         return currentContext
     }

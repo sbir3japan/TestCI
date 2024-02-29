@@ -9,6 +9,7 @@ import net.corda.flow.pipeline.factory.FlowRecordFactory
 import org.osgi.service.component.annotations.Activate
 import org.osgi.service.component.annotations.Component
 import org.osgi.service.component.annotations.Reference
+import org.slf4j.LoggerFactory
 
 @Component(service = [FlowRequestHandler::class])
 class InitialCheckpointRequestHandler @Activate constructor(
@@ -19,11 +20,15 @@ class InitialCheckpointRequestHandler @Activate constructor(
 ) : FlowRequestHandler<FlowIORequest.InitialCheckpoint> {
 
     override val type = FlowIORequest.InitialCheckpoint::class.java
-
+    private companion object {
+        val log = LoggerFactory.getLogger(this::class.java.enclosingClass)
+    }
     override fun getUpdatedWaitingFor(
         context: FlowEventContext<Any>,
         request: FlowIORequest.InitialCheckpoint
     ): WaitingFor {
+        log.info("InitialCheckpointRequestHandler Flow [${context.checkpoint.flowId}] setting WaitingFor Wakeup")
+
         return WaitingFor(Wakeup())
     }
 

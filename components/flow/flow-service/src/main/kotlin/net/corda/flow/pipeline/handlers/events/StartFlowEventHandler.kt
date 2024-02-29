@@ -2,9 +2,9 @@ package net.corda.flow.pipeline.handlers.events
 
 import net.corda.data.flow.event.StartFlow
 import net.corda.data.flow.state.waiting.WaitingFor
+import net.corda.data.flow.state.waiting.start.WaitingForStartFlow
 import net.corda.flow.pipeline.CheckpointInitializer
 import net.corda.flow.pipeline.events.FlowEventContext
-import net.corda.data.flow.state.waiting.start.WaitingForStartFlow
 import net.corda.virtualnode.toCorda
 import org.osgi.service.component.annotations.Activate
 import org.osgi.service.component.annotations.Component
@@ -24,7 +24,7 @@ class StartFlowEventHandler @Activate constructor(
     override val type = StartFlow::class.java
 
     override fun preProcess(context: FlowEventContext<StartFlow>): FlowEventContext<StartFlow> {
-        log.info("Flow [${context.checkpoint.flowId}] started")
+        log.info("StartFlowEventHandler - Flow [${context.checkpoint.flowId}] started, setting WaitingForStartFlow")
 
         checkpointInitializer.initialize(
             context.checkpoint,

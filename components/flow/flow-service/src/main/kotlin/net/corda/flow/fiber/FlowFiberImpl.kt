@@ -5,11 +5,11 @@ import co.paralleluniverse.fibers.FiberScheduler
 import net.corda.data.flow.state.checkpoint.FlowStackItem
 import net.corda.metrics.CordaMetrics
 import net.corda.utilities.clearMDC
+import net.corda.utilities.debug
 import net.corda.utilities.setMDC
+import net.corda.utilities.trace
 import net.corda.v5.base.annotations.Suspendable
 import net.corda.v5.base.exceptions.CordaRuntimeException
-import net.corda.utilities.debug
-import net.corda.utilities.trace
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.nio.ByteBuffer
@@ -61,6 +61,8 @@ class FlowFiberImpl(
             bindToSandbox(flowFiberExecutionContext)
         }
 
+        log.info("FlowFiberImpl - startFlow for ${flowFiberExecutionContext.flowCheckpoint.flowId}")
+
         start()
         return flowCompletion
     }
@@ -105,6 +107,7 @@ class FlowFiberImpl(
     private fun runFlow() {
         initialiseThreadContext()
         resetLoggingContext()
+        log.info("FlowFiberImpl - Suspending for InitialCheckpoint")
         suspend(FlowIORequest.InitialCheckpoint)
 
         val outcomeOfFlow = try {
