@@ -53,8 +53,6 @@ class FlowFiberImpl(
 
     @Suspendable
     override fun startFlow(flowFiberExecutionContext: FlowFiberExecutionContext): Future<FlowIORequest<*>> {
-        log.info("FlowFiberImpl - setting flowFiberExecutionContext for flowId ${flowFiberExecutionContext.flowCheckpoint.flowId} with flowFiberExecutionContext flow id of ${flowFiberExecutionContext.flowCheckpoint.flowId} and mdcdata of ${flowFiberExecutionContext.mdcLoggingData} ")
-
         this.flowFiberExecutionContext = flowFiberExecutionContext
 
         if (boundSandboxUUID != null) {
@@ -62,8 +60,6 @@ class FlowFiberImpl(
         } else {
             bindToSandbox(flowFiberExecutionContext)
         }
-
-        log.info("FlowFiberImpl - startFlow for ${flowFiberExecutionContext.flowCheckpoint.flowId}")
 
         start()
         return flowCompletion
@@ -109,7 +105,6 @@ class FlowFiberImpl(
     private fun runFlow() {
         initialiseThreadContext()
         resetLoggingContext()
-        log.info("FlowFiberImpl - Suspending for InitialCheckpoint")
         suspend(FlowIORequest.InitialCheckpoint)
 
         val outcomeOfFlow = try {

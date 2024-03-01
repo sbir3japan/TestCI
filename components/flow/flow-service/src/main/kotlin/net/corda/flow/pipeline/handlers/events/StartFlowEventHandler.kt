@@ -24,7 +24,7 @@ class StartFlowEventHandler @Activate constructor(
     override val type = StartFlow::class.java
 
     override fun preProcess(context: FlowEventContext<StartFlow>): FlowEventContext<StartFlow> {
-        log.info("StartFlowEventHandler - Flow [${context.checkpoint.flowId}] started, setting WaitingForStartFlow")
+        log.info("Flow [${context.checkpoint.flowId}] started")
 
         checkpointInitializer.initialize(
             context.checkpoint,

@@ -66,15 +66,12 @@ class FlowRunnerImpl @Activate constructor(
                     "${platformInfoProvider.localWorkerPlatformVersion}.  The flow must be restarted.")
         }
 
-        log.info("FlowRunnerImpl - RunFlow for ${context.checkpoint.flowId}")
         val waitingFor = context.checkpoint.waitingFor?.value
         return when (val receivedEvent = context.inputEvent.payload) {
             is StartFlow -> {
                 if (waitingFor is WaitingForStartFlow) {
-                    log.info("FlowRunnerImpl - RunFlow - starting flow  for ${context.checkpoint.flowId}")
                     startFlow(context, receivedEvent)
                 } else {
-                    log.info("FlowRunnerImpl - RunFlow - resuming flow  for ${context.checkpoint.flowId}")
                     resumeFlow(context, flowContinuation)
                 }
             }

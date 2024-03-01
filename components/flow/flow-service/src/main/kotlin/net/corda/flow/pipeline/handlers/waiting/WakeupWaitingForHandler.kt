@@ -17,7 +17,6 @@ class WakeupWaitingForHandler : FlowWaitingForHandler<Wakeup> {
     }
 
     override fun runOrContinue(context: FlowEventContext<*>, waitingFor: Wakeup): FlowContinuation {
-        log.info("WakeupWaitingForHandler - ${context.checkpoint.flowId}")
         val pendingPlatformError = context.checkpoint.pendingPlatformError
         return if (pendingPlatformError != null) {
             FlowContinuation.Error(

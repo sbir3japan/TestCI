@@ -67,7 +67,6 @@ class RestSmokeTestFlow : ClientStartableFlow {
     @Suspendable
     override fun call(requestBody: ClientRequestBody): String {
         requestBody.getRequestBodyAs(jsonMarshallingService, RestSmokeTestInput::class.java)
-        log.info("Processed flow count successfully.")
         return true.toString()
     }
 

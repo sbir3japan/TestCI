@@ -27,8 +27,6 @@ class InitialCheckpointRequestHandler @Activate constructor(
         context: FlowEventContext<Any>,
         request: FlowIORequest.InitialCheckpoint
     ): WaitingFor {
-        log.info("InitialCheckpointRequestHandler Flow [${context.checkpoint.flowId}] setting WaitingFor Wakeup")
-
         return WaitingFor(Wakeup())
     }
 

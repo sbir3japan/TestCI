@@ -14,8 +14,6 @@ class StartFlowWaitingForHandler : FlowWaitingForHandler<WaitingForStartFlow> {
         val log = LoggerFactory.getLogger(this::class.java.enclosingClass)
     }
     override fun runOrContinue(context: FlowEventContext<*>, waitingFor: WaitingForStartFlow): FlowContinuation {
-        log.info("StartFlowWaitingForHandler - Flow [${context.checkpoint.flowId}] StartFlowWaitingForHandler")
-
         return FlowContinuation.Run(Unit)
     }
 }
