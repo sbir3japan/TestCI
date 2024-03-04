@@ -14,12 +14,12 @@ class MetricsRecorderImpl(private val stateType: String) : MetricsRecorder {
             }!!
     }
 
-    override fun recordBatchSize(operationType: MetricsRecorder.OperationType, size: Double) {
+    override fun recordBatchSize(operationType: MetricsRecorder.OperationType, size: Int) {
         CordaMetrics.Metric.StateManger.BatchSize.builder()
             .withTag(CordaMetrics.Tag.OperationName, operationType.toString())
             .withTag(CordaMetrics.Tag.StateType, stateType)
             .build()
-            .record(size)
+            .record(size.toDouble())
     }
 
     override fun recordFailureCount(operationType: MetricsRecorder.OperationType, count: Int) {
@@ -27,6 +27,6 @@ class MetricsRecorderImpl(private val stateType: String) : MetricsRecorder {
             .withTag(CordaMetrics.Tag.OperationName, operationType.toString())
             .withTag(CordaMetrics.Tag.StateType, stateType)
             .build()
-            .increment(count.toDouble())
+            .record(count.toDouble())
     }
 }
