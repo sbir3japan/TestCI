@@ -111,28 +111,30 @@ class StateManagerImpl(
     override fun update(states: Collection<State>): Map<String, State?> {
         if (states.isEmpty()) return emptyMap()
 
-        metricsRecorder.recordBatchSize(UPDATE, states.size)
+        val failures = mutableMapOf<String, State?>()
+        val attemptUuid = UUID.randomUUID().toString()
+        metricsRecorder.recordProcessingTime(UPDATE) {
+            // limit transaction batches to avoid page lock clashes with other processes updating states
+            states.chunked(20).forEachIndexed { idx, batch ->
+                try {
+                    metricsRecorder.recordBatchSize(UPDATE, batch.size)
+                    val (_, failedUpdates) = dataSource.connection.transaction { conn ->
+                        stateRepository.update(conn, batch)
+                    }
 
-        return metricsRecorder.recordProcessingTime(UPDATE) {
-            try {
-                val (_, failedUpdates) = dataSource.connection.transaction { conn ->
-                    stateRepository.update(conn, states)
+                    if (!failedUpdates.isEmpty()) {
+                        failures.putAll(getFailedUpdates(failedUpdates))
+                    }
+                } catch (e: Exception) {
+                    logger.warn("Failed to updated batch of states [id $attemptUuid, chunk $idx] - ${batch.joinToString { it.key }}", e)
                 }
-
-                if (failedUpdates.isEmpty()) {
-                    emptyMap()
-                } else {
-                    getFailedUpdates(failedUpdates)
-                }
-            } catch (e: Exception) {
-                logger.warn("Failed to updated batch of states - ${states.joinToString { it.key }}", e)
-                throw e
             }
         }.also {
-            if (it.isNotEmpty()) {
-                metricsRecorder.recordFailureCount(UPDATE, it.size)
+            if (failures.isNotEmpty()) {
+                metricsRecorder.recordFailureCount(UPDATE, failures.size)
             }
         }
+        return failures
     }
 
     override fun delete(states: Collection<State>): Map<String, State> {
