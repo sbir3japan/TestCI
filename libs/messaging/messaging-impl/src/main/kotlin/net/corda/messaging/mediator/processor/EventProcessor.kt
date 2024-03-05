@@ -34,6 +34,7 @@ class EventProcessor<K : Any, S : Any, E : Any>(
     private val messageRouter: MessageRouter,
     private val mediatorInputService: MediatorInputService,
     private val executor: Executor,
+    private val blockingTasksExecutor: Executor,
 ) {
     private val log = LoggerFactory.getLogger("${this.javaClass.name}-${config.name}")
     private val metrics = EventMediatorMetrics(config.name)
@@ -163,7 +164,7 @@ class EventProcessor<K : Any, S : Any, E : Any>(
             log.debug { "Persisting state for key ${context.key}, version $version" }
             stateManagerHelper.persistState(stateChangeAndOperation)
             context.stateSavedFuture.complete(stateChangeAndOperation.toPersistedState())
-        }, executor)
+        }, blockingTasksExecutor)
     }
 
     private fun sendAsyncEvents(

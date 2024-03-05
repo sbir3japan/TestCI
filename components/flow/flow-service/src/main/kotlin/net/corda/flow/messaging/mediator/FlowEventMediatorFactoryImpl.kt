@@ -97,6 +97,10 @@ class FlowEventMediatorFactoryImpl @Activate constructor(
                 6, //messagingConfig.getInt(MEDIATOR_PROCESSING_THREAD_POOL_SIZE),
                 threadFactory("FlowEventMediator")
             ),
+            Executors.newFixedThreadPool(
+                5, // TODO this should match config value for StateManagerConfig.Database.JDBC_POOL_MAX_SIZE
+                threadFactory("FlowBlockingTask")
+            ),
         )
     )
 
@@ -117,6 +121,7 @@ class FlowEventMediatorFactoryImpl @Activate constructor(
         messageProcessor: StateAndEventProcessor<String, Checkpoint, FlowEvent>,
         stateManager: StateManager,
         executor: Executor,
+        blockingTasksExecutor: Executor,
     ) = EventMediatorConfigBuilder<String, Checkpoint, FlowEvent>()
         .name("FlowEventMediator")
         .messagingConfig(messagingConfig)
@@ -139,6 +144,7 @@ class FlowEventMediatorFactoryImpl @Activate constructor(
         .stateManager(stateManager)
         .minGroupSize(messagingConfig.getInt(MEDIATOR_PROCESSING_MIN_POOL_RECORD_COUNT))
         .executor(executor)
+        .blockingTasksExecutor(blockingTasksExecutor)
         .build()
 
     private fun createMediatorConsumerFactories(messagingConfig: SmartConfig, bootConfig: SmartConfig): List<MediatorConsumerFactory> {

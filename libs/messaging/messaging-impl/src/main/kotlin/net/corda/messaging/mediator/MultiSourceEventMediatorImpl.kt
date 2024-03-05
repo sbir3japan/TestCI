@@ -48,7 +48,7 @@ class MultiSourceEventMediatorImpl<K : Any, S : Any, E : Any>(
             taskManager.executeLongRunningTask {
                 val consumerProcessor =
                     mediatorComponentFactory.createConsumerProcessor(
-                        config, mediatorSubscriptionState, messageRouter, config.executor)
+                        config, mediatorSubscriptionState, messageRouter, config.executor, config.blockingTasksExecutor,)
                 consumerProcessor.processTopic(consumerFactory, consumerConfig)
             }.exceptionally { exception ->
                 handleTaskException(exception)

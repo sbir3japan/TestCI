@@ -42,6 +42,7 @@ data class EventMediatorConfig<K: Any, S: Any, E: Any>(
     val stateManager: StateManager,
     val minGroupSize: Int,
     val executor: Executor,
+    val blockingTasksExecutor: Executor,
 ) {
     /**
      * Timeout for polling consumers.

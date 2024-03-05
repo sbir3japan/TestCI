@@ -29,6 +29,7 @@ class EventMediatorConfigBuilder<K: Any, S: Any, E: Any> {
     private var stateManager: StateManager? = null
     private var minGroupSize: Int? = null
     private var executor: Executor? = null
+    private var blockingTasksExecutor: Executor? = null
 
     /** Sets name for [MultiSourceEventMediator]. */
     fun name(name: String) =
@@ -79,6 +80,9 @@ class EventMediatorConfigBuilder<K: Any, S: Any, E: Any> {
     fun executor(executor: Executor) =
         apply { this.executor = executor }
 
+    fun blockingTasksExecutor(blockingTasksExecutor: Executor) =
+        apply { this.blockingTasksExecutor = blockingTasksExecutor }
+
     /** Builds [EventMediatorConfig]. */
     fun build(): EventMediatorConfig<K, S, E> {
         check(consumerFactories.isNotEmpty()) { "At least on consumer factory has to be set" }
@@ -95,6 +99,7 @@ class EventMediatorConfigBuilder<K: Any, S: Any, E: Any> {
             stateManager = checkNotNull(stateManager) { "State manager not set" },
             minGroupSize = checkNotNull(minGroupSize) { "Min group size not set" },
             executor = checkNotNull(executor) { "Executor not set" },
+            blockingTasksExecutor = checkNotNull(blockingTasksExecutor) { "Executor not set" },
         )
     }
 }

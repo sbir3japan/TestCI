@@ -105,9 +105,10 @@ class MediatorComponentFactory<K : Any, S : Any, E : Any>(
         mediatorSubscriptionState: MediatorSubscriptionState,
         messageRouter: MessageRouter,
         executor: Executor,
+        blockingTasksExecutor: Executor,
     ): ConsumerProcessor<K, S, E> {
         val eventProcessor = EventProcessor(
-            eventMediatorConfig, stateManagerHelper, messageRouter, mediatorInputService, executor
+            eventMediatorConfig, stateManagerHelper, messageRouter, mediatorInputService, executor, blockingTasksExecutor
         )
         return ConsumerProcessor(
             eventMediatorConfig,
