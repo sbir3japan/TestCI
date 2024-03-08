@@ -3,6 +3,7 @@ package net.corda.flow.external.events.impl.executor
 import net.corda.crypto.cipher.suite.sha256Bytes
 import net.corda.flow.application.serialization.FlowSerializationService
 import net.corda.flow.external.events.executor.ExternalEventExecutor
+import net.corda.flow.external.events.executor.ParametersWithPrimaryKey
 import net.corda.flow.external.events.factory.ExternalEventFactory
 import net.corda.flow.fiber.FlowFiber
 import net.corda.flow.fiber.FlowFiberService
@@ -53,7 +54,11 @@ class ExternalEventExecutorImpl @Activate constructor(
         }
 
     private fun <PARAMETERS : Any> deterministicBytesID(parameters: PARAMETERS): String {
-        return hash(serializationService.serialize(parameters).bytes)
+        return hash(if(parameters is ParametersWithPrimaryKey<*>) {
+            serializationService.serialize(parameters.primaryKey).bytes
+        } else {
+            serializationService.serialize(parameters).bytes
+        })
     }
 
     private fun hash(bytes: ByteArray) = toBase64(bytes.sha256Bytes())

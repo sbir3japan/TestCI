@@ -30,3 +30,7 @@ interface ExternalEventExecutor {
         parameters: PARAMETERS
     ): RESUME
 }
+
+interface ParametersWithPrimaryKey<T : Any> {
+    val primaryKey: T
+}

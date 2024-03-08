@@ -93,7 +93,7 @@ class PersistenceServiceImpl @Activate constructor(
         wrapWithPersistenceException {
             externalEventExecutor.execute(
                 PersistExternalEventFactory::class.java,
-                PersistParameters(listOf(serialize(entity)))
+                PersistParameters(listOf(serialize(entity)), primaryKey(entity))
             )
         }
     }
@@ -104,7 +104,7 @@ class PersistenceServiceImpl @Activate constructor(
             wrapWithPersistenceException {
                 externalEventExecutor.execute(
                     PersistExternalEventFactory::class.java,
-                    PersistParameters(entities.filterNotNull().map(::serialize))
+                    PersistParameters(entities.filterNotNull().map(::serialize), entities.filterNotNull().map(::primaryKey))
                 )
             }
         }
@@ -142,5 +142,11 @@ class PersistenceServiceImpl @Activate constructor(
 
     private fun serialize(payload: Any): ByteArray {
         return serializationService.serialize(payload).bytes
+    }
+
+    private fun primaryKey(entity: Any): Any {
+        // TODO: This needs to call EntityManagerFactory.getPersistenceUnitUtil().getIdentifier(entity)
+        // EntityManagerFactory might be findable via DbConnectionOpsCachedImpl
+        return entity
     }
 }

@@ -1,6 +1,7 @@
 package net.corda.flow.application.persistence.external.events
 
 import net.corda.data.persistence.PersistEntities
+import net.corda.flow.external.events.executor.ParametersWithPrimaryKey
 import net.corda.utilities.toByteBuffers
 import net.corda.flow.external.events.factory.ExternalEventFactory
 import net.corda.v5.base.annotations.CordaSerializable
@@ -15,4 +16,4 @@ class PersistExternalEventFactory : AbstractPersistenceExternalEventFactory<Pers
 }
 
 @CordaSerializable
-data class PersistParameters(val serializedEntities: List<ByteArray>)
+data class PersistParameters(val serializedEntities: List<ByteArray>, override val primaryKey: Any) : ParametersWithPrimaryKey<Any>
