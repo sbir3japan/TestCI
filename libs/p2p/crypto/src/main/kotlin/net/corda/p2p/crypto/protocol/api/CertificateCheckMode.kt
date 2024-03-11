@@ -15,7 +15,7 @@ sealed class CertificateCheckMode {
             checkRevocation: CheckRevocation,
         ): CertificateCheckMode {
             return if (this == null) {
-                NoCertificate
+                net.corda.p2p.crypto.protocol.api.CertificateCheckMode.NoCertificate
             } else {
                 CheckCertificate(
                     truststore = this.truststore,

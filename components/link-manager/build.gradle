@@ -36,7 +36,7 @@ dependencies {
     compileOnly 'org.osgi:org.osgi.service.component.annotations'
 
     implementation 'org.jetbrains.kotlin:kotlin-osgi-bundle'
-    implementation project(":libs:p2p-crypto")
+    implementation project(":libs:p2p:crypto")
     implementation project(":libs:messaging:messaging")
     implementation project(":libs:lifecycle:lifecycle")
     implementation project(":libs:configuration:configuration-core")
