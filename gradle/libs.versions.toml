@@ -18,7 +18,7 @@ nimbusVersion = "11.9.1"
 # Note: We cannot go to the higher versions as they transitively depend on SLF4J 2.X
 swaggerVersion = "2.2.16"
 # Please also update SWAGGERUI.version in net.corda.rest.server.impl.internal.OptionalDependency
-swaggeruiVersion = "5.10.3"
+swaggeruiVersion = "5.12.0"
 jcipAnnotationsVersion = "1.0_2"
 pf4jVersion = "3.10.0"
 braveVersion = "6.0.0"
